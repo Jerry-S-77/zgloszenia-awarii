@@ -10,33 +10,73 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as EksportRouteImport } from './routes/eksport'
+import { Route as AwarieIndexRouteImport } from './routes/awarie.index'
+import { Route as AwarieIdRouteImport } from './routes/awarie.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EksportRoute = EksportRouteImport.update({
+  id: '/eksport',
+  path: '/eksport',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AwarieIndexRoute = AwarieIndexRouteImport.update({
+  id: '/awarie/',
+  path: '/awarie/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AwarieIdRoute = AwarieIdRouteImport.update({
+  id: '/awarie/$id',
+  path: '/awarie/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/eksport': typeof EksportRoute
+  '/awarie/$id': typeof AwarieIdRoute
+  '/awarie/': typeof AwarieIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/eksport': typeof EksportRoute
+  '/awarie/$id': typeof AwarieIdRoute
+  '/awarie': typeof AwarieIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/eksport': typeof EksportRoute
+  '/awarie/$id': typeof AwarieIdRoute
+  '/awarie/': typeof AwarieIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/dashboard' | '/eksport' | '/awarie/$id' | '/awarie/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/dashboard' | '/eksport' | '/awarie/$id' | '/awarie'
+  id: '__root__' | '/' | '/dashboard' | '/eksport' | '/awarie/$id' | '/awarie/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
+  EksportRoute: typeof EksportRoute
+  AwarieIdRoute: typeof AwarieIdRoute
+  AwarieIndexRoute: typeof AwarieIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +88,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/eksport': {
+      id: '/eksport'
+      path: '/eksport'
+      fullPath: '/eksport'
+      preLoaderRoute: typeof EksportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/awarie/': {
+      id: '/awarie/'
+      path: '/awarie'
+      fullPath: '/awarie/'
+      preLoaderRoute: typeof AwarieIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/awarie/$id': {
+      id: '/awarie/$id'
+      path: '/awarie/$id'
+      fullPath: '/awarie/$id'
+      preLoaderRoute: typeof AwarieIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
+  EksportRoute: EksportRoute,
+  AwarieIdRoute: AwarieIdRoute,
+  AwarieIndexRoute: AwarieIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
