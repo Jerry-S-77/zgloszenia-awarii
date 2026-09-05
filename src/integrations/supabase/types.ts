@@ -14,7 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      awarie: {
+        Row: {
+          created_at: string
+          czas_przestoju_h: number | null
+          data_awarii: string
+          data_zamkniecia: string | null
+          id: string
+          krytycznosc_skutku: string
+          nazwa_urzadzenia: string
+          nr_technologiczny: string
+          opis_awarii: string
+          osoba_zglaszajaca_id: string | null
+          przyczyna: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          czas_przestoju_h?: number | null
+          data_awarii?: string
+          data_zamkniecia?: string | null
+          id?: string
+          krytycznosc_skutku: string
+          nazwa_urzadzenia: string
+          nr_technologiczny: string
+          opis_awarii: string
+          osoba_zglaszajaca_id?: string | null
+          przyczyna?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          czas_przestoju_h?: number | null
+          data_awarii?: string
+          data_zamkniecia?: string | null
+          id?: string
+          krytycznosc_skutku?: string
+          nazwa_urzadzenia?: string
+          nr_technologiczny?: string
+          opis_awarii?: string
+          osoba_zglaszajaca_id?: string | null
+          przyczyna?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "awarie_nr_technologiczny_fkey"
+            columns: ["nr_technologiczny"]
+            isOneToOne: false
+            referencedRelation: "urzadzenia"
+            referencedColumns: ["nr_technologiczny"]
+          },
+          {
+            foreignKeyName: "awarie_osoba_zglaszajaca_id_fkey"
+            columns: ["osoba_zglaszajaca_id"]
+            isOneToOne: false
+            referencedRelation: "pracownicy"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pracownicy: {
+        Row: {
+          created_at: string
+          id: string
+          imie_nazwisko: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imie_nazwisko: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imie_nazwisko?: string
+        }
+        Relationships: []
+      }
+      urzadzenia: {
+        Row: {
+          created_at: string
+          kategoria: string | null
+          krytycznosc: string | null
+          lokalizacja: string | null
+          nazwa_urzadzenia: string
+          nr_technologiczny: string
+          status_w_rejestrze: string
+          wlasciciel: string | null
+        }
+        Insert: {
+          created_at?: string
+          kategoria?: string | null
+          krytycznosc?: string | null
+          lokalizacja?: string | null
+          nazwa_urzadzenia: string
+          nr_technologiczny: string
+          status_w_rejestrze?: string
+          wlasciciel?: string | null
+        }
+        Update: {
+          created_at?: string
+          kategoria?: string | null
+          krytycznosc?: string | null
+          lokalizacja?: string | null
+          nazwa_urzadzenia?: string
+          nr_technologiczny?: string
+          status_w_rejestrze?: string
+          wlasciciel?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
