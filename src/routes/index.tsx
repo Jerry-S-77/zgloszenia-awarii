@@ -123,19 +123,21 @@ function Zgloszenie() {
               ))}
             </SelectContent>
           </Select>
-          {urzadzenie && (
-            <div className="rounded-xl bg-accent p-3 text-sm text-accent-foreground">
-              <p>
-                <span className="font-semibold">Kategoria:</span> {urzadzenie.kategoria}
-              </p>
-              <p>
-                <span className="font-semibold">Lokalizacja:</span> {urzadzenie.lokalizacja}
-              </p>
-              <p>
-                <span className="font-semibold">Krytyczność urządzenia:</span> {urzadzenie.krytycznosc}
-              </p>
-            </div>
-          )}
+          <div
+            className={`rounded-xl bg-accent p-3 text-sm text-accent-foreground ${
+              urzadzenie ? "" : "invisible"
+            }`}
+          >
+            <p>
+              <span className="font-semibold">Kategoria:</span> {urzadzenie?.kategoria}
+            </p>
+            <p>
+              <span className="font-semibold">Lokalizacja:</span> {urzadzenie?.lokalizacja}
+            </p>
+            <p>
+              <span className="font-semibold">Krytyczność urządzenia:</span> {urzadzenie?.krytycznosc}
+            </p>
+          </div>
         </div>
 
         <div className="space-y-2">
