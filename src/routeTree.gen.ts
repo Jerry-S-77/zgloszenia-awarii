@@ -14,6 +14,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EksportRouteImport } from './routes/eksport'
 import { Route as AwarieIndexRouteImport } from './routes/awarie.index'
 import { Route as AwarieIdRouteImport } from './routes/awarie.$id'
+import { Route as ApiPublicSyncUrzadzeniaRouteImport } from './routes/api/public/sync-urzadzenia'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const AwarieIdRoute = AwarieIdRouteImport.update({
   path: '/awarie/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSyncUrzadzeniaRoute = ApiPublicSyncUrzadzeniaRouteImport.update({
+  id: '/api/public/sync-urzadzenia',
+  path: '/api/public/sync-urzadzenia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/eksport': typeof EksportRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/awarie/': typeof AwarieIndexRoute
+  '/api/public/sync-urzadzenia': typeof ApiPublicSyncUrzadzeniaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/eksport': typeof EksportRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/awarie': typeof AwarieIndexRoute
+  '/api/public/sync-urzadzenia': typeof ApiPublicSyncUrzadzeniaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,33 @@ export interface FileRoutesById {
   '/eksport': typeof EksportRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/awarie/': typeof AwarieIndexRoute
+  '/api/public/sync-urzadzenia': typeof ApiPublicSyncUrzadzeniaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/eksport' | '/awarie/$id' | '/awarie/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/eksport'
+    | '/awarie/$id'
+    | '/awarie/'
+    | '/api/public/sync-urzadzenia'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/eksport' | '/awarie/$id' | '/awarie'
-  id: '__root__' | '/' | '/dashboard' | '/eksport' | '/awarie/$id' | '/awarie/'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/eksport'
+    | '/awarie/$id'
+    | '/awarie'
+    | '/api/public/sync-urzadzenia'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/eksport'
+    | '/awarie/$id'
+    | '/awarie/'
+    | '/api/public/sync-urzadzenia'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +105,7 @@ export interface RootRouteChildren {
   EksportRoute: typeof EksportRoute
   AwarieIdRoute: typeof AwarieIdRoute
   AwarieIndexRoute: typeof AwarieIndexRoute
+  ApiPublicSyncUrzadzeniaRoute: typeof ApiPublicSyncUrzadzeniaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AwarieIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/sync-urzadzenia': {
+      id: '/api/public/sync-urzadzenia'
+      path: '/api/public/sync-urzadzenia'
+      fullPath: '/api/public/sync-urzadzenia'
+      preLoaderRoute: typeof ApiPublicSyncUrzadzeniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   EksportRoute: EksportRoute,
   AwarieIdRoute: AwarieIdRoute,
   AwarieIndexRoute: AwarieIndexRoute,
+  ApiPublicSyncUrzadzeniaRoute: ApiPublicSyncUrzadzeniaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
