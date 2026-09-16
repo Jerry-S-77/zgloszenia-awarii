@@ -1,0 +1,26 @@
+{
+  "name": "Ewidencja awarii urządzeń",
+  "short_name": "Awarie",
+  "description": "Zgłaszanie, śledzenie i analiza awarii urządzeń technicznych.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f9fa",
+  "theme_color": "#1d5f6b",
+  "lang": "pl",
+  "icons": [
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
