@@ -1,0 +1,3 @@
+# zgloszenia-awarii
+
+Repozytorium projektu.
