@@ -19,6 +19,9 @@ describe("czyAdresProdukcyjny", () => {
   it("nie myli innego projektu", () => {
     expect(czyAdresProdukcyjny("https://xyz789.supabase.co", "abc123")).toBe(false);
   });
+  it("nie dopasowuje refa będącego tylko prefiksem innego hosta", () => {
+    expect(czyAdresProdukcyjny("https://abc123.supabase.co", "abc")).toBe(false);
+  });
   it("brak refa produkcyjnego oznacza brak dopasowania", () => {
     expect(czyAdresProdukcyjny("https://xyz789.supabase.co", null)).toBe(false);
   });
