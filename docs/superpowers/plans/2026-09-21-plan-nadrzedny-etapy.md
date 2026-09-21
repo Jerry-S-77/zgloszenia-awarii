@@ -66,7 +66,7 @@ uruchomienia, jeśli `SUPABASE_URL` wskazuje na projekt `fujutpwdtnnooeusivdr` (
   Cloudflare Cron Trigger wywołujący funkcję SQL.
 - **Środowisko testów RLS**: rozstrzygnięte. Na komputerze nie ma Dockera ani Supabase CLI, więc testy działają na osobnym
   projekcie Supabase (`zgloszenia-awarii-test`), a migracje stosuje Supabase CLI z zależności deweloperskiej.
-- **Wdrożenie na produkcję etapu 1** wymaga osobnej zgody użytkownika (zmienia RLS na działającej bazie) i kopii zapasowej.
+- **Baza produkcyjna:** rozstrzygnięte. Dawna baza `fujutpwdtnnooeusivdr` (z Lovable) jest niedostępna dla użytkownika i nie jest używana. Produkcją będzie nowy, własny projekt Supabase (`zgloszenia-awarii`), zbudowany od zera z migracji w zadaniu 11 etapu 1. Jego Reference ID trafia do `supabase/config.toml` (`project_id`), skąd czyta go też strażnik testów przed uruchomieniem na produkcji. Dane przykładowe z migracji bazowej zastąpi import z arkuszy w etapie 3. Każdy krok zewnętrzny (tworzenie projektu, `link`, `db push`, push do GitHuba) wymaga udziału i zgody użytkownika.
 - **Znane ograniczenie do rozwiązania w etapie 2:** kolejka offline zatrzymuje się na pierwszej odrzuconej operacji.
   Etap 1 usuwa tylko przypadek duplikatu; lista „Do sprawdzenia" dla konfliktów biznesowych powstaje w etapie 2.
 
