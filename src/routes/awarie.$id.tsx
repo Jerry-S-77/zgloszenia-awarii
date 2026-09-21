@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { awarieQuery } from "@/lib/queries";
+import { useAuth } from "@/lib/auth";
+import { czyRola } from "@/lib/uprawnienia";
 import { aktualizujAwarie } from "@/lib/offline";
 
 export const Route = createFileRoute("/awarie/$id")({
@@ -26,7 +28,11 @@ function Szczegoly() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: awarie = [], isLoading } = useQuery(awarieQuery);
+  const auth = useAuth();
+  const gotowy = auth.stan === "zalogowany" && !auth.profil.must_change_password;
+  const mozeZamykac =
+    auth.stan === "zalogowany" && czyRola(auth.profil.rola, ["technik", "kierownik", "admin"]);
+  const { data: awarie = [], isLoading } = useQuery({ ...awarieQuery, enabled: gotowy });
 
   const awaria = awarie.find((a) => a.id === id);
   const [przyczyna, setPrzyczyna] = useState("");
@@ -104,7 +110,7 @@ function Szczegoly() {
         )}
       </div>
 
-      {awaria.status === "Otwarta" && (
+      {awaria.status === "Otwarta" && mozeZamykac && (
         <div className="mt-5 space-y-4 rounded-2xl border border-border bg-card p-4">
           <h2 className="font-display text-xl font-bold uppercase">Zamknięcie awarii</h2>
           <div className="space-y-2">
