@@ -70,6 +70,16 @@ uruchomienia, jeśli `SUPABASE_URL` wskazuje na projekt, którego identyfikator 
 - **Baza produkcyjna:** rozstrzygnięte. Dawna baza `fujutpwdtnnooeusivdr` (z Lovable) jest niedostępna dla użytkownika i nie jest używana. Produkcją będzie nowy, własny projekt Supabase (`zgloszenia-awarii`), zbudowany od zera z migracji w zadaniu 11 etapu 1. Jego Reference ID trafia do `supabase/config.toml` (`project_id`), skąd czyta go też strażnik testów przed uruchomieniem na produkcji. Dane przykładowe z migracji bazowej zastąpi import z arkuszy w etapie 3. Każdy krok zewnętrzny (tworzenie projektu, `link`, `db push`, push do GitHuba) wymaga udziału i zgody użytkownika.
 - **Znane ograniczenie do rozwiązania w etapie 2:** kolejka offline zatrzymuje się na pierwszej odrzuconej operacji.
   Etap 1 usuwa tylko przypadek duplikatu; lista „Do sprawdzenia" dla konfliktów biznesowych powstaje w etapie 2.
+- **Znane luki po etapie 1 (do domknięcia w etapie 2 lub 6):**
+  - Test E2E trybu offline nie ćwiczy zimnego startu: asercja „brak przekierowania na /logowanie" po powrocie sieci nie
+    dotyka ścieżki odświeżania sesji (w trybie dev nie da się przeładować strony offline). Dodać test: przeładowanie
+    online z wygasłym tokenem i przerwanym `**/auth/v1/token**`, oczekiwanie: użytkownik zostaje w aplikacji, a profil
+    jest weryfikowany po odblokowaniu żądania.
+  - Przez ok. 60 s po nieudanym odświeżeniu tokenu (cooldown auth-js) niezsynchronizowane zgłoszenie offline może krótko
+    wyglądać na zsynchronizowane, `biezacyUserId` traktuje „null z błędem" online jak brak sesji (kolejka odzyskuje się po
+    ok. 60–80 s), a mutacje online idą wtedy jako anon. Rozważyć traktowanie „null z błędem" jako nieokreślonego także tam.
+  - Logika scalania w `awarieQuery` (dedup po id, nakładanie oczekujących aktualizacji) jest testowana tylko w części
+    czystej (`zdalneLubZCache`); dodać test jednostkowy całej funkcji scalającej przy przebudowie kolejki (etap 2).
 - **Lista przełączenia na produkcję (etap 6):**
   - podnieść wersję IndexedDB kolejki offline i odrzucić operacje o nieznanym kształcie przy przełączeniu na nową bazę;
   - zweryfikować na nowym projekcie produkcyjnym, że publiczna rejestracja jest wyłączona (`Allow new users to sign up` = off), bo test tego ustawienia działa tylko na projekcie testowym.
