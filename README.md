@@ -2,7 +2,7 @@
 
 Mobilna aplikacja webowa (mobile-first, responsywna) do zgłaszania, śledzenia, ewidencji i analizy awarii urządzeń technicznych w zakładzie farmaceutycznym.
 
-Supabase jest głównym źródłem prawdy (wspólnym dla całego zespołu). W trybie offline zgłoszenie zapisuje się lokalnie (IndexedDB) w kolejce do synchronizacji i wysyła się automatycznie do Supabase po odzyskaniu połączenia; status jest widoczny dla użytkownika ("zapisano lokalnie, oczekuje na synchronizację" / "zsynchronizowano").
+Supabase jest głównym źródłem prawdy (wspólnym dla całego zespołu). W trybie offline zgłoszenie zapisuje się lokalnie (IndexedDB) w kolejce do synchronizacji i wysyła się automatycznie do Supabase po odzyskaniu połączenia; status jest widoczny dla użytkownika ("zapisano lokalnie, oczekuje na synchronizację" / "zsynchronizowano"). Klient zapytań działa w trybie `networkMode: always`, żeby lista awarii łączyła lokalną kolejkę także offline; offline użytkownik jest rozpoznawany po zapamiętanym profilu (tylko do wyświetlania, RLS nadal decyduje o dostępie do danych).
 
 ## Tabele Supabase
 
@@ -99,6 +99,8 @@ Skrypt z poprzedniej sekcji odmawia działania, gdy istnieje aktywny administrat
 update auth.users set encrypted_password = crypt('TYMCZASOWE_HASLO_MIN_12_ZNAKOW', gen_salt('bf')) where email = 'adres@admina';
 update public.profiles set must_change_password = true where email = 'adres@admina';
 ```
+
+Sprawdź, że każde polecenie zwróciło `UPDATE 1` (przy literówce w adresie e-mail zmieni 0 wierszy, a hasło mogłoby zostać zmienione bez wymuszenia zmiany); możesz też wykonać oba polecenia w jednej transakcji (`begin; ...; commit;`).
 
 Przy następnym logowaniu aplikacja wymusi ustawienie własnego hasła. Uwagi: SQL Editor działa z podwyższonymi uprawnieniami (omija RLS), a hasło tymczasowe zostaje w historii zapytań, dlatego wymuszona zmiana hasła jest tu konieczna. To procedura awaryjna (break-glass), nie codzienne narzędzie.
 

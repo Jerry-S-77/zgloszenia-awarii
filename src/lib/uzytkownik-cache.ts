@@ -25,3 +25,17 @@ export function odczytajIdZCache(): string | null {
     return null;
   }
 }
+
+/**
+ * Stan po uruchomieniu aplikacji. Wygasły token przy braku sieci daje sesję null, choć użytkownik
+ * jest zalogowany: tylko offline pokazujemy wtedy profil z pamięci lokalnej (RLS nadal decyduje
+ * o danych). Online brak sesji to brak zalogowania, więc pamięci nie ufamy.
+ */
+export function stanPoStarcie(
+  sesjaUserId: string | null,
+  online: boolean,
+  cacheProfil: { id: string } | null,
+): "sesja" | "cache" | "brak" {
+  if (sesjaUserId) return "sesja";
+  return !online && cacheProfil ? "cache" : "brak";
+}
