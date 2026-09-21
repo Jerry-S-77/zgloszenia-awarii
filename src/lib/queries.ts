@@ -1,19 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getQueue } from "./offline";
-import type { AwariaLokalna, Pracownik, Urzadzenie } from "./types";
-
-export const pracownicyQuery = queryOptions({
-  queryKey: ["pracownicy"],
-  queryFn: async (): Promise<Pracownik[]> => {
-    const { data, error } = await supabase
-      .from("pracownicy")
-      .select("id, imie_nazwisko")
-      .order("imie_nazwisko");
-    if (error) throw error;
-    return data ?? [];
-  },
-});
+import type { AwariaLokalna, Urzadzenie } from "./types";
 
 export const urzadzeniaQuery = queryOptions({
   queryKey: ["urzadzenia"],
@@ -49,7 +37,9 @@ export const awarieQuery = queryOptions({
     const zmiany = kolejka.filter((op) => op.type === "update");
     const wszystkie = [...lokalne, ...zdalne].map((a) => {
       const zm = zmiany.filter((z) => z.payload.id === a.id);
-      return zm.length ? { ...a, ...Object.assign({}, ...zm.map((z) => z.payload)), _pending: true } : a;
+      return zm.length
+        ? { ...a, ...Object.assign({}, ...zm.map((z) => z.payload)), _pending: true }
+        : a;
     });
     return wszystkie.sort((a, b) => b.data_awarii.localeCompare(a.data_awarii));
   },

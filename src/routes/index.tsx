@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { pracownicyQuery, urzadzeniaQuery } from "@/lib/queries";
+import { urzadzeniaQuery } from "@/lib/queries";
 import { zapiszAwarie } from "@/lib/offline";
 
 export const Route = createFileRoute("/")({
@@ -45,10 +45,8 @@ function lokalnyTerazISO() {
 function Zgloszenie() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: pracownicy = [] } = useQuery(pracownicyQuery);
   const { data: urzadzenia = [] } = useQuery(urzadzeniaQuery);
 
-  const [osoba, setOsoba] = useState("");
   const [nr, setNr] = useState("");
   const [data, setData] = useState(lokalnyTerazISO);
   const [opis, setOpis] = useState("");
@@ -59,8 +57,8 @@ function Zgloszenie() {
 
   async function wyslij(e: React.FormEvent) {
     e.preventDefault();
-    if (!osoba || !urzadzenie || !opis.trim()) {
-      toast.error("Uzupełnij osobę, urządzenie i opis awarii.");
+    if (!urzadzenie || !opis.trim()) {
+      toast.error("Uzupełnij urządzenie i opis awarii.");
       return;
     }
     setZapisuje(true);
@@ -73,7 +71,8 @@ function Zgloszenie() {
       przyczyna: null,
       czas_przestoju_h: null,
       krytycznosc_skutku: krytycznosc,
-      osoba_zglaszajaca_id: osoba,
+      zglaszajacy_id: null, // ustawia baza z konta (trigger), wartość od klienta jest ignorowana
+      zglaszajacy_nazwa: null,
       status: "Otwarta",
       data_zamkniecia: null,
     });
@@ -94,22 +93,6 @@ function Zgloszenie() {
     <AppShell title="Zgłoś awarię">
       <form onSubmit={wyslij} className="space-y-5">
         <div className="space-y-2">
-          <Label className="text-base">Osoba zgłaszająca</Label>
-          <Select value={osoba} onValueChange={setOsoba}>
-            <SelectTrigger className="h-14 text-base">
-              <SelectValue placeholder="Wybierz osobę" />
-            </SelectTrigger>
-            <SelectContent>
-              {pracownicy.map((p) => (
-                <SelectItem key={p.id} value={p.id} className="py-3 text-base">
-                  {p.imie_nazwisko}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
           <Label className="text-base">Urządzenie</Label>
           <Select value={nr} onValueChange={setNr}>
             <SelectTrigger className="h-14 text-base">
@@ -117,7 +100,11 @@ function Zgloszenie() {
             </SelectTrigger>
             <SelectContent>
               {urzadzenia.map((u) => (
-                <SelectItem key={u.nr_technologiczny} value={u.nr_technologiczny} className="py-3 text-base">
+                <SelectItem
+                  key={u.nr_technologiczny}
+                  value={u.nr_technologiczny}
+                  className="py-3 text-base"
+                >
                   {u.nr_technologiczny} — {u.nazwa_urzadzenia}
                 </SelectItem>
               ))}
@@ -135,7 +122,8 @@ function Zgloszenie() {
               <span className="font-semibold">Lokalizacja:</span> {urzadzenie?.lokalizacja}
             </p>
             <p>
-              <span className="font-semibold">Krytyczność urządzenia:</span> {urzadzenie?.krytycznosc}
+              <span className="font-semibold">Krytyczność urządzenia:</span>{" "}
+              {urzadzenie?.krytycznosc}
             </p>
           </div>
         </div>
