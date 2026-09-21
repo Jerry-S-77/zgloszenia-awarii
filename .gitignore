@@ -31,3 +31,9 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Visual companion mockups (brainstorming)
+.superpowers/
+
+# Materialy robocze (arkusze z danymi testowymi), nie do repozytorium
+@Dodatkowe dokumenty/
