@@ -4,8 +4,10 @@ import { generujHasloTymczasowe } from "../src/lib/haslo.ts";
 
 const argumenty = process.argv.slice(2);
 const potwierdzone = argumenty.includes("--tak");
-const [emailWejscie, imieWejscie] = argumenty.filter((a) => a !== "--tak");
-if (!emailWejscie || !imieWejscie) {
+const pozycyjne = argumenty.filter((a) => a !== "--tak");
+const [emailWejscie, imieWejscie] = pozycyjne;
+// Dokładnie dwa argumenty: niecytowane "Jan Kowalski" to trzy i nie może założyć konta "Jan".
+if (pozycyjne.length !== 2 || !emailWejscie || !imieWejscie) {
   console.error('Użycie: node scripts/utworz-admina.ts <email> "<Imię Nazwisko>" [--tak]');
   process.exit(1);
 }
