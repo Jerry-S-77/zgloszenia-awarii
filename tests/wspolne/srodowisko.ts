@@ -4,7 +4,9 @@ import type { Database } from "@/integrations/supabase/types";
 try {
   process.loadEnvFile(".env.test");
 } catch {
-  throw new Error("Brak pliku .env.test. Skopiuj .env.test.example i uzupełnij dane projektu testowego.");
+  throw new Error(
+    "Brak pliku .env.test. Skopiuj .env.test.example i uzupełnij dane projektu testowego.",
+  );
 }
 
 const PROJEKT_PRODUKCYJNY = "fujutpwdtnnooeusivdr";
@@ -34,7 +36,10 @@ export function klientAnon(): SupabaseClient<Database> {
   return createClient<Database>(url(), env("SUPABASE_PUBLISHABLE_KEY"), OPCJE);
 }
 
-export async function zaloguj(email: string, haslo = HASLO_TESTOWE): Promise<SupabaseClient<Database>> {
+export async function zaloguj(
+  email: string,
+  haslo = HASLO_TESTOWE,
+): Promise<SupabaseClient<Database>> {
   const klient = klientAnon();
   const { error } = await klient.auth.signInWithPassword({ email, password: haslo });
   if (error) throw new Error(`Logowanie ${email} nie powiodło się: ${error.message}`);
@@ -42,13 +47,43 @@ export async function zaloguj(email: string, haslo = HASLO_TESTOWE): Promise<Sup
 }
 
 export const KONTA = {
-  pracownik: { email: "test-pracownik@example.test", rola: "pracownik", status: "aktywny", zmiana: false },
-  pracownik2: { email: "test-pracownik2@example.test", rola: "pracownik", status: "aktywny", zmiana: false },
-  technik: { email: "test-technik@example.test", rola: "technik", status: "aktywny", zmiana: false },
-  kierownik: { email: "test-kierownik@example.test", rola: "kierownik", status: "aktywny", zmiana: false },
+  pracownik: {
+    email: "test-pracownik@example.test",
+    rola: "pracownik",
+    status: "aktywny",
+    zmiana: false,
+  },
+  pracownik2: {
+    email: "test-pracownik2@example.test",
+    rola: "pracownik",
+    status: "aktywny",
+    zmiana: false,
+  },
+  technik: {
+    email: "test-technik@example.test",
+    rola: "technik",
+    status: "aktywny",
+    zmiana: false,
+  },
+  kierownik: {
+    email: "test-kierownik@example.test",
+    rola: "kierownik",
+    status: "aktywny",
+    zmiana: false,
+  },
   admin: { email: "test-admin@example.test", rola: "admin", status: "aktywny", zmiana: false },
-  zablokowany: { email: "test-zablokowany@example.test", rola: "pracownik", status: "zablokowany", zmiana: false },
-  zmianaHasla: { email: "test-zmiana-hasla@example.test", rola: "pracownik", status: "aktywny", zmiana: true },
+  zablokowany: {
+    email: "test-zablokowany@example.test",
+    rola: "pracownik",
+    status: "zablokowany",
+    zmiana: false,
+  },
+  zmianaHasla: {
+    email: "test-zmiana-hasla@example.test",
+    rola: "pracownik",
+    status: "aktywny",
+    zmiana: true,
+  },
 } as const;
 
 export type KluczKonta = keyof typeof KONTA;
@@ -60,11 +95,17 @@ export async function przygotujKonta(): Promise<Record<KluczKonta, string>> {
   if (blad) throw blad;
   const wynik = {} as Record<KluczKonta, string>;
 
-  for (const [klucz, konto] of Object.entries(KONTA) as [KluczKonta, (typeof KONTA)[KluczKonta]][]) {
+  for (const [klucz, konto] of Object.entries(KONTA) as [
+    KluczKonta,
+    (typeof KONTA)[KluczKonta],
+  ][]) {
     const istniejacy = lista.users.find((u) => u.email === konto.email);
     let id = istniejacy?.id;
     if (id) {
-      const { error } = await admin.auth.admin.updateUserById(id, { password: HASLO_TESTOWE, ban_duration: "none" });
+      const { error } = await admin.auth.admin.updateUserById(id, {
+        password: HASLO_TESTOWE,
+        ban_duration: "none",
+      });
       if (error) throw error;
     } else {
       const { data, error } = await admin.auth.admin.createUser({
