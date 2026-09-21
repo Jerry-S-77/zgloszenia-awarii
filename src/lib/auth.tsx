@@ -11,7 +11,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getQueue } from "@/lib/offline";
+import { getQueue, syncQueue, usunOperacjeUzytkownika } from "@/lib/offline";
 import type { Rola } from "./uprawnienia";
 
 export type Profil = {
@@ -94,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? "Konto jest zablokowane. Skontaktuj się z administratorem."
             : "Nie znaleziono profilu użytkownika. Skontaktuj się z administratorem.",
         );
+        // Kolejka jest przypisana do konta, więc jej nie ruszamy: nie blokuje następnego użytkownika.
         await supabase.auth.signOut();
         if (numerZadania.current !== zadanie) return;
         wczytanyId.current = null;
@@ -136,20 +137,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await wczytaj(data.session?.user.id ?? null);
   }, [wczytaj]);
 
-  /** Wylogowanie zwraca false, gdy w kolejce są niezsynchronizowane zgłoszenia (nie wolno ich zgubić). */
+  /**
+   * Wylogowanie zwraca false, gdy nie doszło do skutku. Niezsynchronizowane zgłoszenia tego konta
+   * nie giną po cichu: najpierw próbujemy je wysłać, a usunąć je można tylko po potwierdzeniu.
+   * Kolejka jest przypisana do konta, więc cudze operacje nie blokują wylogowania.
+   */
   const wyloguj = useCallback(async () => {
+    let userId: string | undefined;
     let oczekujace: number;
     try {
-      oczekujace = (await getQueue()).length;
+      const { data } = await supabase.auth.getSession();
+      userId = data.session?.user.id;
+      oczekujace = userId ? (await getQueue(userId)).length : 0;
     } catch {
       toast.error("Nie udało się sprawdzić kolejki synchronizacji.");
       return false;
     }
-    if (oczekujace > 0) {
-      toast.error(
-        `Masz niezsynchronizowane zgłoszenia (${oczekujace}). Połącz się z internetem, poczekaj na synchronizację i wyloguj się ponownie.`,
-      );
-      return false;
+    if (userId && oczekujace > 0) {
+      if (!navigator.onLine) {
+        toast.error(
+          `Masz niezsynchronizowane zgłoszenia (${oczekujace}). Połącz się z internetem, poczekaj na synchronizację i wyloguj się ponownie.`,
+        );
+        return false;
+      }
+      try {
+        await syncQueue();
+        oczekujace = (await getQueue(userId)).length;
+      } catch {
+        toast.error("Nie udało się sprawdzić kolejki synchronizacji.");
+        return false;
+      }
+      if (oczekujace > 0) {
+        const mimoTo = window.confirm(
+          `Masz ${oczekujace} zgłoszeń, których nie udało się wysłać. Wylogowanie je usunie. Wylogować mimo to?`,
+        );
+        if (!mimoTo) return false;
+        try {
+          await usunOperacjeUzytkownika(userId);
+        } catch {
+          toast.error("Nie udało się usunąć zgłoszeń z kolejki.");
+          return false;
+        }
+      }
     }
     const { error } = await supabase.auth.signOut();
     if (error) {

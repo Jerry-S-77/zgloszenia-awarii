@@ -37,6 +37,8 @@ Konta zakłada wyłącznie administrator (hasło tymczasowe pokazane raz, zmiana
 | Dashboard analiz, eksport CSV | – | – | tak | tak |
 | Użytkownicy: konta, role, blokada, reset hasła | – | – | – | tak |
 
+W etapie 1 baza tylko pilnuje dozwolonych wartości statusu (`Otwarta`, `Zamknieta`); zasada, że ponowne otwarcie zamkniętej awarii należy do kierownika i admina, oraz reszta przejść statusów wchodzą wraz z triggerem w etapie 2.
+
 Menu dolne: pracownik — Zgłoś, Moje; technik — Zgłoś, Awarie; kierownik — Awarie, Zgłoś, Analizy, Eksport; admin — Awarie, Analizy, Zgłoś, Eksport, Admin (przycisk „Zgłoś” zawsze pośrodku, przy dwóch pozycjach pierwszy). Konto zablokowane albo z wymuszoną zmianą hasła nie czyta żadnych danych poza własnym profilem. Ostatniego aktywnego administratora nie można zablokować ani zdegradować.
 
 Publiczny webhook `POST /api/public/sync-urzadzenia` (nagłówek `x-sync-secret`) synchronizuje rejestr urządzeń z n8n.
@@ -45,7 +47,7 @@ Aplikacja ma manifest PWA — można ją dodać do ekranu głównego telefonu.
 
 ## Rozwój lokalny
 
-Wymagany Node.js i npm.
+Wymagany Node.js ≥ 22.18 (skrypty `.ts` w `scripts/` uruchamiane natywnie) i npm.
 
 ```sh
 git clone https://github.com/Jerry-S-77/zgloszenia-awarii.git
@@ -88,5 +90,14 @@ node scripts/utworz-admina.ts <email> "<Imię Nazwisko>" --tak
 Skrypt czyta `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` z `.env` (wartości **produkcyjnego** projektu Supabase), wypisuje docelowy host, a bez `--tak` niczego nie tworzy. Działa tylko wtedy, gdy nie ma jeszcze aktywnego administratora. Hasło tymczasowe wyświetla jeden raz; zmiana jest wymuszona przy pierwszym logowaniu. Imię i nazwisko podaj w cudzysłowie (dokładnie dwa argumenty pozycyjne).
 
 Baza produkcyjna to nowy, własny projekt Supabase, który dopiero zostanie założony (jego identyfikator trafi do `project_id` w `supabase/config.toml`); dawna baza z Lovable jest niedostępna i nieużywana.
+
+## Odzyskiwanie dostępu administratora
+
+Skrypt z poprzedniej sekcji odmawia działania, gdy istnieje aktywny administrator, a aplikacja nie wysyła wiadomości e-mail (brak odzyskiwania hasła przez „Send password recovery”). Jeśli jedyny administrator zapomni hasła, odzyskanie dostępu jest ręczne, przez panel Supabase:
+
+1. Authentication → Users → wybierz konto administratora → ustaw nowe hasło.
+2. Table Editor → `profiles` → dla tego użytkownika ustaw `must_change_password = true`, aby przy następnym logowaniu wymusić zmianę hasła.
+
+Zalecenie: zaraz po utworzeniu pierwszego administratora załóż **drugie** konto administratora (panel „Użytkownicy”), żeby utrata jednego hasła nie zamykała dostępu do panelu.
 
 Roadmap dalszego rozwoju: `roadmap.md`.

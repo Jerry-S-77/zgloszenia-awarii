@@ -1,26 +1,39 @@
 import { supabase } from "@/integrations/supabase/client";
-import { czyDuplikat } from "./kolejka-bledy";
+import { czyBladSieci, czyDuplikat } from "./kolejka-bledy";
 import type { Awaria } from "./types";
 
 const DB_NAME = "awarie-offline";
+const DB_VERSION = 2;
 const STORE = "queue";
 
+// Każda operacja należy do konta, które ją zapisało: na wspólnym telefonie zgłoszenie
+// jednej osoby nie może zostać wysłane (ani wyświetlone) na koncie innej.
 export type QueueOp =
-  | { opId: string; type: "insert"; payload: Awaria; createdAt: number }
+  | { opId: string; type: "insert"; payload: Awaria; createdAt: number; userId: string }
   | {
       opId: string;
       type: "update";
       payload: { id: string } & Partial<Awaria>;
       createdAt: number;
+      userId: string;
     };
+
+/** Operacja bez opId, daty i właściciela: te pola dokłada `zakolejkuj`. */
+export type NowaOperacja =
+  | { type: "insert"; payload: Awaria }
+  | { type: "update"; payload: { id: string } & Partial<Awaria> };
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (event) => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) {
         db.createObjectStore(STORE, { keyPath: "opId" });
+      } else if (event.oldVersion < 2) {
+        // Wersja 1 zapisywała operacje bez właściciela (userId): nie da się ich bezpiecznie
+        // przypisać do konta, a danych produkcyjnych jeszcze nie ma, więc kolejkę czyścimy.
+        req.transaction?.objectStore(STORE).clear();
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -38,31 +51,61 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
   });
 }
 
+async function biezacyUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 export async function enqueue(op: QueueOp) {
   await tx("readwrite", (s) => s.put(op));
   window.dispatchEvent(new Event("queue-changed"));
 }
 
-export async function getQueue(): Promise<QueueOp[]> {
+/** Dokłada do kolejki operację zalogowanego użytkownika; bez sesji nic nie zapisuje. */
+async function zakolejkuj(op: NowaOperacja) {
+  const userId = await biezacyUserId();
+  if (!userId) throw new Error("Zaloguj się, aby zapisać zgłoszenie.");
+  await enqueue({ ...op, opId: crypto.randomUUID(), createdAt: Date.now(), userId } as QueueOp);
+}
+
+/** Cała kolejka (wszystkie konta) albo, gdy podano `userId`, tylko operacje tego konta. */
+export async function getQueue(userId?: string): Promise<QueueOp[]> {
   if (typeof indexedDB === "undefined") return [];
   const all = await tx<QueueOp[]>("readonly", (s) => s.getAll());
-  return all.sort((a, b) => a.createdAt - b.createdAt);
+  return all
+    .filter((op) => userId === undefined || op.userId === userId)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+/** Operacje zalogowanego użytkownika; bez sesji pusta lista. */
+export async function getMojaKolejka(): Promise<QueueOp[]> {
+  if (typeof indexedDB === "undefined") return [];
+  const userId = await biezacyUserId();
+  return userId ? getQueue(userId) : [];
 }
 
 async function remove(opId: string) {
   await tx("readwrite", (s) => s.delete(opId));
 }
 
+/** Usuwa z kolejki wszystkie operacje danego konta (np. przy świadomym wylogowaniu). */
+export async function usunOperacjeUzytkownika(userId: string): Promise<void> {
+  const ops = await getQueue(userId);
+  for (const op of ops) await remove(op.opId);
+  if (ops.length > 0) window.dispatchEvent(new Event("queue-changed"));
+}
+
 let syncing = false;
 
 export async function syncQueue(): Promise<number> {
   if (syncing || typeof navigator === "undefined" || !navigator.onLine) return 0;
-  const { data: sesja } = await supabase.auth.getSession();
-  if (!sesja.session) return 0; // bez zalogowania kolejka czeka, nic nie ginie
+  const userId = await biezacyUserId();
+  if (!userId) return 0; // bez zalogowania kolejka czeka, nic nie ginie
   syncing = true;
   let done = 0;
   try {
-    const ops = await getQueue();
+    // Tylko operacje bieżącego konta; cudze zostają na miejscu i nie blokują reszty.
+    const ops = await getQueue(userId);
     for (const op of ops) {
       if (op.type === "insert") {
         // insert zamiast upsert: upsert wymaga też polityki UPDATE, której pracownik nie ma
@@ -89,18 +132,26 @@ export async function syncQueue(): Promise<number> {
   return done;
 }
 
-/** Zapisuje zgłoszenie: online -> prosto do bazy, offline -> kolejka lokalna. */
+function powodBledu(blad: { code?: string | undefined }): string {
+  return blad.code === "42501"
+    ? "brak uprawnień lub konto jest zablokowane."
+    : "serwer odrzucił zapis. Spróbuj ponownie lub skontaktuj się z administratorem.";
+}
+
+/**
+ * Zapisuje zgłoszenie: online -> prosto do bazy, offline lub przy błędzie sieci -> kolejka
+ * lokalna. Odmowa serwera (RLS, ograniczenia) rzuca błąd zamiast trafiać do kolejki, bo
+ * ponawianie takiej operacji nigdy by się nie udało.
+ */
 export async function zapiszAwarie(rekord: Awaria): Promise<"zsynchronizowano" | "lokalnie"> {
   if (navigator.onLine) {
     const { error } = await supabase.from("awarie").insert(rekord);
-    if (!error) return "zsynchronizowano";
+    if (!error || czyDuplikat(error)) return "zsynchronizowano";
+    if (!czyBladSieci(error)) {
+      throw new Error(`Nie udało się zapisać zgłoszenia: ${powodBledu(error)}`);
+    }
   }
-  await enqueue({
-    opId: crypto.randomUUID(),
-    type: "insert",
-    payload: rekord,
-    createdAt: Date.now(),
-  });
+  await zakolejkuj({ type: "insert", payload: rekord });
   return "lokalnie";
 }
 
@@ -109,14 +160,17 @@ export async function aktualizujAwarie(
   zmiany: Partial<Awaria>,
 ): Promise<"zsynchronizowano" | "lokalnie"> {
   if (navigator.onLine) {
-    const { error } = await supabase.from("awarie").update(zmiany).eq("id", id);
-    if (!error) return "zsynchronizowano";
+    // Pod RLS update bez uprawnień kończy się bez błędu, ale zmienia 0 wierszy: bez .select
+    // aplikacja pokazałaby sukces, choć nic się nie zapisało.
+    const { data, error } = await supabase.from("awarie").update(zmiany).eq("id", id).select("id");
+    if (!error) {
+      if (data && data.length > 0) return "zsynchronizowano";
+      throw new Error("Nie udało się zapisać zmiany: brak uprawnień lub zgłoszenie nie istnieje.");
+    }
+    if (!czyBladSieci(error)) {
+      throw new Error(`Nie udało się zapisać zmiany: ${powodBledu(error)}`);
+    }
   }
-  await enqueue({
-    opId: crypto.randomUUID(),
-    type: "update",
-    payload: { id, ...zmiany },
-    createdAt: Date.now(),
-  });
+  await zakolejkuj({ type: "update", payload: { id, ...zmiany } });
   return "lokalnie";
 }

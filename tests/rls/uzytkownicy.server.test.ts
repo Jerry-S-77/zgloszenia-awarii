@@ -97,9 +97,10 @@ describe("zmienWlasneHaslo", () => {
   it("odrzuca nowe hasło identyczne z dotychczasowym", async () => {
     const konto = await nowyUzytkownik();
     await zmienWlasneHaslo(admin, konto.id, "Pierwsze-haslo-123");
-    await expect(zmienWlasneHaslo(admin, konto.id, "Pierwsze-haslo-123")).rejects.toThrow(
-      "Nowe hasło musi różnić się od dotychczasowego.",
-    );
+    // Flaga jest już zdjęta, więc to zmiana dobrowolna i wymaga aktualnego hasła.
+    await expect(
+      zmienWlasneHaslo(admin, konto.id, "Pierwsze-haslo-123", "Pierwsze-haslo-123"),
+    ).rejects.toThrow("Nowe hasło musi różnić się od dotychczasowego.");
   });
   it("odrzuca hasło krótsze niż 12 znaków", async () => {
     const konto = await nowyUzytkownik();
@@ -107,7 +108,7 @@ describe("zmienWlasneHaslo", () => {
       "Hasło musi mieć co najmniej 12 znaków.",
     );
   });
-  it("ustawia hasło i zdejmuje wymuszenie zmiany", async () => {
+  it("zmiana wymuszona (świeże konto, flaga włączona) nie wymaga aktualnego hasła i zdejmuje wymuszenie", async () => {
     const konto = await nowyUzytkownik();
     await zmienWlasneHaslo(admin, konto.id, "Moje-nowe-haslo-9");
     const { data } = await admin
@@ -118,6 +119,46 @@ describe("zmienWlasneHaslo", () => {
     expect(data?.must_change_password).toBe(false);
     expect(await czyHasloPasuje(konto.email, "Moje-nowe-haslo-9")).toBe(true);
     expect(await czyHasloPasuje(konto.email, konto.hasloTymczasowe)).toBe(false);
+  });
+});
+
+describe("zmienWlasneHaslo: zmiana dobrowolna wymaga aktualnego hasła", () => {
+  const AKTUALNE = "Aktualne-haslo-123";
+
+  // Konto z ustawionym własnym hasłem i zdjętą flagą, bez logowań hasłem (limit Auth).
+  async function kontoZWlasnymHaslem() {
+    const konto = await nowyUzytkownik();
+    const { error } = await admin.auth.admin.updateUserById(konto.id, { password: AKTUALNE });
+    if (error) throw error;
+    const { error: bladFlagi } = await admin
+      .from("profiles")
+      .update({ must_change_password: false })
+      .eq("id", konto.id);
+    if (bladFlagi) throw bladFlagi;
+    return konto;
+  }
+
+  it("odrzuca zmianę bez aktualnego hasła", async () => {
+    const konto = await kontoZWlasnymHaslem();
+    await expect(zmienWlasneHaslo(admin, konto.id, "Nowe-haslo-456789")).rejects.toThrow(
+      "Podaj aktualne hasło.",
+    );
+    await expect(zmienWlasneHaslo(admin, konto.id, "Nowe-haslo-456789", "")).rejects.toThrow(
+      "Podaj aktualne hasło.",
+    );
+  });
+  it("odrzuca zmianę z błędnym aktualnym hasłem", async () => {
+    const konto = await kontoZWlasnymHaslem();
+    await expect(
+      zmienWlasneHaslo(admin, konto.id, "Nowe-haslo-456789", "Zle-haslo-000000"),
+    ).rejects.toThrow("Aktualne hasło jest nieprawidłowe.");
+  });
+  it("przyjmuje zmianę z poprawnym aktualnym hasłem", async () => {
+    const konto = await kontoZWlasnymHaslem();
+    await expect(
+      zmienWlasneHaslo(admin, konto.id, "Nowe-haslo-456789", AKTUALNE),
+    ).resolves.toBeUndefined();
+    expect(await czyHasloPasuje(konto.email, "Nowe-haslo-456789")).toBe(true);
   });
 });
 

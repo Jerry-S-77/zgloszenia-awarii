@@ -31,6 +31,9 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.*
+!.env.example
+!.env.test.example
 
 # Visual companion mockups (brainstorming)
 .superpowers/

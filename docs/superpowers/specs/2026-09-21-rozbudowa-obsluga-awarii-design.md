@@ -67,6 +67,8 @@ RLS zamykamy w tym samym wdrożeniu co logowanie (etap 1), inaczej aplikacja prz
 Wszyscy zalogowani aktywni użytkownicy czytają listę aktywnych urządzeń (do wyboru przy zgłoszeniu). Każdy czyta
 tylko własne powiadomienia. Ostatniego aktywnego admina nie można zablokować ani zdegradować (trigger w bazie).
 
+Ograniczenie analiz i eksportu do kierownika i admina jest ograniczeniem interfejsu: technik odczytuje wszystkie awarie, więc RLS nie może go od tych danych oddzielić.
+
 ## 5. Model danych
 
 Nazwy tabel i kolumn zgodne z istniejącym stylem (polskie, bez diakrytyków). Wartości statusów w bazie bez
@@ -102,6 +104,7 @@ zgloszona / przyjeta → zamknieta   (odrzucone lub fałszywy alarm, wymaga kome
 zamknieta → w_naprawie             (ponowne otwarcie: kierownik lub admin)
 ```
 
+- W etapie 1 baza tylko pilnuje dozwolonych wartości statusu (`Otwarta`, `Zamknieta`); zasada, że ponowne otwarcie zamkniętej awarii należy do kierownika i admina, oraz reszta przejść statusów wchodzą wraz z triggerem w etapie 2.
 - Zamknięcie wymaga przyczyny i czasu przestoju (jak dziś).
 - Konflikty: każda zmiana niesie oczekiwaną `wersja`. Trigger zwiększa `wersja`. Zapis z nieaktualną wersją nie zmienia
   wiersza, a interfejs pokazuje „Ktoś już zmienił tę awarię, odśwież".

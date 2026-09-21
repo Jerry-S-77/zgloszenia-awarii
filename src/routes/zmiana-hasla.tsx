@@ -17,6 +17,7 @@ export const Route = createFileRoute("/zmiana-hasla")({
 function ZmianaHasla() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const [aktualne, setAktualne] = useState("");
   const [nowe, setNowe] = useState("");
   const [powtorz, setPowtorz] = useState("");
   const [zapisuje, setZapisuje] = useState(false);
@@ -36,7 +37,10 @@ function ZmianaHasla() {
     if (nowe !== powtorz) return void toast.error("Hasła nie są takie same.");
     setZapisuje(true);
     try {
-      const wynik = await zmienWlasneHasloFn({ data: { noweHaslo: nowe } });
+      // Aktualne hasło wysyłamy tylko przy dobrowolnej zmianie; przy wymuszonej serwer go nie wymaga.
+      const wynik = await zmienWlasneHasloFn({
+        data: wymuszona ? { noweHaslo: nowe } : { noweHaslo: nowe, aktualneHaslo: aktualne },
+      });
       if (!wynik.ok) return void toast.error(wynik.komunikat);
       await auth.odswiezProfil();
       toast.success("Hasło zostało zmienione.");
@@ -58,6 +62,22 @@ function ZmianaHasla() {
       }
     >
       <form onSubmit={zapisz} className="space-y-5">
+        {!wymuszona && (
+          <div className="space-y-2">
+            <Label htmlFor="aktualne" className="text-base">
+              Aktualne hasło
+            </Label>
+            <Input
+              id="aktualne"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={aktualne}
+              onChange={(e) => setAktualne(e.target.value)}
+              className="h-14 text-base"
+            />
+          </div>
+        )}
         <div className="space-y-2">
           <Label htmlFor="nowe" className="text-base">
             Nowe hasło (min. 12 znaków)

@@ -65,21 +65,29 @@ function Zgloszenie() {
       return;
     }
     setZapisuje(true);
-    const wynik = await zapiszAwarie({
-      id: crypto.randomUUID(),
-      nr_technologiczny: urzadzenie.nr_technologiczny,
-      nazwa_urzadzenia: urzadzenie.nazwa_urzadzenia,
-      data_awarii: new Date(data).toISOString(),
-      opis_awarii: opis.trim(),
-      przyczyna: null,
-      czas_przestoju_h: null,
-      krytycznosc_skutku: krytycznosc,
-      zglaszajacy_id: null, // ustawia baza z konta (trigger), wartość od klienta jest ignorowana
-      zglaszajacy_nazwa: null,
-      status: "Otwarta",
-      data_zamkniecia: null,
-    });
-    setZapisuje(false);
+    let wynik: Awaited<ReturnType<typeof zapiszAwarie>>;
+    try {
+      wynik = await zapiszAwarie({
+        id: crypto.randomUUID(),
+        nr_technologiczny: urzadzenie.nr_technologiczny,
+        nazwa_urzadzenia: urzadzenie.nazwa_urzadzenia,
+        data_awarii: new Date(data).toISOString(),
+        opis_awarii: opis.trim(),
+        przyczyna: null,
+        czas_przestoju_h: null,
+        krytycznosc_skutku: krytycznosc,
+        zglaszajacy_id: null, // ustawia baza z konta (trigger), wartość od klienta jest ignorowana
+        zglaszajacy_nazwa: null,
+        status: "Otwarta",
+        data_zamkniecia: null,
+      });
+    } catch (e) {
+      // Formularza nie czyścimy: użytkownik może poprawić dane lub spróbować ponownie.
+      toast.error(e instanceof Error ? e.message : "Nie udało się zapisać zgłoszenia.");
+      return;
+    } finally {
+      setZapisuje(false);
+    }
     await qc.invalidateQueries();
     toast.success(
       wynik === "zsynchronizowano"
