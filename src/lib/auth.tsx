@@ -12,7 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biezacyUserId, getQueue, syncQueue, usunOperacjeUzytkownika } from "@/lib/offline";
-import { PROFIL_CACHE_KEY } from "@/lib/uzytkownik-cache";
+import { PROFIL_CACHE_KEY, stanPoStarcie } from "@/lib/uzytkownik-cache";
 import type { Rola } from "./uprawnienia";
 
 export type Profil = {
@@ -32,14 +32,18 @@ const KOLUMNY = "id, email, imie_nazwisko, rola, status, must_change_password";
 
 // Profil w pamięci lokalnej pozwala uruchomić aplikację offline. Służy wyłącznie do wyświetlania:
 // o dostępie do danych i tak decyduje RLS.
-function odczytajCache(userId: string): Profil | null {
+function odczytajProfilCache(): Profil | null {
   try {
     const surowy = window.localStorage.getItem(CACHE);
-    const profil = surowy ? (JSON.parse(surowy) as Profil) : null;
-    return profil?.id === userId ? profil : null;
+    const profil = surowy ? (JSON.parse(surowy) as Profil | null) : null;
+    return typeof profil?.id === "string" ? profil : null;
   } catch {
     return null;
   }
+}
+function odczytajCache(userId: string): Profil | null {
+  const profil = odczytajProfilCache();
+  return profil?.id === userId ? profil : null;
 }
 function zapiszCache(profil: Profil | null) {
   try {
@@ -60,10 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const numerZadania = useRef(0);
   // Użytkownik, którego profil wczytano ostatnio: przy zmianie konta czyścimy cache zapytań.
   const wczytanyId = useRef<string | null>(null);
+  // Stan pochodzi z profilu w pamięci lokalnej (offline), a nie z bazy: po powrocie sieci odświeżamy.
+  const zPamieci = useRef(false);
 
   const wczytaj = useCallback(
     async (userId: string | null) => {
       const zadanie = ++numerZadania.current;
+      zPamieci.current = false;
       if (!userId) {
         wczytanyId.current = null;
         zapiszCache(null);
@@ -82,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const zCache = siec ? odczytajCache(userId) : null;
         if (zCache) {
           wczytanyId.current = userId;
+          zPamieci.current = true;
           setStan({ stan: "zalogowany", profil: zCache });
         } else {
           wczytanyId.current = null;
@@ -111,11 +119,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [qc],
   );
 
+  /**
+   * Wczytuje stan na podstawie sesji. Offline z wygasłym tokenem getSession() zwraca null, choć
+   * użytkownik jest zalogowany: wtedy pokazujemy profil z pamięci lokalnej (tylko do wyświetlania,
+   * o danych decyduje RLS), zamiast czyścić pamięć i odsyłać na logowanie, którego offline nie da się
+   * dokończyć.
+   */
+  const wczytajZeStartu = useCallback(async () => {
+    const cache = odczytajProfilCache();
+    // Offline nie czekamy na getSession(): przy wygasłym tokenie odświeżenie zawodzi dopiero po
+    // kilkudziesięciu sekundach. Online pamięci lokalnej nie ufamy (decyduje sesja).
+    let sesjaId: string | null = null;
+    if (navigator.onLine || !cache) {
+      const { data } = await supabase.auth.getSession();
+      sesjaId = data.session?.user.id ?? null;
+    }
+    if (stanPoStarcie(sesjaId, navigator.onLine, cache) === "cache" && cache) {
+      ++numerZadania.current; // unieważnia spóźnione odpowiedzi wcześniejszych żądań
+      wczytanyId.current = cache.id;
+      zPamieci.current = true;
+      setStan({ stan: "zalogowany", profil: cache });
+      return;
+    }
+    await wczytaj(sesjaId);
+  }, [wczytaj]);
+
   useEffect(() => {
     let anulowane = false;
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!anulowane) void wczytaj(data.session?.user.id ?? null);
-    });
+    void wczytajZeStartu().then(
+      () => undefined,
+      () => undefined,
+    );
+    // Po powrocie sieci weryfikujemy profil pokazany z pamięci (auth-js sam odświeży token).
+    const przyPowrocieSieci = () => {
+      if (!anulowane && zPamieci.current) void wczytajZeStartu();
+    };
+    window.addEventListener("online", przyPowrocieSieci);
     const { data: sub } = supabase.auth.onAuthStateChange((zdarzenie, sesja) => {
       // Wywołania supabase wewnątrz tego callbacka mogą zawiesić klienta, stąd odroczenie.
       if (zdarzenie === "SIGNED_OUT") {
@@ -129,14 +168,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => {
       anulowane = true;
+      window.removeEventListener("online", przyPowrocieSieci);
       sub.subscription.unsubscribe();
     };
-  }, [wczytaj, qc]);
+  }, [wczytaj, wczytajZeStartu, qc]);
 
-  const odswiezProfil = useCallback(async () => {
-    const { data } = await supabase.auth.getSession();
-    await wczytaj(data.session?.user.id ?? null);
-  }, [wczytaj]);
+  const odswiezProfil = wczytajZeStartu;
 
   /**
    * Wylogowanie zwraca false, gdy nie doszło do skutku. Niezsynchronizowane zgłoszenia tego konta

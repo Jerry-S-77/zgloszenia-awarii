@@ -52,12 +52,15 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
   });
 }
 
-// Offline z wygasłym tokenem getSession() zwraca null (odświeżenie się nie udaje), więc tylko wtedy
-// bierzemy id z zapisanego profilu. Online brak sesji oznacza brak zalogowania.
+// Offline z wygasłym tokenem getSession() zwraca null dopiero po wielu nieudanych próbach odświeżenia
+// (kilkadziesiąt sekund), więc offline bierzemy id z zapisanego profilu od razu. Online liczy się
+// tylko sesja: brak sesji oznacza brak zalogowania.
 export async function biezacyUserId(): Promise<string | null> {
-  const { data } = await supabase.auth.getSession();
   const online = typeof navigator === "undefined" || navigator.onLine;
-  return wybierzUserId(data.session?.user.id ?? null, online, odczytajIdZCache());
+  const zCache = odczytajIdZCache();
+  if (!online && zCache) return zCache;
+  const { data } = await supabase.auth.getSession();
+  return wybierzUserId(data.session?.user.id ?? null, online, zCache);
 }
 
 export async function enqueue(op: QueueOp) {

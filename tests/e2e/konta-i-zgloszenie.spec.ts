@@ -186,3 +186,76 @@ test("admin zakłada konto, użytkownik zmienia hasło i zgłasza awarię", asyn
   await expect(page).toHaveURL(/\/awarie/);
   await expect(page.getByText(`${ZNACZNIK} pompa nie startuje`)).toBeVisible();
 });
+
+test("zgłoszenie offline przy wygasłym tokenie trafia do kolejki i synchronizuje się po powrocie sieci", async ({
+  page,
+  context,
+}) => {
+  const admin = klientAdmin();
+  const opis = `${ZNACZNIK} offline`;
+  const { data: profil } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", KONTA.pracownik.email)
+    .single();
+  expect(profil, "profil pracownika w projekcie testowym").not.toBeNull();
+
+  await otworz(page, "/logowanie");
+  await page.getByLabel("E-mail").fill(KONTA.pracownik.email);
+  await page.getByLabel("Hasło").fill(HASLO_TESTOWE);
+  await page.getByRole("button", { name: "Zaloguj się" }).click();
+  await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible();
+  // Tylko tryb deweloperski: offline nie da się dograć kodu ekranu (chunk trasy), więc odwiedzamy
+  // listę awarii i wracamy do formularza, żeby nawigacja po zapisie była czysto kliencka.
+  const nawigacja = page.getByRole("navigation");
+  await nawigacja.getByRole("link", { name: "Moje" }).click();
+  await expect(page.getByRole("heading", { name: "Moje awarie" })).toBeVisible();
+  await nawigacja.getByRole("link", { name: "Zgłoś" }).click();
+  await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible();
+  // Lista urządzeń musi być wczytana przed odcięciem sieci.
+  await page.getByRole("combobox").click();
+  await expect(page.getByRole("option", { name: /HVAC-01/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // Token dostępu wygasł (w przeszłości), a odświeżenie offline się nie uda: getSession() da null.
+  await page.evaluate(() => {
+    const klucz = Object.keys(window.localStorage).find(
+      (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
+    );
+    if (!klucz) throw new Error("Brak wpisu sesji Supabase w localStorage");
+    const sesja = JSON.parse(window.localStorage.getItem(klucz) ?? "null");
+    sesja.expires_at = Math.floor(Date.now() / 1000) - 3600;
+    window.localStorage.setItem(klucz, JSON.stringify(sesja));
+  });
+  await context.setOffline(true);
+
+  await page.getByRole("combobox").click();
+  await page.getByRole("option", { name: /HVAC-01/ }).click();
+  await page.getByLabel("Opis awarii").fill(opis);
+  await page.getByRole("button", { name: "Zgłoś awarię" }).click();
+  await expect(page.getByText("Zapisano lokalnie, oczekuje na synchronizację")).toBeVisible();
+
+  // Bez przeładowania strony (offline w trybie deweloperskim nie da się jej wczytać).
+  await expect(page).toHaveURL(/\/awarie/);
+  const karta = page.getByRole("link").filter({ hasText: opis });
+  await expect(karta).toBeVisible();
+  await expect(karta.getByText("lokalnie")).toBeVisible();
+
+  // Powrót sieci: kolejka się opróżnia, a zgłoszenie traci znacznik "lokalnie".
+  await context.setOffline(false);
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(karta.getByText("lokalnie")).toBeHidden({ timeout: 45_000 });
+
+  await expect
+    .poll(
+      async () => {
+        const { data } = await admin
+          .from("awarie")
+          .select("zglaszajacy_id")
+          .eq("opis_awarii", opis);
+        return data?.map((r) => r.zglaszajacy_id);
+      },
+      { timeout: 20_000 },
+    )
+    .toEqual([profil?.id]);
+});

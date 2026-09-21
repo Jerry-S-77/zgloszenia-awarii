@@ -4,9 +4,19 @@ import type { Database } from "@/integrations/supabase/types";
 import { getMojaKolejka } from "./offline";
 import type { AwariaLokalna, Urzadzenie } from "./types";
 
+/**
+ * Offline każde zapytanie do Supabase najpierw czeka na getSession(), które przy wygasłym tokenie
+ * ponawia odświeżenie przez kilkadziesiąt sekund. Zapytania, które i tak by zawiodły, kończymy więc
+ * od razu; poprzednio pobrane dane zostają na ekranie (TanStack zachowuje `data` mimo błędu).
+ */
+function wymagajSieci() {
+  if (typeof navigator !== "undefined" && !navigator.onLine) throw new Error("Brak połączenia.");
+}
+
 export const urzadzeniaQuery = queryOptions({
   queryKey: ["urzadzenia"],
   queryFn: async (): Promise<Urzadzenie[]> => {
+    wymagajSieci();
     const { data, error } = await supabase
       .from("urzadzenia")
       .select("*")
@@ -22,6 +32,7 @@ export const awarieQuery = queryOptions({
   queryFn: async (): Promise<AwariaLokalna[]> => {
     let zdalne: AwariaLokalna[] = [];
     try {
+      wymagajSieci(); // offline pokazujemy tylko lokalną kolejkę, bez czekania na sesję
       const { data, error } = await supabase
         .from("awarie")
         .select("*")
@@ -51,6 +62,7 @@ export type ProfilListy = Database["public"]["Tables"]["profiles"]["Row"];
 export const profileQuery = queryOptions({
   queryKey: ["profiles"],
   queryFn: async (): Promise<ProfilListy[]> => {
+    wymagajSieci();
     const { data, error } = await supabase.from("profiles").select("*").order("imie_nazwisko");
     if (error) throw error;
     return data ?? [];
