@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { czyBladSieci, czyDuplikat } from "./kolejka-bledy";
 import type { Awaria } from "./types";
+import { odczytajIdZCache, wybierzUserId } from "./uzytkownik-cache";
 
 const DB_NAME = "awarie-offline";
 const DB_VERSION = 2;
@@ -51,9 +52,12 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
   });
 }
 
-async function biezacyUserId(): Promise<string | null> {
+// Offline z wygasłym tokenem getSession() zwraca null (odświeżenie się nie udaje), więc tylko wtedy
+// bierzemy id z zapisanego profilu. Online brak sesji oznacza brak zalogowania.
+export async function biezacyUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
-  return data.session?.user.id ?? null;
+  const online = typeof navigator === "undefined" || navigator.onLine;
+  return wybierzUserId(data.session?.user.id ?? null, online, odczytajIdZCache());
 }
 
 export async function enqueue(op: QueueOp) {

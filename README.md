@@ -93,10 +93,14 @@ Baza produkcyjna to nowy, własny projekt Supabase, który dopiero zostanie zał
 
 ## Odzyskiwanie dostępu administratora
 
-Skrypt z poprzedniej sekcji odmawia działania, gdy istnieje aktywny administrator, a aplikacja nie wysyła wiadomości e-mail (brak odzyskiwania hasła przez „Send password recovery”). Jeśli jedyny administrator zapomni hasła, odzyskanie dostępu jest ręczne, przez panel Supabase:
+Skrypt z poprzedniej sekcji odmawia działania, gdy istnieje aktywny administrator, a aplikacja nie wysyła wiadomości e-mail, więc nie ma odzyskiwania hasła linkiem. Jeśli jedyny administrator zapomni hasła, odzyskanie dostępu jest awaryjne i ręczne. W panelu Supabase otwórz **SQL Editor** i wykonaj (za `adres@admina` wstaw e-mail administratora, a za hasło tymczasowe losowy ciąg co najmniej 12 znaków, którego nigdzie indziej nie używasz):
 
-1. Authentication → Users → wybierz konto administratora → ustaw nowe hasło.
-2. Table Editor → `profiles` → dla tego użytkownika ustaw `must_change_password = true`, aby przy następnym logowaniu wymusić zmianę hasła.
+```sql
+update auth.users set encrypted_password = crypt('TYMCZASOWE_HASLO_MIN_12_ZNAKOW', gen_salt('bf')) where email = 'adres@admina';
+update public.profiles set must_change_password = true where email = 'adres@admina';
+```
+
+Przy następnym logowaniu aplikacja wymusi ustawienie własnego hasła. Uwagi: SQL Editor działa z podwyższonymi uprawnieniami (omija RLS), a hasło tymczasowe zostaje w historii zapytań, dlatego wymuszona zmiana hasła jest tu konieczna. To procedura awaryjna (break-glass), nie codzienne narzędzie.
 
 Zalecenie: zaraz po utworzeniu pierwszego administratora załóż **drugie** konto administratora (panel „Użytkownicy”), żeby utrata jednego hasła nie zamykała dostępu do panelu.
 
