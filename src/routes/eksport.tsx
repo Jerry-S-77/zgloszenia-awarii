@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { awarieQuery } from "@/lib/queries";
+import { useAuth } from "@/lib/auth";
+import { czyRola } from "@/lib/uprawnienia";
 
 export const Route = createFileRoute("/eksport")({
   head: () => ({
@@ -44,7 +46,12 @@ function pole(v: string | number | null | undefined) {
 }
 
 function Eksport() {
-  const { data: awarie = [] } = useQuery(awarieQuery);
+  const auth = useAuth();
+  const dostep =
+    auth.stan === "zalogowany" &&
+    !auth.profil.must_change_password &&
+    czyRola(auth.profil.rola, ["kierownik", "admin"]);
+  const { data: awarie = [] } = useQuery({ ...awarieQuery, enabled: dostep });
 
   function pobierz() {
     const wiersze = awarie.map((a) =>
@@ -73,7 +80,7 @@ function Eksport() {
   }
 
   return (
-    <AppShell title="Eksport danych">
+    <AppShell title="Eksport danych" dozwoloneRole={["kierownik", "admin"]}>
       <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
         <p className="text-base">
           Plik CSV zawiera dokładnie kolumny arkusza „Awarie”. Kolumna <b>ID_zgloszenia</b>{" "}

@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { urzadzeniaQuery } from "@/lib/queries";
+import { useAuth } from "@/lib/auth";
 import { zapiszAwarie } from "@/lib/offline";
 
 export const Route = createFileRoute("/")({
@@ -45,7 +46,9 @@ function lokalnyTerazISO() {
 function Zgloszenie() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: urzadzenia = [] } = useQuery(urzadzeniaQuery);
+  const auth = useAuth();
+  const gotowy = auth.stan === "zalogowany" && !auth.profil.must_change_password;
+  const { data: urzadzenia = [] } = useQuery({ ...urzadzeniaQuery, enabled: gotowy });
 
   const [nr, setNr] = useState("");
   const [data, setData] = useState(lokalnyTerazISO);
@@ -92,6 +95,11 @@ function Zgloszenie() {
   return (
     <AppShell title="Zgłoś awarię">
       <form onSubmit={wyslij} className="space-y-5">
+        {auth.stan === "zalogowany" && (
+          <p className="rounded-xl bg-accent p-3 text-sm text-accent-foreground">
+            Zgłasza: <span className="font-semibold">{auth.profil.imie_nazwisko}</span>
+          </p>
+        )}
         <div className="space-y-2">
           <Label className="text-base">Urządzenie</Label>
           <Select value={nr} onValueChange={setNr}>
