@@ -26,6 +26,22 @@ async function nowyUzytkownik(rola: "pracownik" | "technik" = "technik") {
   return { ...konto, email };
 }
 
+// Prawdziwa sesja użytkownika bez logowania hasłem: limit logowań hasłem w projekcie testowym
+// jest bliski wyczerpania przy pełnym przebiegu testów.
+async function sesjaZLinku(email: string) {
+  const { data: link, error: bladLinku } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  if (bladLinku) throw bladLinku;
+  const { data, error } = await klientAnon().auth.verifyOtp({
+    token_hash: link.properties.hashed_token,
+    type: "magiclink",
+  });
+  if (error || !data.session) throw error ?? new Error("Brak sesji po weryfikacji linku");
+  return data.session;
+}
+
 beforeAll(async () => {
   ids = await przygotujKonta();
 });
@@ -208,14 +224,7 @@ describe("wymagajAdmina: admin z ograniczeniami", () => {
 describe("resetujHaslo: unieważnienie sesji", () => {
   it("stary refresh token przestaje działać po resecie hasła przez admina", async () => {
     const konto = await nowyUzytkownik();
-    const zalogowany = klientAnon();
-    const { data, error } = await zalogowany.auth.signInWithPassword({
-      email: konto.email,
-      password: konto.hasloTymczasowe,
-    });
-    expect(error).toBeNull();
-    const staraSesja = data.session;
-    if (!staraSesja) throw new Error("Brak sesji po zalogowaniu");
+    const staraSesja = await sesjaZLinku(konto.email);
 
     await resetujHaslo(admin, ids.admin, konto.id);
 
@@ -224,5 +233,20 @@ describe("resetujHaslo: unieważnienie sesji", () => {
     });
     expect(odswiezenie.data.session).toBeNull();
     expect(odswiezenie.error).not.toBeNull();
+  });
+});
+
+describe("czyHasloPasuje: sesja próbna", () => {
+  it("udana próba nie unieważnia istniejących sesji użytkownika", async () => {
+    const konto = await nowyUzytkownik();
+    const sesja = await sesjaZLinku(konto.email);
+
+    expect(await czyHasloPasuje(konto.email, konto.hasloTymczasowe)).toBe(true);
+
+    const odswiezenie = await klientAnon().auth.refreshSession({
+      refresh_token: sesja.refresh_token,
+    });
+    expect(odswiezenie.error).toBeNull();
+    expect(odswiezenie.data.session).not.toBeNull();
   });
 });
