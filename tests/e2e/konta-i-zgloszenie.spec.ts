@@ -192,7 +192,8 @@ test("zgłoszenie offline przy wygasłym tokenie trafia do kolejki i synchronizu
   context,
 }) => {
   const admin = klientAdmin();
-  const opis = `${ZNACZNIK} offline`;
+  const opisOnline = `${ZNACZNIK} online`;
+  const opisOffline = `${ZNACZNIK} offline`;
   const { data: profil } = await admin
     .from("profiles")
     .select("id")
@@ -200,24 +201,35 @@ test("zgłoszenie offline przy wygasłym tokenie trafia do kolejki i synchronizu
     .single();
   expect(profil, "profil pracownika w projekcie testowym").not.toBeNull();
 
+  const zglos = async (opis: string) => {
+    await page.getByRole("combobox").click();
+    await page.getByRole("option", { name: /HVAC-01/ }).click();
+    await page.getByLabel("Opis awarii").fill(opis);
+    await page.getByRole("button", { name: "Zgłoś awarię" }).click();
+  };
+  const nawigacja = page.getByRole("navigation");
+  const karta = (opis: string) => page.getByRole("link").filter({ hasText: opis });
+
   await otworz(page, "/logowanie");
   await page.getByLabel("E-mail").fill(KONTA.pracownik.email);
   await page.getByLabel("Hasło").fill(HASLO_TESTOWE);
   await page.getByRole("button", { name: "Zaloguj się" }).click();
   await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible();
-  // Tylko tryb deweloperski: offline nie da się dograć kodu ekranu (chunk trasy), więc odwiedzamy
-  // listę awarii i wracamy do formularza, żeby nawigacja po zapisie była czysto kliencka.
-  const nawigacja = page.getByRole("navigation");
-  await nawigacja.getByRole("link", { name: "Moje" }).click();
+
+  // Najpierw zgłoszenie ONLINE: trafia na listę i do pamięci zapytań (lista offline ma je zachować).
+  await zglos(opisOnline);
+  await expect(page).toHaveURL(/\/awarie/);
   await expect(page.getByRole("heading", { name: "Moje awarie" })).toBeVisible();
+  await expect(karta(opisOnline)).toBeVisible();
+  // Powrót do formularza tą samą nawigacją kliencką (ekran i lista urządzeń są już wczytane, a offline
+  // w trybie deweloperskim nie da się dograć kodu trasy ani przeładować strony).
   await nawigacja.getByRole("link", { name: "Zgłoś" }).click();
   await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible();
-  // Lista urządzeń musi być wczytana przed odcięciem sieci.
   await page.getByRole("combobox").click();
   await expect(page.getByRole("option", { name: /HVAC-01/ })).toBeVisible();
   await page.keyboard.press("Escape");
 
-  // Token dostępu wygasł (w przeszłości), a odświeżenie offline się nie uda: getSession() da null.
+  // Token dostępu wygasł (w przeszłości), a odświeżenie offline się nie uda.
   await page.evaluate(() => {
     const klucz = Object.keys(window.localStorage).find(
       (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
@@ -229,33 +241,43 @@ test("zgłoszenie offline przy wygasłym tokenie trafia do kolejki i synchronizu
   });
   await context.setOffline(true);
 
-  await page.getByRole("combobox").click();
-  await page.getByRole("option", { name: /HVAC-01/ }).click();
-  await page.getByLabel("Opis awarii").fill(opis);
-  await page.getByRole("button", { name: "Zgłoś awarię" }).click();
+  await zglos(opisOffline);
   await expect(page.getByText("Zapisano lokalnie, oczekuje na synchronizację")).toBeVisible();
 
-  // Bez przeładowania strony (offline w trybie deweloperskim nie da się jej wczytać).
+  // Bez przeładowania strony. Lista łączy zgłoszenie z pamięci (online) z kolejką lokalną (offline).
   await expect(page).toHaveURL(/\/awarie/);
-  const karta = page.getByRole("link").filter({ hasText: opis });
-  await expect(karta).toBeVisible();
-  await expect(karta.getByText("lokalnie")).toBeVisible();
+  await expect(karta(opisOffline)).toBeVisible();
+  await expect(karta(opisOffline).getByText("lokalnie")).toBeVisible();
+  await expect(karta(opisOnline)).toBeVisible();
+  await expect(karta(opisOnline).getByText("lokalnie")).toHaveCount(0);
 
-  // Powrót sieci: kolejka się opróżnia, a zgłoszenie traci znacznik "lokalnie".
+  // Powrót sieci tuż po nieudanych odświeżeniach tokenu: nie ma przekierowania na logowanie.
   await context.setOffline(false);
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
-  await expect(karta.getByText("lokalnie")).toBeHidden({ timeout: 45_000 });
+  const start = Date.now();
+  while (Date.now() - start < 5_000) {
+    expect(page.url()).not.toContain("/logowanie");
+    await page.waitForTimeout(250);
+  }
+
+  // Kolejka się opróżnia, a zgłoszenie traci znacznik "lokalnie".
+  await expect(karta(opisOffline).getByText("lokalnie")).toBeHidden({ timeout: 45_000 });
+  expect(page.url()).not.toContain("/logowanie");
 
   await expect
     .poll(
       async () => {
         const { data } = await admin
           .from("awarie")
-          .select("zglaszajacy_id")
-          .eq("opis_awarii", opis);
-        return data?.map((r) => r.zglaszajacy_id);
+          .select("opis_awarii, zglaszajacy_id")
+          .in("opis_awarii", [opisOnline, opisOffline])
+          .order("opis_awarii");
+        return data?.map((r) => [r.opis_awarii, r.zglaszajacy_id]);
       },
       { timeout: 20_000 },
     )
-    .toEqual([profil?.id]);
+    .toEqual([
+      [opisOffline, profil?.id],
+      [opisOnline, profil?.id],
+    ]);
 });

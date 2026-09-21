@@ -2,7 +2,7 @@
 
 Mobilna aplikacja webowa (mobile-first, responsywna) do zgłaszania, śledzenia, ewidencji i analizy awarii urządzeń technicznych w zakładzie farmaceutycznym.
 
-Supabase jest głównym źródłem prawdy (wspólnym dla całego zespołu). W trybie offline zgłoszenie zapisuje się lokalnie (IndexedDB) w kolejce do synchronizacji i wysyła się automatycznie do Supabase po odzyskaniu połączenia; status jest widoczny dla użytkownika ("zapisano lokalnie, oczekuje na synchronizację" / "zsynchronizowano"). Klient zapytań działa w trybie `networkMode: always`, żeby lista awarii łączyła lokalną kolejkę także offline; offline użytkownik jest rozpoznawany po zapamiętanym profilu (tylko do wyświetlania, RLS nadal decyduje o dostępie do danych).
+Supabase jest głównym źródłem prawdy (wspólnym dla całego zespołu). W trybie offline zgłoszenie zapisuje się lokalnie (IndexedDB) w kolejce do synchronizacji i wysyła się automatycznie do Supabase po odzyskaniu połączenia; status jest widoczny dla użytkownika ("zapisano lokalnie, oczekuje na synchronizację" / "zsynchronizowano"). Klient zapytań działa w trybie `networkMode: always`, żeby lista awarii łączyła lokalną kolejkę także offline; offline użytkownik jest rozpoznawany po zapamiętanym profilu (tylko do wyświetlania, RLS nadal decyduje o dostępie do danych). Nieokreślona sesja (nieudane odświeżenie tokenu, np. tuż po powrocie sieci) zostawia stan z pamięci i jest sprawdzana ponownie; lista awarii offline wraca do swoich zapamiętanych wierszy zdalnych i dokłada do nich lokalną kolejkę.
 
 ## Tabele Supabase
 
