@@ -5,34 +5,98 @@ const ZNACZNIK = `E2E-${Date.now()}`;
 const EMAIL = `e2e-${Date.now()}@example.test`;
 const NOWE_HASLO = "E2E-nowe-haslo-42";
 
-/** Otwiera ścieżkę i czeka na hydrację (bez tego w dev kliknięcie wysyła natywny formularz). */
+const HOST_TESTOWY = new URL(url()).host;
+
+/** Hosty *.supabase.co (inne niż projekt testowy), do których przeglądarka próbowała się połączyć. */
+let zablokowane: string[] = [];
+
+test.beforeEach(async ({ page }) => {
+  zablokowane = [];
+  // Fail-fast: ruch przeglądarki do innego projektu Supabase niż testowy jest przerywany i zapisywany.
+  await page.route(
+    (adres) => adres.hostname.endsWith(".supabase.co"),
+    async (route) => {
+      const host = new URL(route.request().url()).host;
+      if (host === HOST_TESTOWY) {
+        await route.continue();
+      } else {
+        zablokowane.push(host);
+        await route.abort();
+      }
+    },
+  );
+});
+
+test.afterEach(() => {
+  expect(zablokowane, "żądania do obcego projektu Supabase").toEqual([]);
+});
+
+/**
+ * Otwiera ścieżkę i czeka na hydrację Reacta (bez tego w dev kliknięcie wysyła natywny formularz GET).
+ * Znacznik: React 19 zapisuje `__reactContainer$` na `document` już przy tworzeniu korzenia, ale
+ * dopiero po hydracji elementu dokleja do niego `__reactProps$` (tam żyją handlery). Czekamy więc na
+ * oba: korzeń oraz pierwszy <form>/<button> z `__reactProps$`.
+ */
 async function otworz(page: Page, sciezka: string) {
   await page.goto(sciezka);
-  await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() => {
+    const maKlucz = (obiekt: object | null, prefiks: string) =>
+      obiekt !== null && Object.getOwnPropertyNames(obiekt).some((k) => k.startsWith(prefiks));
+    return (
+      maKlucz(document, "__reactContainer$") &&
+      maKlucz(document.querySelector("form, button"), "__reactProps$")
+    );
+  });
+}
+
+/** Usuwa dane E2E: dokładne (ten przebieg) i po prefiksie (pozostałości po przerwanych przebiegach). */
+async function sprzatnij() {
+  const admin = klientAdmin();
+
+  for (const wzorzec of [`${ZNACZNIK}%`, "E2E-%"]) {
+    const { error } = await admin.from("awarie").delete().like("opis_awarii", wzorzec);
+    if (error) console.error(`Sprzątanie awarii E2E (${wzorzec}) nie powiodło się:`, error.message);
+  }
+
+  // Konta po prefiksie e-mail (auth.users; profil znika kaskadowo). Paginacja aż do wyczerpania.
+  const PORCJA = 200;
+  for (let strona = 1; ; strona++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page: strona, perPage: PORCJA });
+    if (error) {
+      console.error("Lista kont do sprzątania E2E nie powiodła się:", error.message);
+      break;
+    }
+    for (const u of data.users) {
+      if (!u.email?.startsWith("e2e-")) continue;
+      const { error: bladUsuniecia } = await admin.auth.admin.deleteUser(u.id);
+      if (bladUsuniecia)
+        console.error(`Usunięcie konta ${u.email} nie powiodło się:`, bladUsuniecia.message);
+    }
+    if (data.users.length < PORCJA) break;
+  }
+
+  // Dokładny profil tego przebiegu (gdyby konto auth już nie istniało, a profil został).
+  const { error: bladProfilu } = await admin.from("profiles").delete().eq("email", EMAIL);
+  if (bladProfilu) console.error("Usunięcie profilu E2E nie powiodło się:", bladProfilu.message);
 }
 
 test.beforeAll(async () => {
   await przygotujKonta();
+  // Warunek wstępny: aktywne urządzenie HVAC-01 (świeży projekt testowy go nie ma).
+  const { error } = await klientAdmin().from("urzadzenia").upsert(
+    {
+      nr_technologiczny: "HVAC-01",
+      nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI",
+      status_w_rejestrze: "Aktywne",
+    },
+    { onConflict: "nr_technologiczny" },
+  );
+  if (error) throw error;
+  await sprzatnij();
 });
 
 test.afterAll(async () => {
-  const admin = klientAdmin();
-  const { error: bladAwarii } = await admin
-    .from("awarie")
-    .delete()
-    .like("opis_awarii", `${ZNACZNIK}%`);
-  if (bladAwarii) console.error("Sprzątanie awarii E2E nie powiodło się:", bladAwarii.message);
-
-  const { data, error: bladProfilu } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("email", EMAIL)
-    .maybeSingle();
-  if (bladProfilu) console.error("Odczyt profilu E2E nie powiódł się:", bladProfilu.message);
-  if (data) {
-    const { error } = await admin.auth.admin.deleteUser(data.id);
-    if (error) console.error("Usunięcie konta E2E nie powiodło się:", error.message);
-  }
+  await sprzatnij();
 });
 
 test("konto z wymuszoną zmianą hasła nie wejdzie do aplikacji bez ustawienia hasła", async ({
@@ -58,7 +122,7 @@ test("pracownik widzi tylko swoje widoki i nie wejdzie do analiz", async ({ page
   await expect(nawigacja.getByRole("link", { name: "Zgłoś" })).toBeVisible();
   await expect(nawigacja.getByRole("link", { name: "Admin" })).toHaveCount(0);
 
-  // Przejście w aplikacji (bez przeładowania), żeby nie zużywać kolejnego logowania.
+  // Pełna nawigacja (nie ponowne logowanie): sesja Supabase zostaje w localStorage.
   await otworz(page, "/dashboard");
   await expect(page.getByText("Brak dostępu do tego widoku.")).toBeVisible();
 
@@ -67,12 +131,6 @@ test("pracownik widzi tylko swoje widoki i nie wejdzie do analiz", async ({ page
 });
 
 test("admin zakłada konto, użytkownik zmienia hasło i zgłasza awarię", async ({ page }) => {
-  const hosty = new Set<string>();
-  page.on("request", (r) => {
-    const host = new URL(r.url()).host;
-    if (host.endsWith("supabase.co")) hosty.add(host);
-  });
-
   // Niezalogowany trafia na logowanie.
   await otworz(page, "/");
   await expect(page).toHaveURL(/\/logowanie/);
@@ -90,6 +148,14 @@ test("admin zakłada konto, użytkownik zmienia hasło i zgłasza awarię", asyn
   await page.getByRole("button", { name: "Utwórz konto" }).click();
   const haslo = ((await page.getByTestId("haslo-tymczasowe").textContent()) ?? "").trim();
   expect(haslo).toMatch(/^[A-Za-z2-9]{4}-[A-Za-z2-9]{4}-[A-Za-z2-9]{4}$/);
+  // Serwerowe funkcje kont też trafiły do projektu testowego (nie tylko przeglądarka).
+  const { data: profil, error: bladProfilu } = await klientAdmin()
+    .from("profiles")
+    .select("id")
+    .eq("email", EMAIL)
+    .maybeSingle();
+  expect(bladProfilu).toBeNull();
+  expect(profil, "profil nowego konta w projekcie testowym").not.toBeNull();
   await page.getByRole("button", { name: "Zamknij" }).click();
 
   // Wylogowanie.
@@ -114,7 +180,4 @@ test("admin zakłada konto, użytkownik zmienia hasło i zgłasza awarię", asyn
   await page.getByRole("button", { name: "Zgłoś awarię" }).click();
   await expect(page).toHaveURL(/\/awarie/);
   await expect(page.getByText(`${ZNACZNIK} pompa nie startuje`)).toBeVisible();
-
-  // Zabezpieczenie: cały ruch szedł do projektu testowego.
-  expect([...hosty]).toEqual([new URL(url()).host]);
 });
