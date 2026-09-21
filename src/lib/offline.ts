@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { czyDuplikat } from "./kolejka-bledy";
 import type { Awaria } from "./types";
 
 const DB_NAME = "awarie-offline";
@@ -56,18 +57,27 @@ let syncing = false;
 
 export async function syncQueue(): Promise<number> {
   if (syncing || typeof navigator === "undefined" || !navigator.onLine) return 0;
+  const { data: sesja } = await supabase.auth.getSession();
+  if (!sesja.session) return 0; // bez zalogowania kolejka czeka, nic nie ginie
   syncing = true;
   let done = 0;
   try {
     const ops = await getQueue();
     for (const op of ops) {
       if (op.type === "insert") {
-        const { error } = await supabase.from("awarie").upsert(op.payload);
-        if (error) break;
+        // insert zamiast upsert: upsert wymaga też polityki UPDATE, której pracownik nie ma
+        const { error } = await supabase.from("awarie").insert(op.payload);
+        if (error && !czyDuplikat(error)) break;
       } else {
         const { id, ...rest } = op.payload;
-        const { error } = await supabase.from("awarie").update(rest).eq("id", id);
-        if (error) break;
+        // Pod RLS update bez uprawnień zwraca sukces, ale zmienia 0 wierszy. Pusty wynik
+        // traktujemy jak błąd: operacja zostaje w kolejce, zamiast po cichu zniknąć.
+        const { data, error } = await supabase
+          .from("awarie")
+          .update(rest)
+          .eq("id", id)
+          .select("id");
+        if (error || !data || data.length === 0) break;
       }
       await remove(op.opId);
       done++;
@@ -85,7 +95,12 @@ export async function zapiszAwarie(rekord: Awaria): Promise<"zsynchronizowano" |
     const { error } = await supabase.from("awarie").insert(rekord);
     if (!error) return "zsynchronizowano";
   }
-  await enqueue({ opId: crypto.randomUUID(), type: "insert", payload: rekord, createdAt: Date.now() });
+  await enqueue({
+    opId: crypto.randomUUID(),
+    type: "insert",
+    payload: rekord,
+    createdAt: Date.now(),
+  });
   return "lokalnie";
 }
 

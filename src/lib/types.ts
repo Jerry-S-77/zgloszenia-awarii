@@ -1,8 +1,3 @@
-export type Pracownik = {
-  id: string;
-  imie_nazwisko: string;
-};
-
 export type Urzadzenie = {
   nr_technologiczny: string;
   nazwa_urzadzenia: string;
@@ -22,7 +17,8 @@ export type Awaria = {
   przyczyna: string | null;
   czas_przestoju_h: number | null;
   krytycznosc_skutku: string;
-  osoba_zglaszajaca_id: string | null;
+  zglaszajacy_id: string | null;
+  zglaszajacy_nazwa: string | null;
   status: string;
   data_zamkniecia: string | null;
 };
