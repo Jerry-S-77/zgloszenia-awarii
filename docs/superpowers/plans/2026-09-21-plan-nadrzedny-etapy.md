@@ -56,7 +56,8 @@ Etap jest zamknięty dopiero, gdy **wszystkie** punkty przechodzą, a wynik jest
 10. Aktualizacja `CLAUDE.md` i `README.md` o to, co się zmieniło w etapie.
 
 Zasada testów: testy polityk RLS i logiki kont **nigdy** nie działają na projekcie produkcyjnym. Helper testowy odmawia
-uruchomienia, jeśli `SUPABASE_URL` wskazuje na projekt `fujutpwdtnnooeusivdr` (produkcyjny).
+uruchomienia, jeśli `SUPABASE_URL` wskazuje na projekt, którego identyfikator jest w `supabase/config.toml`
+(`project_id`), oraz gdy nie da się go odczytać.
 
 ## 4. Przypomnienia i decyzje przeniesione
 
