@@ -44,6 +44,25 @@ export async function zaloguj(
   return klient;
 }
 
+/**
+ * Klient z prawdziwą sesją użytkownika, ale bez logowania hasłem (link jednorazowy z panelu admina):
+ * limit logowań hasłem w projekcie testowym jest bliski wyczerpania przy pełnym przebiegu testów.
+ */
+export async function zalogujLinkiem(email: string): Promise<SupabaseClient<Database>> {
+  const { data: link, error: bladLinku } = await klientAdmin().auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  if (bladLinku) throw bladLinku;
+  const klient = klientAnon();
+  const { data, error } = await klient.auth.verifyOtp({
+    token_hash: link.properties.hashed_token,
+    type: "magiclink",
+  });
+  if (error || !data.session) throw error ?? new Error("Brak sesji po weryfikacji linku");
+  return klient;
+}
+
 export const KONTA = {
   pracownik: {
     email: "test-pracownik@example.test",

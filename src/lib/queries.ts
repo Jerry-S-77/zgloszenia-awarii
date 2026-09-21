@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { getQueue } from "./offline";
+import { getMojaKolejka } from "./offline";
 import type { AwariaLokalna, Urzadzenie } from "./types";
 
 export const urzadzeniaQuery = queryOptions({
@@ -31,7 +31,7 @@ export const awarieQuery = queryOptions({
     } catch {
       zdalne = [];
     }
-    const kolejka = await getQueue();
+    const kolejka = await getMojaKolejka();
     const lokalne = kolejka
       .filter((op) => op.type === "insert")
       .map((op) => ({ ...(op.payload as AwariaLokalna), _pending: true }));

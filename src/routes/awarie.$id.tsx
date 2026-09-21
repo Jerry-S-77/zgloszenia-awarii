@@ -63,13 +63,20 @@ function Szczegoly() {
       return;
     }
     setZapis(true);
-    const wynik = await aktualizujAwarie(awaria.id, {
-      przyczyna: przyczyna.trim(),
-      czas_przestoju_h: Number(czas),
-      status: "Zamknieta",
-      data_zamkniecia: new Date().toISOString(),
-    });
-    setZapis(false);
+    let wynik: Awaited<ReturnType<typeof aktualizujAwarie>>;
+    try {
+      wynik = await aktualizujAwarie(awaria.id, {
+        przyczyna: przyczyna.trim(),
+        czas_przestoju_h: Number(czas),
+        status: "Zamknieta",
+        data_zamkniecia: new Date().toISOString(),
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Nie udało się zapisać zmiany.");
+      return;
+    } finally {
+      setZapis(false);
+    }
     await qc.invalidateQueries();
     toast.success(
       wynik === "zsynchronizowano"

@@ -43,5 +43,7 @@ export const zmienWlasneHasloFn = createServerFn({ method: "POST" })
   .validator((d: unknown) => noweHasloWejscieSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { admin, zmienWlasneHaslo, bezpiecznie } = await zaleznosci();
-    return bezpiecznie(() => zmienWlasneHaslo(admin, context.userId, data.noweHaslo));
+    return bezpiecznie(() =>
+      zmienWlasneHaslo(admin, context.userId, data.noweHaslo, data.aktualneHaslo),
+    );
   });

@@ -18,7 +18,11 @@ export const zmianaProfiluSchema = z.object({
   status: z.enum(["aktywny", "zablokowany"]).optional(),
 });
 
-export const noweHasloWejscieSchema = z.object({ noweHaslo: noweHasloSchema });
+export const noweHasloWejscieSchema = z.object({
+  noweHaslo: noweHasloSchema,
+  // Wymagane tylko przy dobrowolnej zmianie; o trybie decyduje serwer na podstawie profilu.
+  aktualneHaslo: z.string().max(72).optional(),
+});
 
 export type NowyUzytkownik = z.infer<typeof nowyUzytkownikSchema>;
 export type ZmianaProfilu = z.infer<typeof zmianaProfiluSchema>;

@@ -5,6 +5,7 @@ import {
   klientAnon,
   przygotujKonta,
   zaloguj,
+  zalogujLinkiem,
   type KluczKonta,
 } from "../wspolne/srodowisko";
 
@@ -239,6 +240,20 @@ describe("technik, kierownik, admin", () => {
     expect(data?.zglaszajacy_id).toBe(id.pracownik);
     expect(data?.zglaszajacy_nazwa).toBe("Test pracownik");
     await admin.from("awarie").update({ status: "Otwarta" }).eq("id", awariaPracownika);
+  });
+  it("technik nie ustawi statusu spoza dozwolonych wartości (ograniczenie CHECK)", async () => {
+    const k = await zalogujLinkiem(KONTA.technik.email);
+    try {
+      const { error } = await k
+        .from("awarie")
+        .update({ status: "Cokolwiek" })
+        .eq("id", awariaPracownika)
+        .select("id");
+      expect(error?.code).toBe("23514");
+    } finally {
+      // Gdy ograniczenia jeszcze nie ma, przywracamy status, żeby nie psuć pozostałych testów.
+      await admin.from("awarie").update({ status: "Otwarta" }).eq("id", awariaPracownika);
+    }
   });
   it("technik czyta tylko własny profil, admin wszystkie", async () => {
     const t = await zaloguj(KONTA.technik.email);

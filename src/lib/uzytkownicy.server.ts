@@ -153,6 +153,7 @@ export async function zmienWlasneHaslo(
   admin: Admin,
   userId: string,
   noweHaslo: string,
+  aktualneHaslo?: string | undefined,
 ): Promise<void> {
   const parsed = noweHasloSchema.safeParse(noweHaslo);
   if (!parsed.success)
@@ -160,15 +161,25 @@ export async function zmienWlasneHaslo(
 
   const { data: profil } = await admin
     .from("profiles")
-    .select("status")
+    .select("status, must_change_password")
     .eq("id", userId)
     .maybeSingle();
   if (!profil || profil.status !== "aktywny") throw new BladBiznesowy("Brak uprawnień.");
 
   const { data: uzytkownik, error } = await admin.auth.admin.getUserById(userId);
   if (error || !uzytkownik.user?.email) throw new BladBiznesowy("Nie udało się zmienić hasła.");
-  if (await czyHasloPasuje(uzytkownik.user.email, noweHaslo)) {
-    throw new BladBiznesowy("Nowe hasło musi różnić się od dotychczasowego.");
+  // Zmiana wymuszona (hasło tymczasowe) nie wymaga starego hasła. Dobrowolna wymaga: bez tego
+  // przechwycony token dostępu wystarczyłby do trwałego przejęcia konta.
+  const takieSame = "Nowe hasło musi różnić się od dotychczasowego.";
+  if (!profil.must_change_password) {
+    if (!aktualneHaslo) throw new BladBiznesowy("Podaj aktualne hasło.");
+    if (!(await czyHasloPasuje(uzytkownik.user.email, aktualneHaslo))) {
+      throw new BladBiznesowy("Aktualne hasło jest nieprawidłowe.");
+    }
+    // Aktualne hasło jest już zweryfikowane, więc porównanie z nowym nie wymaga kolejnego logowania.
+    if (noweHaslo === aktualneHaslo) throw new BladBiznesowy(takieSame);
+  } else if (await czyHasloPasuje(uzytkownik.user.email, noweHaslo)) {
+    throw new BladBiznesowy(takieSame);
   }
 
   const { error: bladHasla } = await admin.auth.admin.updateUserById(userId, {
@@ -192,7 +203,7 @@ export async function zmienWlasneHaslo(
   }
   console.error("zmienWlasneHaslo: zdjęcie flagi", kodBleduFlagi);
   throw new BladBiznesowy(
-    "Hasło zostało zmienione, ale nie udało się dokończyć zmiany. Zaloguj się nowym hasłem i spróbuj ponownie.",
+    "Hasło zostało zmienione, ale nie udało się dokończyć zmiany. Zaloguj się nowym hasłem. Jeśli system nadal wymaga zmiany hasła, ustaw jeszcze jedno, inne hasło.",
   );
 }
 
