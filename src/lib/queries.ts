@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { getQueue } from "./offline";
 import type { AwariaLokalna, Urzadzenie } from "./types";
 
@@ -42,5 +43,16 @@ export const awarieQuery = queryOptions({
         : a;
     });
     return wszystkie.sort((a, b) => b.data_awarii.localeCompare(a.data_awarii));
+  },
+});
+
+export type ProfilListy = Database["public"]["Tables"]["profiles"]["Row"];
+
+export const profileQuery = queryOptions({
+  queryKey: ["profiles"],
+  queryFn: async (): Promise<ProfilListy[]> => {
+    const { data, error } = await supabase.from("profiles").select("*").order("imie_nazwisko");
+    if (error) throw error;
+    return data ?? [];
   },
 });
