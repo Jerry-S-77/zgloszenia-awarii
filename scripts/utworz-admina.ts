@@ -2,9 +2,23 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../src/integrations/supabase/types.ts";
 import { generujHasloTymczasowe } from "../src/lib/haslo.ts";
 
-const [emailWejscie, imieNazwisko] = process.argv.slice(2);
-if (!emailWejscie || !imieNazwisko) {
-  console.error('Użycie: node scripts/utworz-admina.ts <email> "<Imię Nazwisko>"');
+const argumenty = process.argv.slice(2);
+const potwierdzone = argumenty.includes("--tak");
+const [emailWejscie, imieWejscie] = argumenty.filter((a) => a !== "--tak");
+if (!emailWejscie || !imieWejscie) {
+  console.error('Użycie: node scripts/utworz-admina.ts <email> "<Imię Nazwisko>" [--tak]');
+  process.exit(1);
+}
+
+// Walidacja przed jakimkolwiek połączeniem z bazą.
+const email = emailWejscie.trim().toLowerCase();
+const imieNazwisko = imieWejscie.trim();
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  console.error("Nieprawidłowy adres e-mail.");
+  process.exit(1);
+}
+if (imieNazwisko.length < 2 || imieNazwisko.length > 120) {
+  console.error("Imię i nazwisko muszą mieć od 2 do 120 znaków.");
   process.exit(1);
 }
 
@@ -22,7 +36,14 @@ if (!url || !klucz) {
   process.exit(1);
 }
 
-const email = emailWejscie.trim().toLowerCase();
+// Zmienne już wyeksportowane w powłoce mają pierwszeństwo przed .env, więc pokazujemy realny cel.
+const host = new URL(url).host;
+console.log(`Docelowa baza: ${host}`);
+if (!potwierdzone) {
+  console.error("Dodaj --tak, aby utworzyć konto na tej bazie.");
+  process.exit(1);
+}
+
 const admin = createClient<Database>(url, klucz, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
@@ -49,13 +70,19 @@ if (error || !data.user) throw error ?? new Error("Nie udało się utworzyć kon
 const { error: bladProfilu } = await admin.from("profiles").insert({
   id: data.user.id,
   email,
-  imie_nazwisko: imieNazwisko.trim(),
+  imie_nazwisko: imieNazwisko,
   rola: "admin",
   status: "aktywny",
   must_change_password: true,
 });
 if (bladProfilu) {
-  await admin.auth.admin.deleteUser(data.user.id);
+  const { error: bladUsuniecia } = await admin.auth.admin.deleteUser(data.user.id);
+  if (bladUsuniecia) {
+    console.error(
+      `Nie udało się wycofać konta auth (osierocone). id: ${data.user.id}, e-mail: ${email}. ` +
+        `Usuń je ręcznie w panelu Supabase (Authentication > Users). Błąd: ${bladUsuniecia.message}`,
+    );
+  }
   throw bladProfilu;
 }
 
