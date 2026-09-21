@@ -11,7 +11,8 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getQueue, syncQueue, usunOperacjeUzytkownika } from "@/lib/offline";
+import { biezacyUserId, getQueue, syncQueue, usunOperacjeUzytkownika } from "@/lib/offline";
+import { PROFIL_CACHE_KEY } from "@/lib/uzytkownik-cache";
 import type { Rola } from "./uprawnienia";
 
 export type Profil = {
@@ -26,7 +27,7 @@ export type Profil = {
 type Stan = { stan: "ladowanie" } | { stan: "brak" } | { stan: "zalogowany"; profil: Profil };
 type Kontekst = Stan & { odswiezProfil: () => Promise<void>; wyloguj: () => Promise<boolean> };
 
-const CACHE = "profil-cache-v1";
+const CACHE = PROFIL_CACHE_KEY;
 const KOLUMNY = "id, email, imie_nazwisko, rola, status, must_change_password";
 
 // Profil w pamięci lokalnej pozwala uruchomić aplikację offline. Służy wyłącznie do wyświetlania:
@@ -143,11 +144,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Kolejka jest przypisana do konta, więc cudze operacje nie blokują wylogowania.
    */
   const wyloguj = useCallback(async () => {
-    let userId: string | undefined;
+    let userId: string | null;
+    let usunPoWylogowaniu = false;
     let oczekujace: number;
     try {
-      const { data } = await supabase.auth.getSession();
-      userId = data.session?.user.id;
+      userId = await biezacyUserId(); // offline z wygasłym tokenem: id z zapisanego profilu
       oczekujace = userId ? (await getQueue(userId)).length : 0;
     } catch {
       toast.error("Nie udało się sprawdzić kolejki synchronizacji.");
@@ -169,21 +170,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (oczekujace > 0) {
         const mimoTo = window.confirm(
-          `Masz ${oczekujace} zgłoszeń, których nie udało się wysłać. Wylogowanie je usunie. Wylogować mimo to?`,
+          `Masz niewysłane zgłoszenia (liczba: ${oczekujace}), których nie udało się wysłać. Wylogowanie je usunie. Wylogować mimo to?`,
         );
         if (!mimoTo) return false;
-        try {
-          await usunOperacjeUzytkownika(userId);
-        } catch {
-          toast.error("Nie udało się usunąć zgłoszeń z kolejki.");
-          return false;
-        }
+        usunPoWylogowaniu = true;
       }
     }
     const { error } = await supabase.auth.signOut();
     if (error) {
       toast.error("Nie udało się wylogować. Spróbuj ponownie.");
       return false;
+    }
+    // Zgłoszenia usuwamy dopiero po udanym wylogowaniu: przy błędzie nic nie ginie.
+    if (userId && usunPoWylogowaniu) {
+      try {
+        await usunOperacjeUzytkownika(userId);
+      } catch {
+        toast.error("Wylogowano, ale nie udało się usunąć zgłoszeń z kolejki.");
+      }
     }
     return true;
   }, []);
