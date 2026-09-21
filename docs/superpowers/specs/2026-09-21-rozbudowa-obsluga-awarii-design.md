@@ -72,7 +72,7 @@ tylko własne powiadomienia. Ostatniego aktywnego admina nie można zablokować 
 Nazwy tabel i kolumn zgodne z istniejącym stylem (polskie, bez diakrytyków). Wartości statusów w bazie bez
 diakrytyków, etykiety w interfejsie po polsku.
 
-- **`profiles`**: `id` (= `auth.users.id`), `imie_nazwisko`, `rola` (`pracownik|technik|kierownik|admin`),
+- **`profiles`**: `id` (= `auth.users.id`), `email` (kopia informacyjna z chwili utworzenia konta), `imie_nazwisko`, `rola` (`pracownik|technik|kierownik|admin`),
   `status` (`aktywny|zablokowany`), `must_change_password` (bool), `created_at`. Zastępuje `pracownicy`.
 - **`urzadzenia`** (istnieje): dochodzą `wlasciciel_id` (→ `profiles`, nullable) oraz status `proponowane|aktywne|wycofane`
   (dziś `status_w_rejestrze` = `Aktywne`; migracja mapuje wartości). Tylko `aktywne` pojawia się przy zgłoszeniu.
@@ -134,7 +134,7 @@ zamknieta → w_naprawie             (ponowne otwarcie: kierownik lub admin)
 - **Import jednorazowy** (skrypt lokalny z kluczem service-role, tryb próbny i raport): urządzenia (14, `Aktywne` → `aktywne`,
   `Proponowane` → `proponowane`), przeglądy (6 kompletnych + SC-07 „Do uzupełnienia"), awarie (5, z zachowaniem numerów
   `AWR-2026-001…005`, licznik ustawiony na maksimum). Właścicieli i zgłaszających dopasowujemy po nazwisku do istniejących
-  kont, niedopasowani zostają NULL i trafiają do raportu. Kolumny e-mail z arkuszy są pomijane (adresy żyją tylko w Supabase Auth).
+  kont, niedopasowani zostają NULL i trafiają do raportu. Kolumny e-mail z arkuszy są pomijane (adres konta pochodzi z `profiles.email`).
 - Webhook `POST /api/public/sync-urzadzenia` i `SYNC_URZADZENIA_SECRET` są usuwane.
 - **Eksport CSV** zostaje (kierownik, admin) i zawiera teraz `numer` w polu `ID_zgloszenia`. Zgodność z arkuszem Google nie jest już wymagana.
 
