@@ -165,6 +165,8 @@ wywołujący tę samą funkcję SQL. Sprawdzamy to na początku etapu 4. Web Pus
 - Funkcje serwerowe admina: podłączony `requireSupabaseAuth`, rola admina sprawdzana w bazie, wejście walidowane Zod,
   klucz service-role wyłącznie w plikach `.server.ts`. Operacje: utworzenie konta, reset hasła (nowe hasło tymczasowe,
   unieważnienie sesji), zmiana roli i statusu, blokada (także ban w Auth, żeby odświeżanie tokenu przestało działać).
+  Reset hasła unieważnia tokeny odświeżania (potwierdzone testem), ale wydany już token dostępu działa do wygaśnięcia
+  (do ok. godziny); dane odcina od razu RLS, bo odczytuje `must_change_password` i status na żywo.
 - Zmiana hasła po pierwszym logowaniu przez funkcję serwerową: minimum 12 znaków, różne od tymczasowego; ustawia hasło
   przez Admin API i czyści `must_change_password` w jednej operacji (klient nie może sam wyczyścić flagi).
 - Hasła tymczasowe: `crypto.getRandomValues`, pokazywane raz, nie zapisywane i nie logowane.

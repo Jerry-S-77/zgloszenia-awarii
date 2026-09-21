@@ -39,14 +39,19 @@ test.afterEach(() => {
  */
 async function otworz(page: Page, sciezka: string) {
   await page.goto(sciezka);
-  await page.waitForFunction(() => {
-    const maKlucz = (obiekt: object | null, prefiks: string) =>
-      obiekt !== null && Object.getOwnPropertyNames(obiekt).some((k) => k.startsWith(prefiks));
-    return (
-      maKlucz(document, "__reactContainer$") &&
-      maKlucz(document.querySelector("form, button"), "__reactProps$")
-    );
-  });
+  // Nowa ścieżka musi zawierać <form> lub <button>, inaczej to czekanie nigdy się nie spełni.
+  await page.waitForFunction(
+    () => {
+      const maKlucz = (obiekt: object | null, prefiks: string) =>
+        obiekt !== null && Object.getOwnPropertyNames(obiekt).some((k) => k.startsWith(prefiks));
+      return (
+        maKlucz(document, "__reactContainer$") &&
+        maKlucz(document.querySelector("form, button"), "__reactProps$")
+      );
+    },
+    undefined,
+    { timeout: 15_000 },
+  );
 }
 
 /** Usuwa dane E2E: dokładne (ten przebieg) i po prefiksie (pozostałości po przerwanych przebiegach). */
