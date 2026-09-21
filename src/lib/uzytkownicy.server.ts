@@ -26,6 +26,18 @@ export async function wymagajAdmina(admin: Admin, aktorId: string): Promise<void
   }
 }
 
+type BladProbyHasla = { code?: string | undefined; status?: number | undefined } | null;
+
+/**
+ * Tylko odrzucenie danych logowania oznacza "hasło nie pasuje". Limit zapytań, błąd sieci
+ * czy nieznany błąd to "blad": nie wolno ich traktować jak braku dopasowania (fail open).
+ */
+export function klasyfikujProbeHasla(blad: BladProbyHasla): "pasuje" | "nie_pasuje" | "blad" {
+  if (blad === null) return "pasuje";
+  if (blad.code === "invalid_credentials" || blad.code === "user_banned") return "nie_pasuje";
+  return "blad";
+}
+
 /** Sprawdza, czy para e-mail i hasło pozwala się zalogować (klucz publishable, bez zapisu sesji). */
 export async function czyHasloPasuje(email: string, haslo: string): Promise<boolean> {
   const url = process.env["SUPABASE_URL"];
@@ -35,7 +47,19 @@ export async function czyHasloPasuje(email: string, haslo: string): Promise<bool
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { error } = await klient.auth.signInWithPassword({ email, password: haslo });
-  return error === null;
+  const wynik = klasyfikujProbeHasla(error);
+  if (wynik === "blad") {
+    console.error("czyHasloPasuje: signInWithPassword", error?.code ?? error?.status);
+    throw new BladBiznesowy("Nie udało się sprawdzić hasła. Spróbuj ponownie za chwilę.");
+  }
+  if (wynik === "pasuje") {
+    try {
+      await klient.auth.signOut(); // próba nie zostawia żywej sesji
+    } catch {
+      /* sesja próbna i tak nie jest nigdzie zapisana */
+    }
+  }
+  return wynik === "pasuje";
 }
 
 export async function utworzKonto(admin: Admin, aktorId: string, wej: NowyUzytkownik) {
@@ -96,7 +120,11 @@ export async function zmienRoleLubStatus(admin: Admin, aktorId: string, wej: Zmi
   if (wej.status) zapis.status = wej.status;
   if (Object.keys(zapis).length === 0) throw new BladBiznesowy("Brak zmian do zapisania.");
 
-  const { error } = await admin.from("profiles").update(zapis).eq("id", wej.userId);
+  const { data: zmienione, error } = await admin
+    .from("profiles")
+    .update(zapis)
+    .eq("id", wej.userId)
+    .select("id");
   if (error) {
     if (error.message.includes("ostatniego aktywnego administratora")) {
       throw new BladBiznesowy(
@@ -106,12 +134,18 @@ export async function zmienRoleLubStatus(admin: Admin, aktorId: string, wej: Zmi
     console.error("zmienRoleLubStatus: update", error.code);
     throw new BladBiznesowy("Nie udało się zapisać zmian.");
   }
+  if (!zmienione || zmienione.length === 0) throw new BladBiznesowy("Nie znaleziono użytkownika.");
   if (wej.status) {
     // Blokada w Auth zatrzymuje odświeżanie tokenu; RLS odcina dane natychmiast.
     const { error: bladBanu } = await admin.auth.admin.updateUserById(wej.userId, {
       ban_duration: wej.status === "zablokowany" ? "876000h" : "none",
     });
-    if (bladBanu) console.error("zmienRoleLubStatus: ban", bladBanu.code);
+    if (bladBanu) {
+      console.error("zmienRoleLubStatus: ban", bladBanu.code);
+      throw new BladBiznesowy(
+        "Zmieniono status konta, ale nie udało się zaktualizować blokady logowania. Spróbuj ponownie.",
+      );
+    }
   }
 }
 
@@ -144,11 +178,22 @@ export async function zmienWlasneHaslo(
     console.error("zmienWlasneHaslo: updateUserById", bladHasla.code);
     throw new BladBiznesowy("Nie udało się zmienić hasła.");
   }
-  const { error: bladFlagi } = await admin
-    .from("profiles")
-    .update({ must_change_password: false })
-    .eq("id", userId);
-  if (bladFlagi) throw new BladBiznesowy("Nie udało się zmienić hasła.");
+  // Hasło jest już zmienione, więc flagę próbujemy zdjąć kilka razy. Nie ma tu skrótu "hasło bez
+  // zmian": użytkownik nie może zostać z hasłem tymczasowym znanym administratorowi.
+  let kodBleduFlagi: string | undefined;
+  for (let proba = 1; proba <= 3; proba++) {
+    const { error: bladFlagi } = await admin
+      .from("profiles")
+      .update({ must_change_password: false })
+      .eq("id", userId);
+    if (!bladFlagi) return;
+    kodBleduFlagi = bladFlagi.code;
+    if (proba < 3) await new Promise((r) => setTimeout(r, 200));
+  }
+  console.error("zmienWlasneHaslo: zdjęcie flagi", kodBleduFlagi);
+  throw new BladBiznesowy(
+    "Hasło zostało zmienione, ale nie udało się dokończyć zmiany. Zaloguj się nowym hasłem i spróbuj ponownie.",
+  );
 }
 
 /** Zamienia wyjątek na wynik, który da się bezpiecznie przesłać do klienta. */
@@ -157,7 +202,9 @@ export async function bezpiecznie<T>(praca: () => Promise<T>): Promise<Wynik<T>>
     return { ok: true, dane: await praca() };
   } catch (e) {
     if (e instanceof BladBiznesowy) return { ok: false, komunikat: e.message };
-    console.error("Nieoczekiwany błąd funkcji serwerowej", e);
+    // Tylko wybrane pola: obiekt błędu PostgREST może zawierać `details` z wartościami wierszy.
+    const opis = (e ?? {}) as { name?: unknown; message?: unknown; code?: unknown };
+    console.error("Nieoczekiwany błąd funkcji serwerowej", opis.name, opis.message, opis.code);
     return { ok: false, komunikat: "Wystąpił błąd serwera. Spróbuj ponownie." };
   }
 }

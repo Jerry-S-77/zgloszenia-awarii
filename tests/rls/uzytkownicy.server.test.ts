@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { klientAdmin, przygotujKonta, type KluczKonta } from "../wspolne/srodowisko";
+import { klientAdmin, klientAnon, przygotujKonta, type KluczKonta } from "../wspolne/srodowisko";
 import {
   BladBiznesowy,
   czyHasloPasuje,
@@ -145,5 +145,84 @@ describe("zmienRoleLubStatus", () => {
     await expect(
       zmienRoleLubStatus(admin, ids.technik, { userId: konto.id, rola: "admin" }),
     ).rejects.toThrow("Brak uprawnień.");
+  });
+});
+
+describe("zmienRoleLubStatus: dodatkowe przypadki", () => {
+  it("nie pozwala zablokować ostatniego aktywnego admina", async () => {
+    await expect(
+      zmienRoleLubStatus(admin, ids.admin, { userId: ids.admin, status: "zablokowany" }),
+    ).rejects.toThrow("ostatniego aktywnego administratora");
+  });
+  it("zgłasza brak użytkownika o nieistniejącym identyfikatorze", async () => {
+    await expect(
+      zmienRoleLubStatus(admin, ids.admin, { userId: crypto.randomUUID(), rola: "technik" }),
+    ).rejects.toThrow("Nie znaleziono użytkownika.");
+  });
+});
+
+describe("wymagajAdmina: admin z ograniczeniami", () => {
+  // Fixtury są tymczasowymi, dodatkowymi adminami: usuwane w afterAll, zanim
+  // pozostałe testy potrzebują dokładnie jednego aktywnego admina.
+  const fixtury: string[] = [];
+
+  async function nowyAdmin(zmiana: boolean, status: "aktywny" | "zablokowany") {
+    const email = nowyEmail();
+    const { data, error } = await admin.auth.admin.createUser({
+      email,
+      password: "Fixtura-Haslo-12345!",
+      email_confirm: true,
+    });
+    if (error || !data.user) throw error ?? new Error("createUser bez użytkownika");
+    fixtury.push(data.user.id);
+    const { error: bladProfilu } = await admin.from("profiles").insert({
+      id: data.user.id,
+      email,
+      imie_nazwisko: "Fixtura Admin",
+      rola: "admin",
+      status,
+      must_change_password: zmiana,
+    });
+    if (bladProfilu) throw bladProfilu;
+    return data.user.id;
+  }
+
+  afterAll(async () => {
+    for (const id of fixtury) await admin.auth.admin.deleteUser(id);
+  });
+
+  it("odmawia adminowi z wymuszoną zmianą hasła", async () => {
+    const id = await nowyAdmin(true, "aktywny");
+    await expect(
+      utworzKonto(admin, id, { email: nowyEmail(), imieNazwisko: "X Y", rola: "pracownik" }),
+    ).rejects.toThrow("Brak uprawnień.");
+  });
+  it("odmawia zablokowanemu adminowi", async () => {
+    const id = await nowyAdmin(false, "zablokowany");
+    await expect(
+      utworzKonto(admin, id, { email: nowyEmail(), imieNazwisko: "X Y", rola: "pracownik" }),
+    ).rejects.toThrow("Brak uprawnień.");
+  });
+});
+
+describe("resetujHaslo: unieważnienie sesji", () => {
+  it("stary refresh token przestaje działać po resecie hasła przez admina", async () => {
+    const konto = await nowyUzytkownik();
+    const zalogowany = klientAnon();
+    const { data, error } = await zalogowany.auth.signInWithPassword({
+      email: konto.email,
+      password: konto.hasloTymczasowe,
+    });
+    expect(error).toBeNull();
+    const staraSesja = data.session;
+    if (!staraSesja) throw new Error("Brak sesji po zalogowaniu");
+
+    await resetujHaslo(admin, ids.admin, konto.id);
+
+    const odswiezenie = await klientAnon().auth.refreshSession({
+      refresh_token: staraSesja.refresh_token,
+    });
+    expect(odswiezenie.data.session).toBeNull();
+    expect(odswiezenie.error).not.toBeNull();
   });
 });

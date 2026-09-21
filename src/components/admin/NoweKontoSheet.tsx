@@ -53,7 +53,7 @@ export function NoweKontoSheet({ otwarte, onZmiana, onUtworzono }: Props) {
 
   return (
     <Sheet open={otwarte} onOpenChange={onZmiana}>
-      <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
+      <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Nowe konto</SheetTitle>
           <SheetDescription>

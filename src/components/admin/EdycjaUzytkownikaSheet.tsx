@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -35,7 +35,11 @@ type Props = {
 export function EdycjaUzytkownikaSheet({ profil, wlasneId, onZamknij, onHaslo }: Props) {
   const qc = useQueryClient();
   const [pracuje, setPracuje] = useState(false);
-  const wlasne = profil?.id === wlasneId;
+  // Ostatni niepusty profil: zawartość nie zapada się podczas animacji zamykania arkusza.
+  const ostatni = useRef<ProfilListy | null>(null);
+  if (profil) ostatni.current = profil;
+  const pokazywany = profil ?? ostatni.current;
+  const wlasne = pokazywany?.id === wlasneId;
 
   async function wykonaj(praca: () => Promise<void>) {
     setPracuje(true);
@@ -78,12 +82,12 @@ export function EdycjaUzytkownikaSheet({ profil, wlasneId, onZamknij, onHaslo }:
 
   return (
     <Sheet open={profil !== null} onOpenChange={(otwarte) => !otwarte && onZamknij()}>
-      <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
+      <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{profil?.imie_nazwisko}</SheetTitle>
-          <SheetDescription>{profil?.email}</SheetDescription>
+          <SheetTitle>{pokazywany?.imie_nazwisko}</SheetTitle>
+          <SheetDescription>{pokazywany?.email}</SheetDescription>
         </SheetHeader>
-        {profil && (
+        {pokazywany && (
           <div className="space-y-5 px-4 pb-6">
             {wlasne && (
               <p className="rounded-xl bg-accent p-3 text-sm text-accent-foreground">
@@ -99,8 +103,9 @@ export function EdycjaUzytkownikaSheet({ profil, wlasneId, onZamknij, onHaslo }:
                   <Button
                     key={r}
                     type="button"
-                    disabled={pracuje || wlasne || profil.rola === r}
-                    variant={profil.rola === r ? "default" : "outline"}
+                    disabled={pracuje || wlasne || pokazywany.rola === r}
+                    aria-pressed={pokazywany.rola === r}
+                    variant={pokazywany.rola === r ? "default" : "outline"}
                     className="h-14 text-base"
                     onClick={() => void zmienRole(r)}
                   >
@@ -110,7 +115,7 @@ export function EdycjaUzytkownikaSheet({ profil, wlasneId, onZamknij, onHaslo }:
               </div>
             </div>
 
-            {profil.status === "aktywny" ? (
+            {pokazywany.status === "aktywny" ? (
               <Button
                 variant="destructive"
                 disabled={pracuje || wlasne}
