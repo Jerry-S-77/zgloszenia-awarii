@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EksportRouteImport } from './routes/eksport'
+import { Route as LogowanieRouteImport } from './routes/logowanie'
+import { Route as ZmianaHaslaRouteImport } from './routes/zmiana-hasla'
+import { Route as AdminUzytkownicyRouteImport } from './routes/admin.uzytkownicy'
 import { Route as AwarieIndexRouteImport } from './routes/awarie.index'
 import { Route as AwarieIdRouteImport } from './routes/awarie.$id'
 import { Route as ApiPublicSyncUrzadzeniaRouteImport } from './routes/api/public/sync-urzadzenia'
@@ -29,6 +32,21 @@ const DashboardRoute = DashboardRouteImport.update({
 const EksportRoute = EksportRouteImport.update({
   id: '/eksport',
   path: '/eksport',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogowanieRoute = LogowanieRouteImport.update({
+  id: '/logowanie',
+  path: '/logowanie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZmianaHaslaRoute = ZmianaHaslaRouteImport.update({
+  id: '/zmiana-hasla',
+  path: '/zmiana-hasla',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUzytkownicyRoute = AdminUzytkownicyRouteImport.update({
+  id: '/admin/uzytkownicy',
+  path: '/admin/uzytkownicy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AwarieIndexRoute = AwarieIndexRouteImport.update({
@@ -51,6 +69,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
+  '/logowanie': typeof LogowanieRoute
+  '/zmiana-hasla': typeof ZmianaHaslaRoute
+  '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/awarie/': typeof AwarieIndexRoute
   '/api/public/sync-urzadzenia': typeof ApiPublicSyncUrzadzeniaRoute
@@ -59,6 +80,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
+  '/logowanie': typeof LogowanieRoute
+  '/zmiana-hasla': typeof ZmianaHaslaRoute
+  '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/awarie': typeof AwarieIndexRoute
   '/api/public/sync-urzadzenia': typeof ApiPublicSyncUrzadzeniaRoute
@@ -68,6 +92,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
+  '/logowanie': typeof LogowanieRoute
+  '/zmiana-hasla': typeof ZmianaHaslaRoute
+  '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/awarie/': typeof AwarieIndexRoute
   '/api/public/sync-urzadzenia': typeof ApiPublicSyncUrzadzeniaRoute
@@ -78,6 +105,9 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/eksport'
+    | '/logowanie'
+    | '/zmiana-hasla'
+    | '/admin/uzytkownicy'
     | '/awarie/$id'
     | '/awarie/'
     | '/api/public/sync-urzadzenia'
@@ -86,6 +116,9 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/eksport'
+    | '/logowanie'
+    | '/zmiana-hasla'
+    | '/admin/uzytkownicy'
     | '/awarie/$id'
     | '/awarie'
     | '/api/public/sync-urzadzenia'
@@ -94,6 +127,9 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/eksport'
+    | '/logowanie'
+    | '/zmiana-hasla'
+    | '/admin/uzytkownicy'
     | '/awarie/$id'
     | '/awarie/'
     | '/api/public/sync-urzadzenia'
@@ -103,6 +139,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   EksportRoute: typeof EksportRoute
+  LogowanieRoute: typeof LogowanieRoute
+  ZmianaHaslaRoute: typeof ZmianaHaslaRoute
+  AdminUzytkownicyRoute: typeof AdminUzytkownicyRoute
   AwarieIdRoute: typeof AwarieIdRoute
   AwarieIndexRoute: typeof AwarieIndexRoute
   ApiPublicSyncUrzadzeniaRoute: typeof ApiPublicSyncUrzadzeniaRoute
@@ -129,6 +168,27 @@ declare module '@tanstack/react-router' {
       path: '/eksport'
       fullPath: '/eksport'
       preLoaderRoute: typeof EksportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logowanie': {
+      id: '/logowanie'
+      path: '/logowanie'
+      fullPath: '/logowanie'
+      preLoaderRoute: typeof LogowanieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zmiana-hasla': {
+      id: '/zmiana-hasla'
+      path: '/zmiana-hasla'
+      fullPath: '/zmiana-hasla'
+      preLoaderRoute: typeof ZmianaHaslaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/uzytkownicy': {
+      id: '/admin/uzytkownicy'
+      path: '/admin/uzytkownicy'
+      fullPath: '/admin/uzytkownicy'
+      preLoaderRoute: typeof AdminUzytkownicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/awarie/': {
@@ -159,6 +219,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   EksportRoute: EksportRoute,
+  LogowanieRoute: LogowanieRoute,
+  ZmianaHaslaRoute: ZmianaHaslaRoute,
+  AdminUzytkownicyRoute: AdminUzytkownicyRoute,
   AwarieIdRoute: AwarieIdRoute,
   AwarieIndexRoute: AwarieIndexRoute,
   ApiPublicSyncUrzadzeniaRoute: ApiPublicSyncUrzadzeniaRoute,
