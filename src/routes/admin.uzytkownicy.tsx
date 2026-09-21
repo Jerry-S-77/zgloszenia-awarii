@@ -8,7 +8,7 @@ import { HasloTymczasoweDialog, type DaneHasla } from "@/components/admin/HasloT
 import { NoweKontoSheet } from "@/components/admin/NoweKontoSheet";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { profileQuery, type ProfilListy } from "@/lib/queries";
+import { profileQuery } from "@/lib/queries";
 import { ETYKIETY_ROL } from "@/lib/uprawnienia";
 
 export const Route = createFileRoute("/admin/uzytkownicy")({
@@ -18,10 +18,17 @@ export const Route = createFileRoute("/admin/uzytkownicy")({
 
 function Uzytkownicy() {
   const auth = useAuth();
-  const { data: profile = [], isLoading } = useQuery(profileQuery);
+  const jestAdminem = auth.stan === "zalogowany" && auth.profil.rola === "admin";
+  const {
+    data: profile = [],
+    isLoading,
+    isError,
+  } = useQuery({ ...profileQuery, enabled: jestAdminem });
   const [nowe, setNowe] = useState(false);
-  const [wybrany, setWybrany] = useState<ProfilListy | null>(null);
+  const [wybranyId, setWybranyId] = useState<string | null>(null);
   const [haslo, setHaslo] = useState<DaneHasla | null>(null);
+  // Profil wybranego użytkownika bierzemy zawsze ze świeżych danych zapytania, nie z kopii.
+  const wybrany = profile.find((p) => p.id === wybranyId) ?? null;
   const wlasneId = auth.stan === "zalogowany" ? auth.profil.id : "";
 
   return (
@@ -31,12 +38,20 @@ function Uzytkownicy() {
       </Button>
 
       {isLoading && <p className="text-muted-foreground">Wczytywanie...</p>}
+      {isError && (
+        <p role="alert" className="text-destructive">
+          Nie udało się wczytać użytkowników.
+        </p>
+      )}
+      {!isLoading && !isError && jestAdminem && profile.length === 0 && (
+        <p className="text-muted-foreground">Brak użytkowników.</p>
+      )}
       <div className="space-y-3">
         {profile.map((p) => (
           <button
             key={p.id}
             type="button"
-            onClick={() => setWybrany(p)}
+            onClick={() => setWybranyId(p.id)}
             className={`w-full rounded-2xl border border-border bg-card p-4 text-left active:bg-accent ${
               p.status === "zablokowany" ? "opacity-60" : ""
             }`}
@@ -70,7 +85,7 @@ function Uzytkownicy() {
       <EdycjaUzytkownikaSheet
         profil={wybrany}
         wlasneId={wlasneId}
-        onZamknij={() => setWybrany(null)}
+        onZamknij={() => setWybranyId(null)}
         onHaslo={setHaslo}
       />
       <HasloTymczasoweDialog dane={haslo} onZamknij={() => setHaslo(null)} />

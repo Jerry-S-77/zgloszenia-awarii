@@ -31,6 +31,7 @@ export function HasloTymczasoweDialog({
   return (
     <Dialog open={dane !== null} onOpenChange={(otwarte) => !otwarte && onZamknij()}>
       <DialogContent
+        hideClose
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >

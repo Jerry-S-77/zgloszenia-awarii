@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -54,32 +55,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const [stan, setStan] = useState<Stan>({ stan: "ladowanie" });
 
-  const wczytaj = useCallback(async (userId: string | null) => {
-    if (!userId) {
-      zapiszCache(null);
-      setStan({ stan: "brak" });
-      return;
-    }
-    const { data, error } = await supabase
-      .from("profiles")
-      .select(KOLUMNY)
-      .eq("id", userId)
-      .maybeSingle();
-    if (error) {
-      const zCache = odczytajCache(userId); // offline lub chwilowy błąd sieci
-      setStan(zCache ? { stan: "zalogowany", profil: zCache } : { stan: "brak" });
-      return;
-    }
-    if (!data || data.status !== "aktywny") {
-      toast.error("Konto jest zablokowane. Skontaktuj się z administratorem.");
-      await supabase.auth.signOut();
-      zapiszCache(null);
-      setStan({ stan: "brak" });
-      return;
-    }
-    zapiszCache(data as Profil);
-    setStan({ stan: "zalogowany", profil: data as Profil });
-  }, []);
+  // Numer ostatniego żądania: spóźniona odpowiedź nie może nadpisać nowszego stanu (np. po SIGNED_OUT).
+  const numerZadania = useRef(0);
+  // Użytkownik, którego profil wczytano ostatnio: przy zmianie konta czyścimy cache zapytań.
+  const wczytanyId = useRef<string | null>(null);
+
+  const wczytaj = useCallback(
+    async (userId: string | null) => {
+      const zadanie = ++numerZadania.current;
+      if (!userId) {
+        wczytanyId.current = null;
+        zapiszCache(null);
+        setStan({ stan: "brak" });
+        return;
+      }
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(KOLUMNY)
+        .eq("id", userId)
+        .maybeSingle();
+      if (numerZadania.current !== zadanie) return;
+      if (error) {
+        // Profil z pamięci lokalnej tylko przy problemach z siecią; inny błąd = brak dostępu.
+        const siec = !navigator.onLine || /fetch|network/i.test(error.message);
+        const zCache = siec ? odczytajCache(userId) : null;
+        if (zCache) {
+          wczytanyId.current = userId;
+          setStan({ stan: "zalogowany", profil: zCache });
+        } else {
+          wczytanyId.current = null;
+          setStan({ stan: "brak" });
+        }
+        return;
+      }
+      if (!data || data.status !== "aktywny") {
+        toast.error(
+          data
+            ? "Konto jest zablokowane. Skontaktuj się z administratorem."
+            : "Nie znaleziono profilu użytkownika. Skontaktuj się z administratorem.",
+        );
+        await supabase.auth.signOut();
+        if (numerZadania.current !== zadanie) return;
+        wczytanyId.current = null;
+        zapiszCache(null);
+        setStan({ stan: "brak" });
+        return;
+      }
+      if (wczytanyId.current !== null && wczytanyId.current !== userId) qc.clear();
+      wczytanyId.current = userId;
+      zapiszCache(data as Profil);
+      setStan({ stan: "zalogowany", profil: data as Profil });
+    },
+    [qc],
+  );
 
   useEffect(() => {
     let anulowane = false;
@@ -110,14 +138,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /** Wylogowanie zwraca false, gdy w kolejce są niezsynchronizowane zgłoszenia (nie wolno ich zgubić). */
   const wyloguj = useCallback(async () => {
-    const oczekujace = (await getQueue()).length;
+    let oczekujace: number;
+    try {
+      oczekujace = (await getQueue()).length;
+    } catch {
+      toast.error("Nie udało się sprawdzić kolejki synchronizacji.");
+      return false;
+    }
     if (oczekujace > 0) {
       toast.error(
         `Masz niezsynchronizowane zgłoszenia (${oczekujace}). Połącz się z internetem, poczekaj na synchronizację i wyloguj się ponownie.`,
       );
       return false;
     }
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Nie udało się wylogować. Spróbuj ponownie.");
+      return false;
+    }
     return true;
   }, []);
 
