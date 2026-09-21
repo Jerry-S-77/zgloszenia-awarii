@@ -54,7 +54,7 @@ export async function czyHasloPasuje(email: string, haslo: string): Promise<bool
   }
   if (wynik === "pasuje") {
     try {
-      await klient.auth.signOut(); // próba nie zostawia żywej sesji
+      await klient.auth.signOut({ scope: "local" }); // tylko sesja próbna, nie sesje użytkownika
     } catch {
       /* sesja próbna i tak nie jest nigdzie zapisana */
     }
