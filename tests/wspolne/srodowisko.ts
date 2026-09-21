@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { wymagajNieprodukcyjnego } from "./ochrona-produkcji";
 
 try {
   process.loadEnvFile(".env.test");
@@ -9,7 +10,6 @@ try {
   );
 }
 
-const PROJEKT_PRODUKCYJNY = "fujutpwdtnnooeusivdr";
 export const HASLO_TESTOWE = "Test-Haslo-12345!";
 
 function env(nazwa: string): string {
@@ -20,9 +20,7 @@ function env(nazwa: string): string {
 
 export function url(): string {
   const u = env("SUPABASE_URL");
-  if (u.includes(PROJEKT_PRODUKCYJNY)) {
-    throw new Error("Testy nie mogą działać na projekcie produkcyjnym.");
-  }
+  wymagajNieprodukcyjnego(u);
   return u;
 }
 

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { wymagajNieprodukcyjnego } from "../tests/wspolne/ochrona-produkcji.ts";
 
 try {
   process.loadEnvFile(".env.test");
@@ -12,9 +13,7 @@ const url = process.env["SUPABASE_URL"];
 const klucz = process.env["SUPABASE_PUBLISHABLE_KEY"];
 if (!url || !klucz)
   throw new Error("W .env.test brakuje SUPABASE_URL lub SUPABASE_PUBLISHABLE_KEY.");
-if (url.includes("fujutpwdtnnooeusivdr")) {
-  throw new Error("Ten skrypt nie może działać na projekcie produkcyjnym.");
-}
+wymagajNieprodukcyjnego(url);
 
 const dziecko = spawn("npx", ["vite", "dev", "--port", "8081"], {
   stdio: "inherit",
