@@ -62,6 +62,10 @@ describe("anon", () => {
       });
     expect(error?.code).toBe("42501");
   });
+  it("nie może wywołać funkcji moja_rola", async () => {
+    const { error } = await klientAnon().rpc("moja_rola");
+    expect(error?.code).toBe("42501");
+  });
   it("nie może się zarejestrować (publiczna rejestracja wyłączona)", async () => {
     const { error } = await klientAnon().auth.signUp({
       email: `rejestracja-${crypto.randomUUID()}@example.test`,
@@ -126,9 +130,93 @@ describe("pracownik", () => {
       .insert({ nr_technologiczny: "X-99", nazwa_urzadzenia: "x" });
     expect(error?.code).toBe("42501");
   });
+  it("nie może zgłosić awarii od razu zamkniętej", async () => {
+    const k = await zaloguj(KONTA.pracownik.email);
+    const { error } = await k.from("awarie").insert({
+      nr_technologiczny: "HVAC-01",
+      nazwa_urzadzenia: "x",
+      opis_awarii: `${ZNACZNIK} zamknieta od razu`,
+      krytycznosc_skutku: "Niska",
+      status: "Zamknieta",
+    });
+    expect(error?.code).toBe("42501");
+  });
+  it("nie może wpisać czasu przestoju przy zgłoszeniu", async () => {
+    const k = await zaloguj(KONTA.pracownik.email);
+    const { error } = await k.from("awarie").insert({
+      nr_technologiczny: "HVAC-01",
+      nazwa_urzadzenia: "x",
+      opis_awarii: `${ZNACZNIK} przestoj`,
+      krytycznosc_skutku: "Niska",
+      status: "Otwarta",
+      czas_przestoju_h: 3,
+    });
+    expect(error?.code).toBe("42501");
+  });
+  it("zgłasza zwykłą otwartą awarię (kontrola regresji)", async () => {
+    const k = await zaloguj(KONTA.pracownik.email);
+    const { error } = await k.from("awarie").insert({
+      nr_technologiczny: "HVAC-01",
+      nazwa_urzadzenia: "x",
+      opis_awarii: `${ZNACZNIK} zwykla otwarta`,
+      krytycznosc_skutku: "Niska",
+      status: "Otwarta",
+      data_zamkniecia: null,
+      przyczyna: null,
+      czas_przestoju_h: null,
+    });
+    expect(error).toBeNull();
+    await admin.from("awarie").delete().eq("opis_awarii", `${ZNACZNIK} zwykla otwarta`);
+  });
+  it("upsert własnego istniejącego zgłoszenia jest odrzucany (kształt z kolejki offline)", async () => {
+    const k = await zaloguj(KONTA.pracownik.email);
+    const { error } = await k.from("awarie").upsert({
+      id: awariaPracownika,
+      nr_technologiczny: "HVAC-01",
+      nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI",
+      opis_awarii: `${ZNACZNIK} ZMIENIONE upsertem`,
+      krytycznosc_skutku: "Wysoka",
+      status: "Otwarta",
+    });
+    expect(error?.code).toBe("42501");
+    const { data: po } = await admin
+      .from("awarie")
+      .select("opis_awarii, krytycznosc_skutku")
+      .eq("id", awariaPracownika)
+      .single();
+    expect(po?.opis_awarii).toBe(`${ZNACZNIK} Test pracownik`);
+    expect(po?.krytycznosc_skutku).toBe("Niska");
+  });
+  it("nie może usunąć swojego zgłoszenia", async () => {
+    const k = await zaloguj(KONTA.pracownik.email);
+    const { error } = await k.from("awarie").delete().eq("id", awariaPracownika);
+    expect(error?.code).toBe("42501");
+  });
 });
 
 describe("technik, kierownik, admin", () => {
+  it("technik nie może usuwać zgłoszeń", async () => {
+    const k = await zaloguj(KONTA.technik.email);
+    const { error } = await k.from("awarie").delete().eq("id", awariaPracownika);
+    expect(error?.code).toBe("42501");
+  });
+  it("admin nie może usuwać profili z klienta", async () => {
+    const a = await zaloguj(KONTA.admin.email);
+    const { error } = await a.from("profiles").delete().eq("id", id.pracownik);
+    expect(error?.code).toBe("42501");
+  });
+  it("kierownik może zmieniać zgłoszenia", async () => {
+    const k = await zaloguj(KONTA.kierownik.email);
+    const { data, error } = await k
+      .from("awarie")
+      .update({ status: "Zamknieta" })
+      .eq("id", awariaPracownika2)
+      .select("status")
+      .single();
+    expect(error).toBeNull();
+    expect(data?.status).toBe("Zamknieta");
+    await admin.from("awarie").update({ status: "Otwarta" }).eq("id", awariaPracownika2);
+  });
   for (const klucz of ["technik", "kierownik", "admin"] as const) {
     it(`${klucz} widzi wszystkie zgłoszenia`, async () => {
       const k = await zaloguj(KONTA[klucz].email);
@@ -187,7 +275,7 @@ describe("konta bez dostępu do danych", () => {
         opis_awarii: `${ZNACZNIK} zablokowany`,
         krytycznosc_skutku: "Niska",
       });
-      expect(error).not.toBeNull();
+      expect(error?.code).toBe("42501");
     });
   }
 });
