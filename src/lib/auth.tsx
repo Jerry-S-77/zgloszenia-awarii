@@ -12,7 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biezacyUserId, getQueue, syncQueue, usunOperacjeUzytkownika } from "@/lib/offline";
-import { PROFIL_CACHE_KEY, stanPoStarcie } from "@/lib/uzytkownik-cache";
+import { PROFIL_CACHE_KEY, klasyfikujSesje, stanPoStarcie } from "@/lib/uzytkownik-cache";
 import type { Rola } from "./uprawnienia";
 
 export type Profil = {
@@ -66,11 +66,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const wczytanyId = useRef<string | null>(null);
   // Stan pochodzi z profilu w pamięci lokalnej (offline), a nie z bazy: po powrocie sieci odświeżamy.
   const zPamieci = useRef(false);
+  // Ponowne sprawdzanie sesji po nieokreślonym wyniku (nieudane odświeżenie tokenu).
+  const czasomierz = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const proby = useRef(0);
+  const anulujPonowienie = useCallback(() => {
+    if (czasomierz.current !== null) clearTimeout(czasomierz.current);
+    czasomierz.current = null;
+    proby.current = 0;
+  }, []);
 
   const wczytaj = useCallback(
     async (userId: string | null) => {
       const zadanie = ++numerZadania.current;
       zPamieci.current = false;
+      anulujPonowienie();
       if (!userId) {
         wczytanyId.current = null;
         zapiszCache(null);
@@ -116,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       zapiszCache(data as Profil);
       setStan({ stan: "zalogowany", profil: data as Profil });
     },
-    [qc],
+    [qc, anulujPonowienie],
   );
 
   /**
@@ -125,31 +134,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * o danych decyduje RLS), zamiast czyścić pamięć i odsyłać na logowanie, którego offline nie da się
    * dokończyć.
    */
-  const wczytajZeStartu = useCallback(async () => {
+  const wczytajZeStartu = useCallback(async (): Promise<void> => {
     const cache = odczytajProfilCache();
+    const zPamieciTeraz = (profil: Profil) => {
+      ++numerZadania.current; // unieważnia spóźnione odpowiedzi wcześniejszych żądań
+      wczytanyId.current = profil.id;
+      zPamieci.current = true;
+      setStan({ stan: "zalogowany", profil });
+    };
     // Offline nie czekamy na getSession(): przy wygasłym tokenie odświeżenie zawodzi dopiero po
     // kilkudziesięciu sekundach. Online pamięci lokalnej nie ufamy (decyduje sesja).
     let sesjaId: string | null = null;
+    let blad: unknown = null;
     if (navigator.onLine || !cache) {
-      const { data } = await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getSession();
       sesjaId = data.session?.user.id ?? null;
+      blad = error;
     }
-    if (stanPoStarcie(sesjaId, navigator.onLine, cache) === "cache" && cache) {
-      ++numerZadania.current; // unieważnia spóźnione odpowiedzi wcześniejszych żądań
-      wczytanyId.current = cache.id;
-      zPamieci.current = true;
-      setStan({ stan: "zalogowany", profil: cache });
+    const ocena = klasyfikujSesje(sesjaId, blad);
+    if (ocena === "nieokreslona" && cache) {
+      // Po nieudanym odświeżeniu tokenu sesja bywa przez chwilę null z błędem: zostajemy przy profilu
+      // z pamięci (bez czyszczenia) i sprawdzamy ponownie (co 10 s, do 6 razy).
+      zPamieciTeraz(cache);
+      if (czasomierz.current === null && proby.current < 6) {
+        proby.current++;
+        czasomierz.current = setTimeout(() => {
+          czasomierz.current = null;
+          void wczytajZeStartu().catch(() => undefined);
+        }, 10_000);
+      }
+      return;
+    }
+    if (ocena === "brak" && stanPoStarcie(null, navigator.onLine, cache) === "cache" && cache) {
+      anulujPonowienie();
+      zPamieciTeraz(cache);
       return;
     }
     await wczytaj(sesjaId);
-  }, [wczytaj]);
+  }, [wczytaj, anulujPonowienie]);
 
   useEffect(() => {
     let anulowane = false;
-    void wczytajZeStartu().then(
-      () => undefined,
-      () => undefined,
-    );
+    // Wyjątek nie może zostawić stanu "ladowanie" na zawsze: wtedy pokazujemy logowanie.
+    wczytajZeStartu().catch(() => {
+      if (!anulowane) setStan({ stan: "brak" });
+    });
     // Po powrocie sieci weryfikujemy profil pokazany z pamięci (auth-js sam odświeży token).
     const przyPowrocieSieci = () => {
       if (!anulowane && zPamieci.current) void wczytajZeStartu();
@@ -164,14 +193,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }, 0);
       } else if (zdarzenie === "SIGNED_IN" || zdarzenie === "USER_UPDATED") {
         setTimeout(() => void wczytaj(sesja?.user.id ?? null), 0);
+      } else if (zdarzenie === "TOKEN_REFRESHED" && zPamieci.current) {
+        // Odświeżenie udało się po okresie offline: profil pokazany z pamięci weryfikujemy w bazie.
+        setTimeout(() => void wczytaj(sesja?.user.id ?? null), 0);
       }
     });
     return () => {
       anulowane = true;
+      anulujPonowienie();
       window.removeEventListener("online", przyPowrocieSieci);
       sub.subscription.unsubscribe();
     };
-  }, [wczytaj, wczytajZeStartu, qc]);
+  }, [wczytaj, wczytajZeStartu, anulujPonowienie, qc]);
 
   const odswiezProfil = wczytajZeStartu;
 

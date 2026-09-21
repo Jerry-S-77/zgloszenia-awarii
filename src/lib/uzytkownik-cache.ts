@@ -39,3 +39,16 @@ export function stanPoStarcie(
   if (sesjaUserId) return "sesja";
   return !online && cacheProfil ? "cache" : "brak";
 }
+
+/**
+ * Ocena wyniku getSession(). Po nieudanym odświeżeniu tokenu auth-js przez ok. minutę zwraca sesję
+ * null razem z błędem (sesja nadal leży w pamięci): to stan nieokreślony, a nie brak zalogowania,
+ * więc nie wolno wtedy czyścić pamięci profilu ani odsyłać na logowanie.
+ */
+export function klasyfikujSesje(
+  sesjaUserId: string | null,
+  blad: unknown,
+): "sesja" | "brak" | "nieokreslona" {
+  if (sesjaUserId) return "sesja";
+  return blad ? "nieokreslona" : "brak";
+}

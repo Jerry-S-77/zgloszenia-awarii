@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stanPoStarcie, wybierzUserId } from "@/lib/uzytkownik-cache";
+import { klasyfikujSesje, stanPoStarcie, wybierzUserId } from "@/lib/uzytkownik-cache";
 
 describe("wybierzUserId", () => {
   it("id z sesji ma pierwszeństwo, także offline", () => {
@@ -31,5 +31,20 @@ describe("stanPoStarcie", () => {
   });
   it("brak sesji, offline i brak profilu w pamięci: brak", () => {
     expect(stanPoStarcie(null, false, null)).toBe("brak");
+  });
+});
+
+describe("klasyfikujSesje", () => {
+  it("id sesji oznacza sesję, niezależnie od błędu", () => {
+    expect(klasyfikujSesje("u1", null)).toBe("sesja");
+    expect(klasyfikujSesje("u1", new Error("x"))).toBe("sesja");
+  });
+  it("brak sesji bez błędu to brak zalogowania", () => {
+    expect(klasyfikujSesje(null, null)).toBe("brak");
+    expect(klasyfikujSesje(null, undefined)).toBe("brak");
+  });
+  it("brak sesji z błędem (nieudane odświeżenie tokenu) jest nieokreślony, nie 'brak'", () => {
+    expect(klasyfikujSesje(null, new Error("fetch failed"))).toBe("nieokreslona");
+    expect(klasyfikujSesje(null, { message: "retryable" })).toBe("nieokreslona");
   });
 });
