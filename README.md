@@ -8,7 +8,9 @@ Supabase jest głównym źródłem prawdy (wspólnym dla całego zespołu). W tr
 
 1. **profiles** — konta użytkowników: `id` (uuid, = `auth.users.id`), `email`, `imie_nazwisko`, `rola` (`pracownik` / `technik` / `kierownik` / `admin`), `status` (`aktywny` / `zablokowany`), `must_change_password`, `created_at`.
 2. **urzadzenia** — `nr_technologiczny` (text, klucz), `nazwa_urzadzenia`, `kategoria`, `lokalizacja`, `krytycznosc`, `wlasciciel`, `status_w_rejestrze` (tylko `Aktywne` trafia do dropdownu zgłoszenia).
-3. **awarie** — `id` (uuid), `nr_technologiczny` (FK), `nazwa_urzadzenia`, `data_awarii`, `opis_awarii`, `przyczyna`, `czas_przestoju_h`, `krytycznosc_skutku` (Niska/Srednia/Wysoka), `zglaszajacy_id` (FK do profiles), `zglaszajacy_nazwa` (kopia imienia i nazwiska autora), `status` (Otwarta/Zamknieta), `data_zamkniecia`. Autora (`zglaszajacy_id`, `zglaszajacy_nazwa`) ustawia trigger w bazie z konta zalogowanego użytkownika; wartość wysłana przez klienta jest ignorowana, a przy edycji autor się nie zmienia.
+3. **awarie** — `id` (uuid), `nr_technologiczny` (FK), `nazwa_urzadzenia`, `data_awarii`, `opis_awarii`, `przyczyna`, `czas_przestoju_h`, `krytycznosc_skutku` (Niska/Srednia/Wysoka), `zglaszajacy_id` (FK do profiles), `zglaszajacy_nazwa` (kopia imienia i nazwiska autora), `przypisany_technik_id` (FK do profiles, nullable), `status` (`zgloszona`/`przyjeta`/`w_naprawie`/`oczekuje_na_czesc`/`zamknieta`), `data_zamkniecia`, `numer` (`AWR-<rok>-<NNN>`, nadawany raz przez bazę, niezmienny potem), `wersja` (licznik do wykrywania konfliktów, rośnie przy każdym zapisie). Autora (`zglaszajacy_id`, `zglaszajacy_nazwa`) ustawia trigger w bazie z konta zalogowanego użytkownika; wartość wysłana przez klienta jest ignorowana, a przy edycji autor się nie zmienia. Przejścia statusu waliduje trigger (kto może, z jakiego stanu w jaki, że zamknięcie wymaga przyczyny i czasu przestoju) — baza jest ostatnią linią obrony, niezależnie od tego, co pokazuje interfejs.
+4. **awarie_historia** — automatyczny, tylko-do-odczytu ślad zmian (utworzenie, zmiana statusu, przypisanie); dopisuje go wyłącznie trigger, nikt nie wstawia ręcznie.
+5. **awarie_komentarze** — komentarze do zgłoszenia; autor ustawiany triggerem z konta zalogowanego użytkownika, bez edycji i usuwania.
 
 Schemat: `supabase/migrations/`. Dostęp do wszystkich tabel ma tylko zalogowany, aktywny użytkownik (rola `anon` nie ma uprawnień); zasady opisuje sekcja „Role i uprawnienia”.
 
@@ -18,12 +20,13 @@ Wszystkie ekrany poza logowaniem wymagają zalogowania. Dolny pasek nawigacji za
 
 1. **Logowanie** (`/logowanie`) — e-mail i hasło. Nie ma rejestracji ani przypominania hasła: konta zakłada administrator.
 2. **Zmiana hasła** (`/zmiana-hasla`) — konto z hasłem tymczasowym (nowe albo po resecie) musi ustawić własne hasło (min. 12 znaków, inne niż tymczasowe), zanim zobaczy jakiekolwiek dane.
-3. **Zgłoszenie awarii** (`/`) — wybór urządzenia z listy (autouzupełnienie kategorii/krytyczności), data/godzina (domyślnie teraz), opis, krytyczność skutku. Osoba zgłaszająca to zalogowane konto. Status ustawiany automatycznie na „Otwarta”.
+3. **Zgłoszenie awarii** (`/`) — wybór urządzenia z listy (autouzupełnienie kategorii/krytyczności), data/godzina (domyślnie teraz), opis, krytyczność skutku. Osoba zgłaszająca to zalogowane konto. Status ustawiany automatycznie na „Zgłoszona”; numer nadaje baza po zapisaniu (zgłoszenie z kolejki offline pokazuje „oczekuje na numer” do czasu synchronizacji).
 4. **Lista awarii** (`/awarie`) — filtrowanie po urządzeniu, statusie, krytyczności, zakresie dat. Pracownik widzi tylko swoje zgłoszenia („Moje awarie”).
-5. **Zamknięcie awarii** (`/awarie/$id`) — uzupełnienie przyczyny, czasu przestoju, zmiana statusu na „Zamknieta” (technik, kierownik, admin).
-6. **Użytkownicy** (`/admin/uzytkownicy`, tylko admin) — lista kont, „Nowe konto” z hasłem tymczasowym pokazanym raz, reset hasła (nowe hasło tymczasowe, także pokazane raz), zmiana roli, blokada i odblokowanie konta.
-7. **Dashboard analiz** — te same progi alarmowe co w automatyzacji n8n: ≥3 awarie/urządzenie w 90 dni, ≥2 awarie o krytyczności „Wysoka”/urządzenie w 60 dni, ≥8h przestoju/urządzenie w 30 dni, ranking TOP 10, trend miesięczny (kierownik, admin).
-8. **Eksport danych** (kierownik, admin) — CSV zgodny z arkuszem Google Sheets „Awarie” używanym w automatyzacji n8n (`ID_zgloszenia` zostaje puste — numeracja `AWR-2026-XXX` nadawana jest w arkuszu).
+5. **Karta awarii** (`/awarie/$id`) — oś statusów, przycisk z kolejnym dozwolonym krokiem dla roli przeglądającego (przyjęcie, rozpoczęcie/wstrzymanie naprawy, zamknięcie z przyczyną i czasem przestoju, ponowne otwarcie tylko kierownik/admin), przycisk „Przypisz do mnie” (technik/kierownik/admin), komentarze i pełna historia zmian. Zapis niesie oczekiwaną wersję rekordu — przy konflikcie (ktoś inny zmienił zgłoszenie w międzyczasie) pokazuje komunikat i odświeża dane, nie nadpisuje cudzej zmiany.
+6. **Zadania** (`/zadania`, technik i admin w pasku nawigacji; kierownik ma dostęp z linku, bez pozycji w pasku) — zgłoszenia do przyjęcia i przypisane do zalogowanego technika.
+7. **Użytkownicy** (`/admin/uzytkownicy`, tylko admin) — lista kont, „Nowe konto” z hasłem tymczasowym pokazanym raz, reset hasła (nowe hasło tymczasowe, także pokazane raz), zmiana roli, blokada i odblokowanie konta.
+8. **Dashboard analiz** — te same progi alarmowe co w automatyzacji n8n: ≥3 awarie/urządzenie w 90 dni, ≥2 awarie o krytyczności „Wysoka”/urządzenie w 60 dni, ≥8h przestoju/urządzenie w 30 dni, ranking TOP 10, trend miesięczny (kierownik, admin).
+9. **Eksport danych** (kierownik, admin) — CSV zgodny z arkuszem Google Sheets „Awarie” używanym w automatyzacji n8n (`ID_zgloszenia` zostaje na razie puste — baza już nadaje realny numer zgłoszenia, ale wpięcie go do eksportu to kolejny etap).
 
 ## Role i uprawnienia
 
@@ -33,13 +36,15 @@ Konta zakłada wyłącznie administrator (hasło tymczasowe pokazane raz, zmiana
 |---|---|---|---|---|
 | Zgłaszanie awarii | tak | tak | tak | tak |
 | Podgląd awarii | tylko własne | wszystkie | wszystkie | wszystkie |
-| Zamknięcie i edycja awarii | – | tak | tak | tak |
+| Przyjęcie, przypisanie, zmiana statusu, zamknięcie | – | tak | tak | tak |
+| Ponowne otwarcie zamkniętej awarii | – | – | tak | tak |
+| Komentarze | własne zgłoszenia | wszystkie | wszystkie | wszystkie |
 | Dashboard analiz, eksport CSV | – | – | tak | tak |
 | Użytkownicy: konta, role, blokada, reset hasła | – | – | – | tak |
 
-W etapie 1 baza tylko pilnuje dozwolonych wartości statusu (`Otwarta`, `Zamknieta`); zasada, że ponowne otwarcie zamkniętej awarii należy do kierownika i admina, oraz reszta przejść statusów wchodzą wraz z triggerem w etapie 2.
+Przejścia statusu (`zgloszona → przyjeta → w_naprawie ⇄ oczekuje_na_czesc → zamknieta`, plus skróty wprost do zamknięcia i ponowne otwarcie) waliduje trigger w bazie — niezależnie od tego, co pokazuje interfejs.
 
-Menu dolne: pracownik — Zgłoś, Moje; technik — Zgłoś, Awarie; kierownik — Awarie, Zgłoś, Analizy, Eksport; admin — Awarie, Analizy, Zgłoś, Eksport, Admin (przycisk „Zgłoś” zawsze pośrodku, przy dwóch pozycjach pierwszy). Konto zablokowane albo z wymuszoną zmianą hasła nie czyta żadnych danych poza własnym profilem. Ostatniego aktywnego administratora nie można zablokować ani zdegradować.
+Menu dolne: pracownik — Zgłoś, Moje; technik — Zadania, Zgłoś, Awarie; kierownik — Awarie, Zgłoś, Analizy, Eksport; admin — Zadania, Awarie, Zgłoś, Analizy, Eksport, Admin (przycisk „Zgłoś” zawsze pośrodku). Konto zablokowane albo z wymuszoną zmianą hasła nie czyta żadnych danych poza własnym profilem. Ostatniego aktywnego administratora nie można zablokować ani zdegradować.
 
 Publiczny webhook `POST /api/public/sync-urzadzenia` (nagłówek `x-sync-secret`) synchronizuje rejestr urządzeń z n8n.
 
@@ -77,7 +82,7 @@ npm run dev:test    # serwer deweloperski na http://localhost:8081 podłączony 
 
 Supabase Auth ogranicza liczbę logowań hasłem, więc `test:rls` i `test:e2e` uruchamiaj osobno, z kilkuminutową przerwą.
 
-Testy e2e obejmują: wymuszoną zmianę hasła, ograniczone widoki pracownika oraz założenie konta przez administratora z pierwszym logowaniem i zgłoszeniem awarii.
+Testy e2e obejmują: wymuszoną zmianę hasła, ograniczone widoki pracownika, założenie konta przez administratora z pierwszym logowaniem i zgłoszeniem awarii, zimny start offline z wygasłym tokenem, oraz pełną obsługę awarii (przyjęcie, naprawę, komentarz, zamknięcie, ponowne otwarcie, konflikt wersji w kolejce offline lądujący w „Do sprawdzenia” bez blokowania reszty kolejki).
 
 ## Pierwszy administrator
 

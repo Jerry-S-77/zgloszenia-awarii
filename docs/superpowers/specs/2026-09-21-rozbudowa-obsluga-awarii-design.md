@@ -104,8 +104,8 @@ zgloszona / przyjeta → zamknieta   (odrzucone lub fałszywy alarm, wymaga kome
 zamknieta → w_naprawie             (ponowne otwarcie: kierownik lub admin)
 ```
 
-- W etapie 1 baza tylko pilnuje dozwolonych wartości statusu (`Otwarta`, `Zamknieta`); zasada, że ponowne otwarcie zamkniętej awarii należy do kierownika i admina, oraz reszta przejść statusów wchodzą wraz z triggerem w etapie 2.
-- Zamknięcie wymaga przyczyny i czasu przestoju (jak dziś).
+- Zrealizowane w etapie 2: trigger `awarie_waliduj_przejscie` pilnuje w bazie pełnej maszyny stanów opisanej wyżej (kto może wykonać przejście, że ponowne otwarcie zamkniętej awarii należy do kierownika i admina), niezależnie od tego, co pokazuje interfejs.
+- Zamknięcie każdą drogą wymaga wypełnionych `przyczyna` i `data_zamkniecia` — to jedyny warunek, którego pilnuje baza (trigger). Wymóg komentarza przy odrzuceniu ze zgłoszonej/przyjętej ("odrzucone lub fałszywy alarm") jest tylko sugestią UX, nie jest wymuszany przez bazę — nic nie stoi na przeszkodzie zamknięciu bez komentarza, jeśli przyczyna i czas przestoju są wypełnione.
 - Konflikty: każda zmiana niesie oczekiwaną `wersja`. Trigger zwiększa `wersja`. Zapis z nieaktualną wersją nie zmienia
   wiersza, a interfejs pokazuje „Ktoś już zmienił tę awarię, odśwież".
 - Numeracja: numer nadaje baza przy zapisie. Awaria utworzona offline pokazuje „oczekuje na numer", aż zsynchronizuje się kolejka.
