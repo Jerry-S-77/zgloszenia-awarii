@@ -19,9 +19,12 @@ export type Database = {
           krytycznosc_skutku: string;
           nazwa_urzadzenia: string;
           nr_technologiczny: string;
+          numer: string | null;
           opis_awarii: string;
           przyczyna: string | null;
-          status: string;
+          przypisany_technik_id: string | null;
+          status: Database["public"]["Enums"]["status_awarii"];
+          wersja: number;
           zglaszajacy_id: string | null;
           zglaszajacy_nazwa: string | null;
         };
@@ -34,9 +37,12 @@ export type Database = {
           krytycznosc_skutku: string;
           nazwa_urzadzenia: string;
           nr_technologiczny: string;
+          numer?: string | null;
           opis_awarii: string;
           przyczyna?: string | null;
-          status?: string;
+          przypisany_technik_id?: string | null;
+          status?: Database["public"]["Enums"]["status_awarii"];
+          wersja?: number;
           zglaszajacy_id?: string | null;
           zglaszajacy_nazwa?: string | null;
         };
@@ -49,9 +55,12 @@ export type Database = {
           krytycznosc_skutku?: string;
           nazwa_urzadzenia?: string;
           nr_technologiczny?: string;
+          numer?: string | null;
           opis_awarii?: string;
           przyczyna?: string | null;
-          status?: string;
+          przypisany_technik_id?: string | null;
+          status?: Database["public"]["Enums"]["status_awarii"];
+          wersja?: number;
           zglaszajacy_id?: string | null;
           zglaszajacy_nazwa?: string | null;
         };
@@ -64,6 +73,13 @@ export type Database = {
             referencedColumns: ["nr_technologiczny"];
           },
           {
+            foreignKeyName: "awarie_przypisany_technik_id_fkey";
+            columns: ["przypisany_technik_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "awarie_zglaszajacy_id_fkey";
             columns: ["zglaszajacy_id"];
             isOneToOne: false;
@@ -71,6 +87,21 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      numeracja_awarii: {
+        Row: {
+          ostatni: number;
+          rok: number;
+        };
+        Insert: {
+          ostatni?: number;
+          rok: number;
+        };
+        Update: {
+          ostatni?: number;
+          rok?: number;
+        };
+        Relationships: [];
       };
       profiles: {
         Row: {
@@ -151,6 +182,7 @@ export type Database = {
     };
     Enums: {
       rola_uzytkownika: "pracownik" | "technik" | "kierownik" | "admin";
+      status_awarii: "zgloszona" | "przyjeta" | "w_naprawie" | "oczekuje_na_czesc" | "zamknieta";
       status_uzytkownika: "aktywny" | "zablokowany";
     };
     CompositeTypes: {
@@ -274,6 +306,7 @@ export const Constants = {
   public: {
     Enums: {
       rola_uzytkownika: ["pracownik", "technik", "kierownik", "admin"],
+      status_awarii: ["zgloszona", "przyjeta", "w_naprawie", "oczekuje_na_czesc", "zamknieta"],
       status_uzytkownika: ["aktywny", "zablokowany"],
     },
   },

@@ -22,7 +22,7 @@ async function wstaw(zglaszajacy: string, nazwa: string): Promise<string> {
     nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI",
     opis_awarii: `${ZNACZNIK} ${nazwa}`,
     krytycznosc_skutku: "Niska",
-    status: "Otwarta",
+    status: "zgloszona",
     zglaszajacy_id: zglaszajacy,
     zglaszajacy_nazwa: nazwa,
   };
@@ -104,7 +104,7 @@ describe("pracownik", () => {
     const k = await zaloguj(KONTA.pracownik.email);
     const { data } = await k
       .from("awarie")
-      .update({ status: "Zamknieta" })
+      .update({ status: "zamknieta" })
       .eq("id", awariaPracownika)
       .select();
     expect(data).toEqual([]);
@@ -113,7 +113,7 @@ describe("pracownik", () => {
       .select("status")
       .eq("id", awariaPracownika)
       .single();
-    expect(po?.status).toBe("Otwarta");
+    expect(po?.status).toBe("zgloszona");
   });
   it("czyta tylko własny profil i nie zmieni sobie roli", async () => {
     const k = await zaloguj(KONTA.pracownik.email);
@@ -138,7 +138,7 @@ describe("pracownik", () => {
       nazwa_urzadzenia: "x",
       opis_awarii: `${ZNACZNIK} zamknieta od razu`,
       krytycznosc_skutku: "Niska",
-      status: "Zamknieta",
+      status: "zamknieta",
     });
     expect(error?.code).toBe("42501");
   });
@@ -149,7 +149,7 @@ describe("pracownik", () => {
       nazwa_urzadzenia: "x",
       opis_awarii: `${ZNACZNIK} przestoj`,
       krytycznosc_skutku: "Niska",
-      status: "Otwarta",
+      status: "zgloszona",
       czas_przestoju_h: 3,
     });
     expect(error?.code).toBe("42501");
@@ -161,7 +161,7 @@ describe("pracownik", () => {
       nazwa_urzadzenia: "x",
       opis_awarii: `${ZNACZNIK} zwykla otwarta`,
       krytycznosc_skutku: "Niska",
-      status: "Otwarta",
+      status: "zgloszona",
       data_zamkniecia: null,
       przyczyna: null,
       czas_przestoju_h: null,
@@ -177,7 +177,7 @@ describe("pracownik", () => {
       nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI",
       opis_awarii: `${ZNACZNIK} ZMIENIONE upsertem`,
       krytycznosc_skutku: "Wysoka",
-      status: "Otwarta",
+      status: "zgloszona",
     });
     expect(error?.code).toBe("42501");
     const { data: po } = await admin
@@ -210,13 +210,17 @@ describe("technik, kierownik, admin", () => {
     const k = await zaloguj(KONTA.kierownik.email);
     const { data, error } = await k
       .from("awarie")
-      .update({ status: "Zamknieta" })
+      .update({
+        status: "zamknieta",
+        przyczyna: "Test",
+        data_zamkniecia: new Date().toISOString(),
+      })
       .eq("id", awariaPracownika2)
       .select("status")
       .single();
     expect(error).toBeNull();
-    expect(data?.status).toBe("Zamknieta");
-    await admin.from("awarie").update({ status: "Otwarta" }).eq("id", awariaPracownika2);
+    expect(data?.status).toBe("zamknieta");
+    await admin.from("awarie").update({ status: "zgloszona" }).eq("id", awariaPracownika2);
   });
   for (const klucz of ["technik", "kierownik", "admin"] as const) {
     it(`${klucz} widzi wszystkie zgłoszenia`, async () => {
@@ -231,15 +235,22 @@ describe("technik, kierownik, admin", () => {
     const k = await zaloguj(KONTA.technik.email);
     const { data, error } = await k
       .from("awarie")
-      .update({ status: "Zamknieta", zglaszajacy_id: id.technik, zglaszajacy_nazwa: "Podmiana" })
+      .update({
+        status: "zamknieta",
+        przyczyna: "Test",
+        data_zamkniecia: new Date().toISOString(),
+        zglaszajacy_id: id.technik,
+        zglaszajacy_nazwa: "Podmiana",
+      })
       .eq("id", awariaPracownika)
+      .eq("wersja", 1)
       .select("status, zglaszajacy_id, zglaszajacy_nazwa")
       .single();
     expect(error).toBeNull();
-    expect(data?.status).toBe("Zamknieta");
+    expect(data?.status).toBe("zamknieta");
     expect(data?.zglaszajacy_id).toBe(id.pracownik);
     expect(data?.zglaszajacy_nazwa).toBe("Test pracownik");
-    await admin.from("awarie").update({ status: "Otwarta" }).eq("id", awariaPracownika);
+    await admin.from("awarie").update({ status: "zgloszona" }).eq("id", awariaPracownika);
   });
   it("technik nie ustawi statusu spoza dozwolonych wartości (ograniczenie CHECK)", async () => {
     const k = await zalogujLinkiem(KONTA.technik.email);
@@ -249,10 +260,10 @@ describe("technik, kierownik, admin", () => {
         .update({ status: "Cokolwiek" })
         .eq("id", awariaPracownika)
         .select("id");
-      expect(error?.code).toBe("23514");
+      expect(error?.code).toBe("22P02");
     } finally {
       // Gdy ograniczenia jeszcze nie ma, przywracamy status, żeby nie psuć pozostałych testów.
-      await admin.from("awarie").update({ status: "Otwarta" }).eq("id", awariaPracownika);
+      await admin.from("awarie").update({ status: "zgloszona" }).eq("id", awariaPracownika);
     }
   });
   it("technik czyta tylko własny profil, admin wszystkie", async () => {
