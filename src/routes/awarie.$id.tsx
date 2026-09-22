@@ -68,7 +68,7 @@ function Szczegoly() {
       wynik = await aktualizujAwarie(awaria.id, {
         przyczyna: przyczyna.trim(),
         czas_przestoju_h: Number(czas),
-        status: "Zamknieta",
+        status: "zamknieta",
         data_zamkniecia: new Date().toISOString(),
       });
     } catch (e) {
@@ -98,7 +98,7 @@ function Szczegoly() {
         <Wiersz etykieta="Krytyczność skutku" wartosc={awaria.krytycznosc_skutku} />
         <Wiersz etykieta="Status" wartosc={awaria.status} />
         <Wiersz etykieta="Opis" wartosc={awaria.opis_awarii} />
-        {awaria.status === "Zamknieta" && (
+        {awaria.status === "zamknieta" && (
           <>
             <Wiersz etykieta="Przyczyna" wartosc={awaria.przyczyna ?? "—"} />
             <Wiersz
@@ -117,7 +117,7 @@ function Szczegoly() {
         )}
       </div>
 
-      {awaria.status === "Otwarta" && mozeZamykac && (
+      {awaria.status === "zgloszona" && mozeZamykac && (
         <div className="mt-5 space-y-4 rounded-2xl border border-border bg-card p-4">
           <h2 className="font-display text-xl font-bold uppercase">Zamknięcie awarii</h2>
           <div className="space-y-2">
