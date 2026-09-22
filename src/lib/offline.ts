@@ -1,28 +1,48 @@
 import { supabase } from "@/integrations/supabase/client";
 import { czyBladSieci, czyDuplikat } from "./kolejka-bledy";
 import type { Awaria } from "./types";
-import { odczytajIdZCache, wybierzUserId } from "./uzytkownik-cache";
+import { klasyfikujSesje, odczytajIdZCache, wybierzUserId } from "./uzytkownik-cache";
 
 const DB_NAME = "awarie-offline";
 const DB_VERSION = 2;
 const STORE = "queue";
 
+export type StatusOperacji = "oczekuje" | "do_sprawdzenia";
+
 // Każda operacja należy do konta, które ją zapisało: na wspólnym telefonie zgłoszenie
 // jednej osoby nie może zostać wysłane (ani wyświetlone) na koncie innej.
 export type QueueOp =
-  | { opId: string; type: "insert"; payload: Awaria; createdAt: number; userId: string }
+  | {
+      opId: string;
+      type: "insert";
+      payload: Awaria;
+      createdAt: number;
+      userId: string;
+      status: StatusOperacji;
+      powod?: string;
+    }
   | {
       opId: string;
       type: "update";
       payload: { id: string } & Partial<Awaria>;
       createdAt: number;
       userId: string;
+      status: StatusOperacji;
+      powod?: string;
+      oczekiwanaWersja?: number;
     };
 
-/** Operacja bez opId, daty i właściciela: te pola dokłada `zakolejkuj`. */
+/** Operacja bez opId, daty, statusu i właściciela: te pola dokłada `zakolejkuj`. */
 export type NowaOperacja =
   | { type: "insert"; payload: Awaria }
-  | { type: "update"; payload: { id: string } & Partial<Awaria> };
+  | { type: "update"; payload: { id: string } & Partial<Awaria>; oczekiwanaWersja?: number };
+
+export class KonfliktWersjiError extends Error {
+  constructor() {
+    super("Ktoś już zmienił tę awarię, odśwież.");
+    this.name = "KonfliktWersjiError";
+  }
+}
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -53,14 +73,17 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
 }
 
 // Offline z wygasłym tokenem getSession() zwraca null dopiero po wielu nieudanych próbach odświeżenia
-// (kilkadziesiąt sekund), więc offline bierzemy id z zapisanego profilu od razu. Online liczy się
-// tylko sesja: brak sesji oznacza brak zalogowania.
+// (kilkadziesiąt sekund), więc offline bierzemy id z zapisanego profilu od razu. Online sesję null
+// z błędem (nieudane odświeżenie tokenu, tak jak offline) traktujemy jak nieokreśloną, nie jak
+// wylogowanie: inaczej mutacje w tym oknie poszłyby anonimowo zamiast trafić do kolejki.
 export async function biezacyUserId(): Promise<string | null> {
   const online = typeof navigator === "undefined" || navigator.onLine;
   const zCache = odczytajIdZCache();
   if (!online && zCache) return zCache;
-  const { data } = await supabase.auth.getSession();
-  return wybierzUserId(data.session?.user.id ?? null, online, zCache);
+  const { data, error } = await supabase.auth.getSession();
+  const sesjaId = data.session?.user.id ?? null;
+  if (klasyfikujSesje(sesjaId, error) === "nieokreslona" && zCache) return zCache;
+  return wybierzUserId(sesjaId, online, zCache);
 }
 
 export async function enqueue(op: QueueOp) {
@@ -72,23 +95,40 @@ export async function enqueue(op: QueueOp) {
 async function zakolejkuj(op: NowaOperacja) {
   const userId = await biezacyUserId();
   if (!userId) throw new Error("Zaloguj się, aby zapisać zgłoszenie.");
-  await enqueue({ ...op, opId: crypto.randomUUID(), createdAt: Date.now(), userId } as QueueOp);
+  await enqueue({
+    ...op,
+    opId: crypto.randomUUID(),
+    createdAt: Date.now(),
+    userId,
+    status: "oczekuje",
+  } as QueueOp);
 }
 
-/** Cała kolejka (wszystkie konta) albo, gdy podano `userId`, tylko operacje tego konta. */
+/** Cała kolejka (wszystkie konta) albo, gdy podano `userId`, tylko operacje tego konta. Rekordy
+ *  zapisane przed dodaniem pola `status` (etap 1) dostają domyślnie "oczekuje". */
 export async function getQueue(userId?: string): Promise<QueueOp[]> {
   if (typeof indexedDB === "undefined") return [];
   const all = await tx<QueueOp[]>("readonly", (s) => s.getAll());
   return all
+    .map((op) => (op.status ? op : { ...op, status: "oczekuje" as const }))
     .filter((op) => userId === undefined || op.userId === userId)
     .sort((a, b) => a.createdAt - b.createdAt);
 }
 
-/** Operacje zalogowanego użytkownika; bez sesji pusta lista. */
+/** Aktywne operacje zalogowanego użytkownika (bez "do_sprawdzenia"); bez sesji pusta lista. */
 export async function getMojaKolejka(): Promise<QueueOp[]> {
   if (typeof indexedDB === "undefined") return [];
   const userId = await biezacyUserId();
-  return userId ? getQueue(userId) : [];
+  if (!userId) return [];
+  return (await getQueue(userId)).filter((op) => op.status === "oczekuje");
+}
+
+/** Operacje zalogowanego użytkownika odrzucone z powodu konfliktu biznesowego, do ręcznego przejrzenia. */
+export async function getDoSprawdzenia(): Promise<QueueOp[]> {
+  if (typeof indexedDB === "undefined") return [];
+  const userId = await biezacyUserId();
+  if (!userId) return [];
+  return (await getQueue(userId)).filter((op) => op.status === "do_sprawdzenia");
 }
 
 async function remove(opId: string) {
@@ -102,39 +142,89 @@ export async function usunOperacjeUzytkownika(userId: string): Promise<void> {
   if (ops.length > 0) window.dispatchEvent(new Event("queue-changed"));
 }
 
+/** Odrzuca (usuwa) wpis z listy „Do sprawdzenia" po ręcznym przejrzeniu przez użytkownika. */
+export async function odrzucOperacjeDoSprawdzenia(opId: string): Promise<void> {
+  await remove(opId);
+  window.dispatchEvent(new Event("queue-changed"));
+}
+
+async function oznaczDoSprawdzenia(opId: string, powod: string): Promise<void> {
+  const db = await openDB();
+  await new Promise<void>((resolve, reject) => {
+    const t = db.transaction(STORE, "readwrite");
+    const store = t.objectStore(STORE);
+    const req = store.get(opId);
+    req.onsuccess = () => {
+      const op = req.result as QueueOp | undefined;
+      if (!op) return resolve();
+      const zapis = store.put({ ...op, status: "do_sprawdzenia", powod });
+      zapis.onsuccess = () => resolve();
+      zapis.onerror = () => reject(zapis.error);
+    };
+    req.onerror = () => reject(req.error);
+  });
+  window.dispatchEvent(new Event("queue-changed"));
+}
+
+/**
+ * Rozróżnia błąd sieci (operacja wraca do kolejki, spróbujemy ponownie) od odrzucenia biznesowego
+ * (nieaktualna wersja — zero zmienionych wierszy, `blad` jest wtedy `null` — albo wyjątek z
+ * triggera/RLS, np. niedozwolone przejście statusu): to drugie trafia do "Do sprawdzenia" i NIE
+ * blokuje reszty kolejki.
+ */
+export function klasyfikujOdrzucenie(
+  blad: { code?: string | undefined; message?: string | undefined } | null | undefined,
+): "siec" | "biznesowy" {
+  return blad && czyBladSieci(blad) ? "siec" : "biznesowy";
+}
+
+function opisOdrzucenia(
+  blad: { message?: string | undefined } | null | undefined,
+  brakWierszy: boolean,
+): string {
+  if (blad?.message) return blad.message;
+  if (brakWierszy) return "Zgłoszenie zostało już zmienione albo nie istnieje.";
+  return "Zapis został odrzucony.";
+}
+
 let syncing = false;
 
+/** Konflikt biznesowy nie przerywa pętli: trafia do "Do sprawdzenia", a reszta kolejki idzie dalej. */
 export async function syncQueue(): Promise<number> {
   if (syncing || typeof navigator === "undefined" || !navigator.onLine) return 0;
   const userId = await biezacyUserId();
-  if (!userId) return 0; // bez zalogowania kolejka czeka, nic nie ginie
+  if (!userId) return 0;
   syncing = true;
   let done = 0;
   try {
-    // Tylko operacje bieżącego konta; cudze zostają na miejscu i nie blokują reszty.
-    const ops = await getQueue(userId);
+    const ops = (await getQueue(userId)).filter((op) => op.status === "oczekuje");
     for (const op of ops) {
+      let blad: { code?: string; message?: string } | null = null;
+      let brakWierszy = false;
       if (op.type === "insert") {
-        // insert zamiast upsert: upsert wymaga też polityki UPDATE, której pracownik nie ma
         const { error } = await supabase.from("awarie").insert(op.payload);
-        if (error && !czyDuplikat(error)) break;
+        if (error && !czyDuplikat(error)) blad = error;
       } else {
         const { id, ...rest } = op.payload;
-        // Pod RLS update bez uprawnień zwraca sukces, ale zmienia 0 wierszy. Pusty wynik
-        // traktujemy jak błąd: operacja zostaje w kolejce, zamiast po cichu zniknąć.
-        const { data, error } = await supabase
-          .from("awarie")
-          .update(rest)
-          .eq("id", id)
-          .select("id");
-        if (error || !data || data.length === 0) break;
+        let zapytanie = supabase.from("awarie").update(rest).eq("id", id);
+        if (op.oczekiwanaWersja !== undefined) {
+          zapytanie = zapytanie.eq("wersja", op.oczekiwanaWersja);
+        }
+        const { data, error } = await zapytanie.select("id");
+        if (error) blad = error;
+        else if (!data || data.length === 0) brakWierszy = true;
       }
-      await remove(op.opId);
-      done++;
+      if (!blad && !brakWierszy) {
+        await remove(op.opId);
+        done++;
+        continue;
+      }
+      if (klasyfikujOdrzucenie(blad) === "siec") break;
+      await oznaczDoSprawdzenia(op.opId, opisOdrzucenia(blad, brakWierszy));
     }
   } finally {
     syncing = false;
-    if (done > 0) window.dispatchEvent(new Event("queue-changed"));
+    window.dispatchEvent(new Event("queue-changed"));
   }
   return done;
 }
@@ -162,22 +252,39 @@ export async function zapiszAwarie(rekord: Awaria): Promise<"zsynchronizowano" |
   return "lokalnie";
 }
 
+/**
+ * `oczekiwanaWersja`, gdy podana, chroni przed nadpisaniem cudzej zmiany: zero zmienionych wierszy
+ * przy istniejącym rekordzie online rzuca `KonfliktWersjiError` zamiast ogólnego błędu.
+ */
 export async function aktualizujAwarie(
   id: string,
   zmiany: Partial<Awaria>,
+  oczekiwanaWersja?: number,
 ): Promise<"zsynchronizowano" | "lokalnie"> {
   if (navigator.onLine) {
-    // Pod RLS update bez uprawnień kończy się bez błędu, ale zmienia 0 wierszy: bez .select
-    // aplikacja pokazałaby sukces, choć nic się nie zapisało.
-    const { data, error } = await supabase.from("awarie").update(zmiany).eq("id", id).select("id");
+    let zapytanie = supabase.from("awarie").update(zmiany).eq("id", id);
+    if (oczekiwanaWersja !== undefined) zapytanie = zapytanie.eq("wersja", oczekiwanaWersja);
+    const { data, error } = await zapytanie.select("id");
     if (!error) {
       if (data && data.length > 0) return "zsynchronizowano";
+      if (oczekiwanaWersja !== undefined) {
+        const { data: istnieje } = await supabase
+          .from("awarie")
+          .select("id")
+          .eq("id", id)
+          .maybeSingle();
+        if (istnieje) throw new KonfliktWersjiError();
+      }
       throw new Error("Nie udało się zapisać zmiany: brak uprawnień lub zgłoszenie nie istnieje.");
     }
     if (!czyBladSieci(error)) {
       throw new Error(`Nie udało się zapisać zmiany: ${powodBledu(error)}`);
     }
   }
-  await zakolejkuj({ type: "update", payload: { id, ...zmiany } });
+  await zakolejkuj({
+    type: "update",
+    payload: { id, ...zmiany },
+    ...(oczekiwanaWersja !== undefined ? { oczekiwanaWersja } : {}),
+  });
   return "lokalnie";
 }

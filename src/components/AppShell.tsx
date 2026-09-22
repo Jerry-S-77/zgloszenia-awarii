@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import { czyRola, pozycjeNawigacji, type IkonaNawigacji, type Rola } from "@/lib/uprawnienia";
+import { DoSprawdzenia } from "./DoSprawdzenia";
 import { MenuUzytkownika } from "./MenuUzytkownika";
 import { StatusPolaczenia } from "./StatusPolaczenia";
 
@@ -58,6 +59,7 @@ export function AppShell({ title, children, dozwoloneRole }: Props) {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <DoSprawdzenia />
             <StatusPolaczenia />
             <MenuUzytkownika />
           </div>
