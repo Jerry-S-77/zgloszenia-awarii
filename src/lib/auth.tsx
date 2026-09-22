@@ -11,7 +11,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { biezacyUserId, getQueue, syncQueue, usunOperacjeUzytkownika } from "@/lib/offline";
+import { biezacyUserId, getMojaKolejka, syncQueue, usunOperacjeUzytkownika } from "@/lib/offline";
 import { PROFIL_CACHE_KEY, klasyfikujSesje, stanPoStarcie } from "@/lib/uzytkownik-cache";
 import type { Rola } from "./uprawnienia";
 
@@ -219,7 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let oczekujace: number;
     try {
       userId = await biezacyUserId(); // offline z wygasłym tokenem: id z zapisanego profilu
-      oczekujace = userId ? (await getQueue(userId)).length : 0;
+      oczekujace = userId ? (await getMojaKolejka()).length : 0;
     } catch {
       toast.error("Nie udało się sprawdzić kolejki synchronizacji.");
       return false;
@@ -233,7 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       try {
         await syncQueue();
-        oczekujace = (await getQueue(userId)).length;
+        oczekujace = (await getMojaKolejka()).length;
       } catch {
         toast.error("Nie udało się sprawdzić kolejki synchronizacji.");
         return false;
