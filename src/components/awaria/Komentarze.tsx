@@ -7,7 +7,7 @@ import { dodajKomentarz, komentarzeQuery } from "@/lib/komentarze";
 
 export function Komentarze({ awariaId }: { awariaId: string }) {
   const qc = useQueryClient();
-  const { data: komentarze = [], isLoading } = useQuery(komentarzeQuery(awariaId));
+  const { data: komentarze = [], isLoading, isError } = useQuery(komentarzeQuery(awariaId));
   const [tresc, setTresc] = useState("");
   const [zapis, setZapis] = useState(false);
 
@@ -29,7 +29,12 @@ export function Komentarze({ awariaId }: { awariaId: string }) {
     <div className="space-y-3">
       <h2 className="font-display text-xl font-bold uppercase">Komentarze</h2>
       {isLoading && <p className="text-sm text-muted-foreground">Wczytywanie...</p>}
-      {!isLoading && komentarze.length === 0 && (
+      {isError && (
+        <p className="text-sm text-destructive">
+          Nie udało się wczytać komentarzy. Sprawdź połączenie.
+        </p>
+      )}
+      {!isLoading && !isError && komentarze.length === 0 && (
         <p className="text-sm text-muted-foreground">Brak komentarzy.</p>
       )}
       <div className="space-y-2">
