@@ -157,3 +157,72 @@ describe("przypisanie technika", () => {
     expect(error?.code).toBe("42501");
   });
 });
+
+describe("historia", () => {
+  it("utworzenie i zmiana statusu zapisują wpisy historii, autor z konta", async () => {
+    const a = await wstaw("zgloszona", "historia");
+    const technik = await zalogujLinkiem(KONTA.technik.email);
+    await technik.from("awarie").update({ status: "przyjeta" }).eq("id", a.id).eq("wersja", a.wersja);
+    const { data, error } = await admin
+      .from("awarie_historia")
+      .select("typ, autor_id, dane")
+      .eq("awaria_id", a.id)
+      .order("created_at");
+    expect(error).toBeNull();
+    expect(data?.map((w) => w.typ)).toEqual(["utworzenie", "zmiana_statusu"]);
+    expect(data?.[1]?.autor_id).toBe(id.technik);
+    expect(data?.[1]?.dane).toMatchObject({ z: "zgloszona", na: "przyjeta" });
+  });
+  it("pracownik czyta historię własnej awarii, ale nie cudzej", async () => {
+    const a = await wstaw("zgloszona", "historia widocznosc");
+    const pracownik = await zalogujLinkiem(KONTA.pracownik.email);
+    const { data: wlasna } = await pracownik.from("awarie_historia").select("id").eq("awaria_id", a.id);
+    expect((wlasna ?? []).length).toBeGreaterThan(0);
+
+    const cudza = await wstaw("zgloszona", "historia cudza", { zglaszajacy_id: id.pracownik2 });
+    const { data: obca } = await pracownik.from("awarie_historia").select("id").eq("awaria_id", cudza.id);
+    expect(obca).toEqual([]);
+  });
+  it("nikt nie wstawia ani nie zmienia historii bezpośrednio", async () => {
+    const a = await wstaw("zgloszona", "historia bez ingerencji");
+    const technik = await zalogujLinkiem(KONTA.technik.email);
+    const { error } = await technik
+      .from("awarie_historia")
+      .insert({ awaria_id: a.id, typ: "edycja", dane: {} });
+    expect(error?.code).toBe("42501");
+  });
+});
+
+describe("komentarze", () => {
+  it("zgłaszający dodaje komentarz do własnej awarii, autor z konta", async () => {
+    const a = await wstaw("zgloszona", "komentarz wlasny");
+    const pracownik = await zalogujLinkiem(KONTA.pracownik.email);
+    const { data, error } = await pracownik
+      .from("awarie_komentarze")
+      .insert({ awaria_id: a.id, tresc: "Nadal awaria." })
+      .select("autor_id, tresc")
+      .single();
+    expect(error).toBeNull();
+    expect(data?.autor_id).toBe(id.pracownik);
+  });
+  it("pracownik nie komentuje cudzej awarii, technik może", async () => {
+    const cudza = await wstaw("zgloszona", "komentarz cudzy", { zglaszajacy_id: id.pracownik2 });
+    const pracownik = await zalogujLinkiem(KONTA.pracownik.email);
+    const { error: bladPracownika } = await pracownik
+      .from("awarie_komentarze")
+      .insert({ awaria_id: cudza.id, tresc: "Nie moje." });
+    expect(bladPracownika?.code).toBe("42501");
+
+    const technik = await zalogujLinkiem(KONTA.technik.email);
+    const { error } = await technik
+      .from("awarie_komentarze")
+      .insert({ awaria_id: cudza.id, tresc: "Przyjmuję zgłoszenie." });
+    expect(error).toBeNull();
+  });
+  it("pusty komentarz jest odrzucany", async () => {
+    const a = await wstaw("zgloszona", "komentarz pusty");
+    const technik = await zalogujLinkiem(KONTA.technik.email);
+    const { error } = await technik.from("awarie_komentarze").insert({ awaria_id: a.id, tresc: "   " });
+    expect(error).not.toBeNull();
+  });
+});
