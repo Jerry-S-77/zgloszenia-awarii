@@ -282,7 +282,7 @@ test("zgłoszenie offline przy wygasłym tokenie trafia do kolejki i synchronizu
     ]);
 });
 
-test("zimny start: token wygasł, odświeżenie chwilowo zablokowane — użytkownik zostaje w aplikacji", async ({
+test("zimny start: token wygasł, odświeżenie chwilowo zawiodło — użytkownik zostaje w aplikacji", async ({
   page,
   context,
 }) => {
@@ -302,23 +302,29 @@ test("zimny start: token wygasł, odświeżenie chwilowo zablokowane — użytko
     window.localStorage.setItem(klucz, JSON.stringify(sesja));
   });
 
-  // Odświeżenie tokenu zablokowane: symuluje okno ok. 60 s po nieudanej próbie (cooldown auth-js).
-  let odblokuj = () => {};
-  const blokada = new Promise<void>((resolve) => {
-    odblokuj = resolve;
-  });
-  await context.route("**/auth/v1/token**", async (route) => {
-    await blokada;
-    await route.continue();
+  // Odświeżenie tokenu zawodzi (żądanie kończy się błędem sieci, a nie wisi bez końca — prawdziwe
+  // żądania w końcu się kończą). @supabase/auth-js samo ponawia taki (odzyskiwalny) błąd z rosnącym
+  // opóźnieniem przez do ok. 30 s (AUTO_REFRESH_TICK_DURATION_MS), zanim odda błąd wywołującemu —
+  // dopiero wtedy getSession() się rozstrzyga. Właśnie ten moment klasyfikujSesje() rozpoznaje jako
+  // sesję "nieokreśloną", po czym auth.tsx pokazuje profil z pamięci lokalnej.
+  let odswiezanieZawodzi = true;
+  await page.route("**/auth/v1/token**", async (route) => {
+    if (odswiezanieZawodzi) {
+      await route.abort("failed");
+    } else {
+      await route.continue();
+    }
   });
 
   await page.reload();
-  // Zimny start z zablokowanym odświeżeniem: profil z pamięci lokalnej trzyma ekran, bez przekierowania.
-  await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible({ timeout: 5_000 });
+  // Zimny start z nieudanym odświeżeniem: po wyczerpaniu wewnętrznych ponowień auth-js profil z
+  // pamięci lokalnej trzyma ekran, bez przekierowania na logowanie (timeout z zapasem ponad ~30 s
+  // wewnętrznych ponowień, potwierdzone pomiarem: ok. 26,5 s w dwóch niezależnych przebiegach).
+  await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible({ timeout: 35_000 });
   expect(page.url()).not.toContain("/logowanie");
 
-  odblokuj();
-  await context.unroute("**/auth/v1/token**");
+  odswiezanieZawodzi = false;
+  await page.unroute("**/auth/v1/token**");
   await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible();
   expect(page.url()).not.toContain("/logowanie");
 });
