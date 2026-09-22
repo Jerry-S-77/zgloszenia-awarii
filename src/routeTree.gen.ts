@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EksportRouteImport } from './routes/eksport'
 import { Route as LogowanieRouteImport } from './routes/logowanie'
+import { Route as ZadaniaRouteImport } from './routes/zadania'
 import { Route as ZmianaHaslaRouteImport } from './routes/zmiana-hasla'
 import { Route as AdminUzytkownicyRouteImport } from './routes/admin.uzytkownicy'
 import { Route as AwarieIndexRouteImport } from './routes/awarie.index'
@@ -37,6 +38,11 @@ const EksportRoute = EksportRouteImport.update({
 const LogowanieRoute = LogowanieRouteImport.update({
   id: '/logowanie',
   path: '/logowanie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZadaniaRoute = ZadaniaRouteImport.update({
+  id: '/zadania',
+  path: '/zadania',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZmianaHaslaRoute = ZmianaHaslaRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
   '/logowanie': typeof LogowanieRoute
+  '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
   '/logowanie': typeof LogowanieRoute
+  '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
   '/logowanie': typeof LogowanieRoute
+  '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/eksport'
     | '/logowanie'
+    | '/zadania'
     | '/zmiana-hasla'
     | '/admin/uzytkownicy'
     | '/awarie/$id'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/eksport'
     | '/logowanie'
+    | '/zadania'
     | '/zmiana-hasla'
     | '/admin/uzytkownicy'
     | '/awarie/$id'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/eksport'
     | '/logowanie'
+    | '/zadania'
     | '/zmiana-hasla'
     | '/admin/uzytkownicy'
     | '/awarie/$id'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   EksportRoute: typeof EksportRoute
   LogowanieRoute: typeof LogowanieRoute
+  ZadaniaRoute: typeof ZadaniaRoute
   ZmianaHaslaRoute: typeof ZmianaHaslaRoute
   AdminUzytkownicyRoute: typeof AdminUzytkownicyRoute
   AwarieIdRoute: typeof AwarieIdRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/logowanie'
       fullPath: '/logowanie'
       preLoaderRoute: typeof LogowanieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zadania': {
+      id: '/zadania'
+      path: '/zadania'
+      fullPath: '/zadania'
+      preLoaderRoute: typeof ZadaniaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/zmiana-hasla': {
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   EksportRoute: EksportRoute,
   LogowanieRoute: LogowanieRoute,
+  ZadaniaRoute: ZadaniaRoute,
   ZmianaHaslaRoute: ZmianaHaslaRoute,
   AdminUzytkownicyRoute: AdminUzytkownicyRoute,
   AwarieIdRoute: AwarieIdRoute,

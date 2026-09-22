@@ -19,12 +19,20 @@ describe("pozycjeNawigacji", () => {
     pozycjeNawigacji(r).map((p) => p.label);
 
   it("pracownik: Zgłoś i Moje", () => expect(etykiety("pracownik")).toEqual(["Zgłoś", "Moje"]));
-  it("technik: Zgłoś i Awarie", () => expect(etykiety("technik")).toEqual(["Zgłoś", "Awarie"]));
+  it("technik: Zadania, Zgłoś i Awarie", () =>
+    expect(etykiety("technik")).toEqual(["Zadania", "Zgłoś", "Awarie"]));
   it("kierownik: Zgłoś jest drugi z czterech", () => {
     expect(etykiety("kierownik")).toEqual(["Awarie", "Zgłoś", "Analizy", "Eksport"]);
   });
-  it("admin: Zgłoś pośrodku pięciu", () => {
-    expect(etykiety("admin")).toEqual(["Awarie", "Analizy", "Zgłoś", "Eksport", "Admin"]);
+  it("admin: Zgłoś pośrodku sześciu", () => {
+    expect(etykiety("admin")).toEqual([
+      "Zadania",
+      "Awarie",
+      "Zgłoś",
+      "Analizy",
+      "Eksport",
+      "Admin",
+    ]);
   });
   it("dokładnie jedna pozycja główna (Zgłoś)", () => {
     for (const rola of ["pracownik", "technik", "kierownik", "admin"] as const) {
