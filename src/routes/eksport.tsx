@@ -4,7 +4,9 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { awarieQuery, pracownicyQuery } from "@/lib/queries";
+import { awarieQuery } from "@/lib/queries";
+import { useAuth } from "@/lib/auth";
+import { czyRola } from "@/lib/uprawnienia";
 
 export const Route = createFileRoute("/eksport")({
   head: () => ({
@@ -15,7 +17,10 @@ export const Route = createFileRoute("/eksport")({
         content: "Pobierz zgłoszenia awarii w formacie CSV zgodnym z arkuszem „Awarie”.",
       },
       { property: "og:title", content: "Eksport danych o awariach" },
-      { property: "og:description", content: "Plik CSV zgodny z arkuszem używanym w automatyzacji." },
+      {
+        property: "og:description",
+        content: "Plik CSV zgodny z arkuszem używanym w automatyzacji.",
+      },
     ],
   }),
   component: Eksport,
@@ -41,8 +46,12 @@ function pole(v: string | number | null | undefined) {
 }
 
 function Eksport() {
-  const { data: awarie = [] } = useQuery(awarieQuery);
-  const { data: pracownicy = [] } = useQuery(pracownicyQuery);
+  const auth = useAuth();
+  const dostep =
+    auth.stan === "zalogowany" &&
+    !auth.profil.must_change_password &&
+    czyRola(auth.profil.rola, ["kierownik", "admin"]);
+  const { data: awarie = [] } = useQuery({ ...awarieQuery, enabled: dostep });
 
   function pobierz() {
     const wiersze = awarie.map((a) =>
@@ -55,7 +64,7 @@ function Eksport() {
         pole(a.przyczyna),
         pole(a.czas_przestoju_h),
         pole(a.krytycznosc_skutku),
-        pole(pracownicy.find((p) => p.id === a.osoba_zglaszajaca_id)?.imie_nazwisko ?? ""),
+        pole(a.zglaszajacy_nazwa),
         pole(a.status),
         pole(a.data_zamkniecia),
       ].join(","),
@@ -71,11 +80,11 @@ function Eksport() {
   }
 
   return (
-    <AppShell title="Eksport danych">
+    <AppShell title="Eksport danych" dozwoloneRole={["kierownik", "admin"]}>
       <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
         <p className="text-base">
-          Plik CSV zawiera dokładnie kolumny arkusza „Awarie”. Kolumna <b>ID_zgloszenia</b> pozostaje pusta
-          — numeracja AWR-2026-XXX nadawana jest w arkuszu przy imporcie.
+          Plik CSV zawiera dokładnie kolumny arkusza „Awarie”. Kolumna <b>ID_zgloszenia</b>{" "}
+          pozostaje pusta — numeracja AWR-2026-XXX nadawana jest w arkuszu przy imporcie.
         </p>
         <ul className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
           {NAGLOWKI.map((n) => (

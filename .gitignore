@@ -31,9 +31,18 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.*
+!.env.example
+!.env.test.example
 
 # Visual companion mockups (brainstorming)
 .superpowers/
 
 # Materialy robocze (arkusze z danymi testowymi), nie do repozytorium
 @Dodatkowe dokumenty/
+
+# Srodowisko testowe i pliki robocze Supabase CLI
+.env.test
+supabase/.temp/
+playwright-report/
+test-results/

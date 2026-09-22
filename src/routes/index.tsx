@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { pracownicyQuery, urzadzeniaQuery } from "@/lib/queries";
+import { urzadzeniaQuery } from "@/lib/queries";
+import { useAuth } from "@/lib/auth";
 import { zapiszAwarie } from "@/lib/offline";
 
 export const Route = createFileRoute("/")({
@@ -45,10 +46,10 @@ function lokalnyTerazISO() {
 function Zgloszenie() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: pracownicy = [] } = useQuery(pracownicyQuery);
-  const { data: urzadzenia = [] } = useQuery(urzadzeniaQuery);
+  const auth = useAuth();
+  const gotowy = auth.stan === "zalogowany" && !auth.profil.must_change_password;
+  const { data: urzadzenia = [] } = useQuery({ ...urzadzeniaQuery, enabled: gotowy });
 
-  const [osoba, setOsoba] = useState("");
   const [nr, setNr] = useState("");
   const [data, setData] = useState(lokalnyTerazISO);
   const [opis, setOpis] = useState("");
@@ -59,25 +60,34 @@ function Zgloszenie() {
 
   async function wyslij(e: React.FormEvent) {
     e.preventDefault();
-    if (!osoba || !urzadzenie || !opis.trim()) {
-      toast.error("Uzupełnij osobę, urządzenie i opis awarii.");
+    if (!urzadzenie || !opis.trim()) {
+      toast.error("Uzupełnij urządzenie i opis awarii.");
       return;
     }
     setZapisuje(true);
-    const wynik = await zapiszAwarie({
-      id: crypto.randomUUID(),
-      nr_technologiczny: urzadzenie.nr_technologiczny,
-      nazwa_urzadzenia: urzadzenie.nazwa_urzadzenia,
-      data_awarii: new Date(data).toISOString(),
-      opis_awarii: opis.trim(),
-      przyczyna: null,
-      czas_przestoju_h: null,
-      krytycznosc_skutku: krytycznosc,
-      osoba_zglaszajaca_id: osoba,
-      status: "Otwarta",
-      data_zamkniecia: null,
-    });
-    setZapisuje(false);
+    let wynik: Awaited<ReturnType<typeof zapiszAwarie>>;
+    try {
+      wynik = await zapiszAwarie({
+        id: crypto.randomUUID(),
+        nr_technologiczny: urzadzenie.nr_technologiczny,
+        nazwa_urzadzenia: urzadzenie.nazwa_urzadzenia,
+        data_awarii: new Date(data).toISOString(),
+        opis_awarii: opis.trim(),
+        przyczyna: null,
+        czas_przestoju_h: null,
+        krytycznosc_skutku: krytycznosc,
+        zglaszajacy_id: null, // ustawia baza z konta (trigger), wartość od klienta jest ignorowana
+        zglaszajacy_nazwa: null,
+        status: "Otwarta",
+        data_zamkniecia: null,
+      });
+    } catch (e) {
+      // Formularza nie czyścimy: użytkownik może poprawić dane lub spróbować ponownie.
+      toast.error(e instanceof Error ? e.message : "Nie udało się zapisać zgłoszenia.");
+      return;
+    } finally {
+      setZapisuje(false);
+    }
     await qc.invalidateQueries();
     toast.success(
       wynik === "zsynchronizowano"
@@ -93,22 +103,11 @@ function Zgloszenie() {
   return (
     <AppShell title="Zgłoś awarię">
       <form onSubmit={wyslij} className="space-y-5">
-        <div className="space-y-2">
-          <Label className="text-base">Osoba zgłaszająca</Label>
-          <Select value={osoba} onValueChange={setOsoba}>
-            <SelectTrigger className="h-14 text-base">
-              <SelectValue placeholder="Wybierz osobę" />
-            </SelectTrigger>
-            <SelectContent>
-              {pracownicy.map((p) => (
-                <SelectItem key={p.id} value={p.id} className="py-3 text-base">
-                  {p.imie_nazwisko}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
+        {auth.stan === "zalogowany" && (
+          <p className="rounded-xl bg-accent p-3 text-sm text-accent-foreground">
+            Zgłasza: <span className="font-semibold">{auth.profil.imie_nazwisko}</span>
+          </p>
+        )}
         <div className="space-y-2">
           <Label className="text-base">Urządzenie</Label>
           <Select value={nr} onValueChange={setNr}>
@@ -117,7 +116,11 @@ function Zgloszenie() {
             </SelectTrigger>
             <SelectContent>
               {urzadzenia.map((u) => (
-                <SelectItem key={u.nr_technologiczny} value={u.nr_technologiczny} className="py-3 text-base">
+                <SelectItem
+                  key={u.nr_technologiczny}
+                  value={u.nr_technologiczny}
+                  className="py-3 text-base"
+                >
                   {u.nr_technologiczny} — {u.nazwa_urzadzenia}
                 </SelectItem>
               ))}
@@ -135,7 +138,8 @@ function Zgloszenie() {
               <span className="font-semibold">Lokalizacja:</span> {urzadzenie?.lokalizacja}
             </p>
             <p>
-              <span className="font-semibold">Krytyczność urządzenia:</span> {urzadzenie?.krytycznosc}
+              <span className="font-semibold">Krytyczność urządzenia:</span>{" "}
+              {urzadzenie?.krytycznosc}
             </p>
           </div>
         </div>

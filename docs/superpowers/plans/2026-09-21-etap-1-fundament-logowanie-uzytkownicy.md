@@ -20,7 +20,7 @@
 - Hasło tymczasowe: `crypto.getRandomValues`, 12 znaków w formacie `XXXX-XXXX-XXXX`, pokazywane raz, nie zapisywane i nie logowane. Nowe hasło: minimum 12 znaków, różne od dotychczasowego.
 - Klucz service-role wyłącznie w plikach `*.server.ts` i ładowany dynamicznym importem w handlerach.
 - `tsconfig` ma `exactOptionalPropertyTypes` i `noUncheckedIndexedAccess`: kod musi je respektować.
-- Testy RLS i logiki kont działają wyłącznie na projekcie testowym. Helper odmawia startu, gdy `SUPABASE_URL` zawiera `fujutpwdtnnooeusivdr`.
+- Testy RLS i logiki kont działają wyłącznie na projekcie testowym. Helper i `dev:test` odmawiają startu, gdy `SUPABASE_URL` wskazuje na projekt, którego identyfikator jest w `supabase/config.toml` (`project_id` oznacza projekt produkcyjny; jedno źródło prawdy, bez wpisywania identyfikatora w kodzie). Dawna baza `fujutpwdtnnooeusivdr` (z Lovable) jest niedostępna i nieużywana; produkcją będzie nowy własny projekt Supabase zakładany w zadaniu 11.
 - Ochrona sekretów blokuje polecenia powłoki dotykające `.env*`. Skrypty i testy same ładują env przez `process.loadEnvFile(...)`; w poleceniach nie odwołujemy się do plików `.env*`.
 - Każdy commit kończy się trailerem: `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`. **Push tylko za osobną zgodą użytkownika.**
 - Etap 1 nie zmienia statusów awarii (`Otwarta`/`Zamknieta`) ani nie usuwa webhooka `sync-urzadzenia` (to etapy 2 i 3).
@@ -570,6 +570,87 @@ git commit -m "Add pure logic: roles, navigation, temp password, error messages"
 **Interfaces:**
 - Consumes: `tests/wspolne/srodowisko.ts` (`przygotujKonta`, `klientAdmin`, `klientAnon`, `zaloguj`, `KONTA`).
 - Produces (SQL): typy `rola_uzytkownika`, `status_uzytkownika`; tabela `profiles(id, email, imie_nazwisko, rola, status, must_change_password, created_at)`; funkcje `moja_rola()` (zwraca rolę tylko dla konta aktywnego i bez wymuszonej zmiany hasła, inaczej `NULL`) oraz `mam_role(rola_uzytkownika[])`; kolumny `awarie.zglaszajacy_id` (→ `profiles`) i `awarie.zglaszajacy_nazwa`.
+
+- [ ] **Step 0a: Strażnik produkcji czytany z `supabase/config.toml` (test najpierw).** Zastępuje sztywno wpisany identyfikator z zadania 1. Utwórz `tests/unit/ochrona-produkcji.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+import { czyAdresProdukcyjny, odczytajRefProdukcyjny } from "../wspolne/ochrona-produkcji";
+
+describe("odczytajRefProdukcyjny", () => {
+  it("czyta project_id z config.toml", () => {
+    expect(odczytajRefProdukcyjny('project_id = "abcdefghijklmnopqrst"\n')).toBe("abcdefghijklmnopqrst");
+  });
+  it("zwraca null, gdy nie ma project_id", () => {
+    expect(odczytajRefProdukcyjny("[api]\nport = 1")).toBeNull();
+  });
+});
+
+describe("czyAdresProdukcyjny", () => {
+  it("rozpoznaje adres projektu produkcyjnego", () => {
+    expect(czyAdresProdukcyjny("https://abc123.supabase.co", "abc123")).toBe(true);
+  });
+  it("nie myli innego projektu", () => {
+    expect(czyAdresProdukcyjny("https://xyz789.supabase.co", "abc123")).toBe(false);
+  });
+  it("brak refa produkcyjnego oznacza brak dopasowania", () => {
+    expect(czyAdresProdukcyjny("https://xyz789.supabase.co", null)).toBe(false);
+  });
+});
+```
+Run: `npx vitest run tests/unit/ochrona-produkcji.test.ts` — Expected: FAIL (brak modułu).
+
+- [ ] **Step 0b: Zaimplementuj `tests/wspolne/ochrona-produkcji.ts`** (bez ładowania env, żeby dało się go testować i importować ze skryptów)
+
+```ts
+import { readFileSync } from "node:fs";
+
+export function odczytajRefProdukcyjny(configToml: string): string | null {
+  const dopasowanie = /^\s*project_id\s*=\s*"([^"]+)"/m.exec(configToml);
+  return dopasowanie?.[1] ?? null;
+}
+
+export function czyAdresProdukcyjny(url: string, refProdukcyjny: string | null): boolean {
+  return refProdukcyjny !== null && new URL(url).hostname.startsWith(`${refProdukcyjny}.`);
+}
+
+/** Rzuca błąd, jeśli adres to projekt produkcyjny (project_id z supabase/config.toml) lub gdy nie da się tego sprawdzić. */
+export function wymagajNieprodukcyjnego(url: string): void {
+  let ref: string | null = null;
+  try {
+    ref = odczytajRefProdukcyjny(readFileSync("supabase/config.toml", "utf8"));
+  } catch {
+    /* obsłużone niżej */
+  }
+  if (ref === null) {
+    throw new Error(
+      "Nie można odczytać project_id z supabase/config.toml, więc nie da się sprawdzić, czy to projekt produkcyjny.",
+    );
+  }
+  if (czyAdresProdukcyjny(url, ref)) {
+    throw new Error("Testy i skrypty deweloperskie nie mogą działać na projekcie produkcyjnym (project_id z supabase/config.toml).");
+  }
+}
+```
+Run: `npx vitest run tests/unit/ochrona-produkcji.test.ts` — Expected: PASS (5 testów).
+
+- [ ] **Step 0c: Użyj strażnika w `tests/wspolne/srodowisko.ts` i `scripts/dev-test.ts`.** W `srodowisko.ts` usuń stałą `PROJEKT_PRODUKCYJNY` i zamień ciało funkcji `url()` na:
+
+```ts
+export function url(): string {
+  const u = env("SUPABASE_URL");
+  wymagajNieprodukcyjnego(u);
+  return u;
+}
+```
+z importem `import { wymagajNieprodukcyjnego } from "./ochrona-produkcji";`. W `scripts/dev-test.ts` usuń sprawdzenie `url.includes("fujutpwdtnnooeusivdr")` i wywołaj `wymagajNieprodukcyjnego(url);` (import `../tests/wspolne/ochrona-produkcji.ts`). Uruchom `npx prettier --write` na zmienionych plikach, potem `npm test`. Expected: wszystkie testy jednostkowe zielone.
+
+- [ ] **Step 0d: Commit**
+
+```bash
+git add tests/wspolne/ochrona-produkcji.ts tests/wspolne/srodowisko.ts tests/unit/ochrona-produkcji.test.ts scripts/dev-test.ts
+git commit -m "Read production project ref from supabase/config.toml in test and dev guards" -m "Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
 
 - [ ] **Step 1: Napisz test macierzy RLS** `tests/rls/macierz.test.ts`
 
@@ -2599,15 +2680,15 @@ git commit -m "Document stage 1: auth, roles, closed RLS and test commands" -m "
 git tag etap-1-gotowy
 ```
 
-- [ ] **Step 6: Wdrożenie bazy na produkcję (WYMAGA OSOBNEJ ZGODY UŻYTKOWNIKA).** Zapytaj użytkownika, czy działa już publiczna instancja aplikacji. Jeśli tak, stara wersja przestanie działać po migracji (korzysta z dostępu anonimowego i tabeli `pracownicy`), więc migrację trzeba zgrać z wdrożeniem nowej wersji w krótkim oknie. Po uzyskaniu zgody:
-  1. **Kopia zapasowa:** w panelu produkcyjnego Supabase (Table Editor) wyeksportuj do CSV tabele `awarie`, `urzadzenia`, `pracownicy` i zapisz poza repozytorium.
-  2. `! npx supabase link --project-ref fujutpwdtnnooeusivdr` (zapyta o hasło bazy).
-  3. `! npx supabase migration list`. Jeśli migracja `20260905165410` nie jest oznaczona jako zastosowana zdalnie, ale tabele istnieją (baza pochodzi z Lovable), wykonaj `! npx supabase migration repair --status applied 20260905165410`, żeby `db push` nie próbował jej powtórzyć.
-  4. `! npx supabase db push` (zastosuje `20260921120000_etap1_profiles_rls.sql`).
-  5. W panelu produkcyjnym wyłącz **Authentication → Sign In / Providers → Allow new users to sign up**.
-  6. Załóż pierwszego admina: `node scripts/utworz-admina.ts <email_użytkownika> "<Imię Nazwisko>"` i przekaż użytkownikowi hasło tymczasowe.
-  7. Sprawdź produkcję: logowanie admina i zmiana hasła, założenie konta technika w panelu, zgłoszenie i zamknięcie awarii. Poproś użytkownika o ręczne uruchomienie przepływu n8n `sync-urzadzenia`: webhook używa klucza service-role, więc RLS go nie dotyczy, ale to szybki dowód, że integracja żyje.
-  8. Historyczne awarie mają teraz `zglaszajacy_nazwa` z dawnych `pracownicy` i `zglaszajacy_id = NULL`. Sprawdź to na liście awarii jako admin.
+- [ ] **Step 6: Nowy własny projekt produkcyjny (każdy krok zewnętrzny wymaga zgody i udziału użytkownika).** Dawna baza `fujutpwdtnnooeusivdr` (z Lovable) jest dla nas niedostępna, więc jej nie migrujemy: zawiera garstkę rekordów, a właściwe dane wejdą z arkuszy w etapie 3. Budujemy czystą bazę w organizacji użytkownika od zera z migracji, tak jak projekt testowy.
+  1. **Użytkownik** tworzy w panelu Supabase projekt `zgloszenia-awarii` (produkcyjny; plan darmowy dopuszcza dwa projekty: testowy i ten), wyłącza w nim **Allow new users to sign up**, zapisuje hasło bazy, Reference ID, Project URL, klucz publishable i klucz secret (`service_role`). Po utworzeniu sprawdź w panelu, że `Allow new users to sign up` jest wyłączone, i uruchom ręcznie próbę `signUp` z klucza publishable (oczekiwany błąd).
+  2. **Użytkownik** zamienia w lokalnym `.env` wartości `SUPABASE_URL`, `VITE_SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PROJECT_ID` i `VITE_SUPABASE_PROJECT_ID` na nowe (agent tego pliku nie czyta). `SYNC_URZADZENIA_SECRET` staje się zbędny (webhook znika w etapie 3).
+  3. **Agent** zmienia `project_id` w `supabase/config.toml` na nowy Reference ID i commituje. Od tego momentu strażnik z zadania 3 (Step 0) traktuje nowy projekt jako produkcyjny, a stary identyfikator przestaje być w repozytorium używany.
+  4. **Użytkownik:** `! npx supabase link --project-ref <NOWY_REF>`, potem `! npx supabase projects list` (kolumna LINKED musi wskazywać nowy projekt produkcyjny, a nie testowy) i `! npx supabase db push`. Zastosuje wszystkie migracje po kolei: dawną bazową i trzy migracje etapu 1 (baza produkcyjna powstaje z pełnego zestawu, nie z samej bazowej; ostatnia to `20260921140000_etap1_awarie_status_check.sql`). Po tym kroku przełącz `link` z powrotem na projekt testowy przed następnym uruchomieniem `db push`, żeby przypadkowo nie zmieniać produkcji.
+  5. **Agent:** `node scripts/utworz-admina.ts <email> "<Imię Nazwisko>"` i przekazanie użytkownikowi hasła tymczasowego (pokazane raz).
+  6. **Razem:** ręczne przejście ścieżki na produkcji (logowanie admina i zmiana hasła, konto technika w panelu, zgłoszenie i zamknięcie awarii).
+  7. Migracja bazowa wstawia 6 przykładowych urządzeń (HVAC-01…HVAC-06). W etapie 3 zastępuje je import z arkuszy. Do tego czasu to dane przykładowe.
+  8. Publiczna instancja aplikacji (jeśli istnieje) wskazuje na starą bazę. Przełączenie na nową następuje przy wdrożeniu w etapie 6. Przepływ n8n `sync-urzadzenia` zostaje bez zmian do wyłączenia n8n (etap 3), a stara baza pozostaje nietknięta.
 
 - [ ] **Step 6a: Push.** Nie wypychaj zmian na GitHub bez osobnej, jawnej zgody użytkownika (`CLAUDE.md`, sekcja „Git"). Po zgodzie: `git push origin etap-1-uzytkownicy --tags` i zaproponuj scalenie gałęzi.
 

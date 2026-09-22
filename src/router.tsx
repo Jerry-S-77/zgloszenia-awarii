@@ -3,7 +3,17 @@ import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
-  const queryClient = new QueryClient();
+  // Zapytania działają też offline (lista awarii łączy lokalną kolejkę z danymi z bazy), a bez sieci
+  // nie ponawiamy ich na próżno. Dane z poprzedniego pobrania zostają na ekranie mimo błędu.
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        networkMode: "always",
+        retry: (liczbaBledow) =>
+          (typeof navigator === "undefined" || navigator.onLine) && liczbaBledow < 3,
+      },
+    },
+  });
 
   const router = createRouter({
     routeTree,
