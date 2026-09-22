@@ -70,6 +70,16 @@ describe("scalAwarie", () => {
     expect(wynik?.status).toBe("zamknieta");
     expect(wynik?._pending).toBe(true);
   });
+  it("dwie kolejne aktualizacje tego samego id podbijają scaloną wersję o 2, nie zostają przy oryginalnej", () => {
+    const oryginalnaWersja = 3;
+    const zdalna = awaria("a", { status: "zgloszona", wersja: oryginalnaWersja });
+    const pierwsza = op({ type: "update", payload: { id: "a", status: "przyjeta" } });
+    const druga = op({ type: "update", payload: { id: "a", status: "w_naprawie" } });
+    const [wynik] = scalAwarie([zdalna], [pierwsza, druga]);
+    expect(wynik?.status).toBe("w_naprawie");
+    expect(wynik?.wersja).toBe(oryginalnaWersja + 2);
+    expect(wynik?._pending).toBe(true);
+  });
   it("scalAwarie samo nie filtruje 'do_sprawdzenia' — ufa wejściu, filtrowanie to obowiązek wywołującego", () => {
     const zdalna = awaria("a");
     const odrzucona = op({

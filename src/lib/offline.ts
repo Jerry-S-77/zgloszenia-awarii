@@ -267,17 +267,28 @@ export async function aktualizujAwarie(
     const { data, error } = await zapytanie.select("id");
     if (!error) {
       if (data && data.length > 0) return "zsynchronizowano";
+      // Zero zmienionych wierszy: sprawdzamy, czy rekord istnieje, żeby odróżnić konflikt wersji od
+      // braku uprawnień/rekordu. Błąd SIECI tego sprawdzenia nie może sam zostać odrzucony jako
+      // "nie istnieje" — dołącza do tej samej ścieżki kolejkowania co błąd sieci głównego zapisu.
+      let bladSieciPrzySprawdzeniu = false;
       if (oczekiwanaWersja !== undefined) {
-        const { data: istnieje } = await supabase
+        const { data: istnieje, error: bladSprawdzenia } = await supabase
           .from("awarie")
           .select("id")
           .eq("id", id)
           .maybeSingle();
-        if (istnieje) throw new KonfliktWersjiError();
+        if (bladSprawdzenia && czyBladSieci(bladSprawdzenia)) {
+          bladSieciPrzySprawdzeniu = true;
+        } else if (istnieje) {
+          throw new KonfliktWersjiError();
+        }
       }
-      throw new Error("Nie udało się zapisać zmiany: brak uprawnień lub zgłoszenie nie istnieje.");
-    }
-    if (!czyBladSieci(error)) {
+      if (!bladSieciPrzySprawdzeniu) {
+        throw new Error(
+          "Nie udało się zapisać zmiany: brak uprawnień lub zgłoszenie nie istnieje.",
+        );
+      }
+    } else if (!czyBladSieci(error)) {
       throw new Error(`Nie udało się zapisać zmiany: ${powodBledu(error)}`);
     }
   }
