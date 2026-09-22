@@ -281,3 +281,42 @@ test("zgłoszenie offline przy wygasłym tokenie trafia do kolejki i synchronizu
       [opisOnline, profil?.id],
     ]);
 });
+
+test("zimny start: token wygasł, odświeżenie chwilowo zablokowane — użytkownik zostaje w aplikacji", async ({
+  page,
+  context,
+}) => {
+  await otworz(page, "/logowanie");
+  await page.getByLabel("E-mail").fill(KONTA.pracownik.email);
+  await page.getByLabel("Hasło").fill(HASLO_TESTOWE);
+  await page.getByRole("button", { name: "Zaloguj się" }).click();
+  await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible();
+
+  await page.evaluate(() => {
+    const klucz = Object.keys(window.localStorage).find(
+      (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
+    );
+    if (!klucz) throw new Error("Brak wpisu sesji Supabase w localStorage");
+    const sesja = JSON.parse(window.localStorage.getItem(klucz) ?? "null");
+    sesja.expires_at = Math.floor(Date.now() / 1000) - 3600;
+    window.localStorage.setItem(klucz, JSON.stringify(sesja));
+  });
+
+  // Odświeżenie tokenu zablokowane: symuluje okno ok. 60 s po nieudanej próbie (cooldown auth-js).
+  let odblokuj: (() => void) | null = null;
+  const blokada = new Promise<void>((resolve) => (odblokuj = resolve));
+  await context.route("**/auth/v1/token**", async (route) => {
+    await blokada;
+    await route.continue();
+  });
+
+  await page.reload();
+  // Zimny start z zablokowanym odświeżeniem: profil z pamięci lokalnej trzyma ekran, bez przekierowania.
+  await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible({ timeout: 5_000 });
+  expect(page.url()).not.toContain("/logowanie");
+
+  odblokuj?.();
+  await context.unroute("**/auth/v1/token**");
+  await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible();
+  expect(page.url()).not.toContain("/logowanie");
+});
