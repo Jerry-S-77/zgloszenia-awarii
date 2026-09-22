@@ -19,6 +19,7 @@ import {
   wymagaDanychZamkniecia,
   type StatusAwarii,
 } from "@/lib/statusy-awarii";
+import { czyRola } from "@/lib/uprawnienia";
 import type { Awaria } from "@/lib/types";
 
 export const Route = createFileRoute("/awarie/$id")({
@@ -68,8 +69,19 @@ function Szczegoly() {
   }
 
   const rola = auth.stan === "zalogowany" ? auth.profil.rola : null;
+  const userId = auth.stan === "zalogowany" ? auth.profil.id : null;
   const przejscia = dozwolonePrzejscia(awaria.status, rola);
   const osoba = awaria.zglaszajacy_nazwa ?? "—";
+  const mozePrzypisacDoMnie =
+    czyRola(rola, ["technik", "kierownik", "admin"]) &&
+    awaria.status !== "zamknieta" &&
+    awaria.przypisany_technik_id !== userId;
+  const etykietaPrzypisania =
+    awaria.przypisany_technik_id === null
+      ? "Nieprzypisane"
+      : awaria.przypisany_technik_id === userId
+        ? "Ty"
+        : "Przypisano";
 
   async function wykonajPrzejscie(na: StatusAwarii, dane: Partial<Awaria> = {}): Promise<boolean> {
     if (!awaria) return false;
@@ -95,6 +107,31 @@ function Szczegoly() {
         : "Zapisano lokalnie, oczekuje na synchronizację",
     );
     return true;
+  }
+
+  async function przypiszDoMnie() {
+    if (!awaria || !userId) return;
+    setZapis(true);
+    let wynik: Awaited<ReturnType<typeof aktualizujAwarie>>;
+    try {
+      wynik = await aktualizujAwarie(awaria.id, { przypisany_technik_id: userId }, awaria.wersja);
+    } catch (e) {
+      if (e instanceof KonfliktWersjiError) {
+        toast.error(e.message);
+        await qc.invalidateQueries({ queryKey: ["awarie"] });
+      } else {
+        toast.error(e instanceof Error ? e.message : "Nie udało się przypisać zgłoszenia.");
+      }
+      return;
+    } finally {
+      setZapis(false);
+    }
+    await qc.invalidateQueries({ queryKey: ["awarie"] });
+    toast.success(
+      wynik === "zsynchronizowano"
+        ? "Przypisano i zsynchronizowano"
+        : "Przypisano lokalnie, oczekuje na synchronizację",
+    );
   }
 
   function klikPrzejscia(na: StatusAwarii) {
@@ -140,6 +177,7 @@ function Szczegoly() {
         <Wiersz etykieta="Zgłaszający" wartosc={osoba} />
         <Wiersz etykieta="Krytyczność skutku" wartosc={awaria.krytycznosc_skutku} />
         <Wiersz etykieta="Status" wartosc={ETYKIETY_STATUSOW[awaria.status]} />
+        <Wiersz etykieta="Przypisany technik" wartosc={etykietaPrzypisania} />
         <Wiersz etykieta="Opis" wartosc={awaria.opis_awarii} />
         {awaria.status === "zamknieta" && (
           <>
@@ -159,6 +197,19 @@ function Szczegoly() {
           </>
         )}
       </div>
+
+      {mozePrzypisacDoMnie && (
+        <div className="mt-5 rounded-2xl border border-border bg-card p-4">
+          <Button
+            variant="outline"
+            onClick={() => void przypiszDoMnie()}
+            disabled={zapis}
+            className="h-12 w-full text-base font-bold"
+          >
+            Przypisz do mnie
+          </Button>
+        </div>
+      )}
 
       {przejscia.length > 0 && (
         <div className="mt-5 space-y-2 rounded-2xl border border-border bg-card p-4">

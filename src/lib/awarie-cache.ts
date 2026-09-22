@@ -29,9 +29,18 @@ export function scalAwarie(zdalne: AwariaLokalna[], kolejka: QueueOp[]): AwariaL
   const lokalneId = new Set(lokalne.map((a) => a.id));
   const wszystkie = [...lokalne, ...zdalne.filter((a) => !lokalneId.has(a.id))].map((a) => {
     const zm = zmiany.filter((z) => z.payload.id === a.id);
-    return zm.length
-      ? { ...a, ...Object.assign({}, ...zm.map((z) => z.payload)), _pending: true }
-      : a;
+    if (!zm.length) return a;
+    // Każda kolejna oczekująca aktualizacja tego samego zgłoszenia podbije `wersja` na serwerze o 1
+    // przy synchronizacji; scalony widok musi to odzwierciedlić z wyprzedzeniem, inaczej drugie
+    // (i kolejne) offline'owe przejście dla tego samego id wyśle się z tym samym, już nieaktualnym
+    // `oczekiwanaWersja` co pierwsze i zostanie błędnie potraktowane jako konflikt z kimś innym.
+    const przyrostWersji = zm.filter((z) => !("wersja" in z.payload)).length;
+    return {
+      ...a,
+      ...Object.assign({}, ...zm.map((z) => z.payload)),
+      wersja: (a.wersja ?? 0) + przyrostWersji,
+      _pending: true,
+    };
   });
   return wszystkie.sort((a, b) => b.data_awarii.localeCompare(a.data_awarii));
 }
