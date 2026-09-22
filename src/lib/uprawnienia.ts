@@ -12,8 +12,9 @@ export function czyRola(rola: Rola | null | undefined, dozwolone: readonly Rola[
   return rola != null && dozwolone.includes(rola);
 }
 
-export type Sciezka = "/" | "/awarie" | "/dashboard" | "/eksport" | "/admin/uzytkownicy";
-export type IkonaNawigacji = "zglos" | "lista" | "analizy" | "eksport" | "admin";
+export type Sciezka =
+  "/" | "/awarie" | "/zadania" | "/dashboard" | "/eksport" | "/admin/uzytkownicy";
+export type IkonaNawigacji = "zglos" | "lista" | "zadania" | "analizy" | "eksport" | "admin";
 export type PozycjaNawigacji = {
   to: Sciezka;
   label: string;
@@ -40,7 +41,7 @@ function pozostale(rola: Rola): PozycjaNawigacji[] {
     case "pracownik":
       return [poz("/awarie", "Moje", "lista")];
     case "technik":
-      return [poz("/awarie", "Awarie", "lista")];
+      return [poz("/zadania", "Zadania", "zadania"), poz("/awarie", "Awarie", "lista")];
     case "kierownik":
       return [
         poz("/awarie", "Awarie", "lista"),
@@ -49,6 +50,7 @@ function pozostale(rola: Rola): PozycjaNawigacji[] {
       ];
     case "admin":
       return [
+        poz("/zadania", "Zadania", "zadania"),
         poz("/awarie", "Awarie", "lista"),
         poz("/dashboard", "Analizy", "analizy"),
         poz("/eksport", "Eksport", "eksport"),

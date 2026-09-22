@@ -4,6 +4,7 @@ import {
   ClipboardPlus,
   Download,
   ListChecks,
+  ListTodo,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { StatusPolaczenia } from "./StatusPolaczenia";
 const IKONY: Record<IkonaNawigacji, LucideIcon> = {
   zglos: ClipboardPlus,
   lista: ListChecks,
+  zadania: ListTodo,
   analizy: BarChart3,
   eksport: Download,
   admin: Settings,
