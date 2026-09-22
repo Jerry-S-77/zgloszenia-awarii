@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { zdalneLubZCache } from "./awarie-cache";
+import { scalAwarie, zdalneLubZCache } from "./awarie-cache";
 import { getMojaKolejka } from "./offline";
 import type { AwariaLokalna, Urzadzenie } from "./types";
 
@@ -48,18 +48,7 @@ export const awarieQuery = queryOptions({
     // ze zmiennej modułu, która przeciekałaby między kontami.
     const zdalne = zdalneLubZCache(pobrane, client.getQueryData<AwariaLokalna[]>(queryKey));
     const kolejka = await getMojaKolejka();
-    const lokalne = kolejka
-      .filter((op) => op.type === "insert")
-      .map((op) => ({ ...(op.payload as AwariaLokalna), _pending: true }));
-    const zmiany = kolejka.filter((op) => op.type === "update");
-    const lokalneId = new Set(lokalne.map((a) => a.id));
-    const wszystkie = [...lokalne, ...zdalne.filter((a) => !lokalneId.has(a.id))].map((a) => {
-      const zm = zmiany.filter((z) => z.payload.id === a.id);
-      return zm.length
-        ? { ...a, ...Object.assign({}, ...zm.map((z) => z.payload)), _pending: true }
-        : a;
-    });
-    return wszystkie.sort((a, b) => b.data_awarii.localeCompare(a.data_awarii));
+    return scalAwarie(zdalne, kolejka);
   },
 });
 
