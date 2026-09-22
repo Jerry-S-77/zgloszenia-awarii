@@ -15,6 +15,8 @@ import {
 } from "recharts";
 import { AppShell } from "@/components/AppShell";
 import { awarieQuery } from "@/lib/queries";
+import { useAuth } from "@/lib/auth";
+import { czyRola } from "@/lib/uprawnienia";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -26,7 +28,10 @@ export const Route = createFileRoute("/dashboard")({
           "Progi alarmowe: 3 awarie w 90 dni, 2 awarie krytyczne w 60 dni, 8 godzin przestoju w 30 dni.",
       },
       { property: "og:title", content: "Analizy awaryjności urządzeń" },
-      { property: "og:description", content: "Ranking awaryjności, progi alarmowe i trend miesięczny." },
+      {
+        property: "og:description",
+        content: "Ranking awaryjności, progi alarmowe i trend miesięczny.",
+      },
     ],
   }),
   component: Dashboard,
@@ -43,7 +48,12 @@ type Stat = {
 };
 
 function Dashboard() {
-  const { data: awarie = [], isLoading } = useQuery(awarieQuery);
+  const auth = useAuth();
+  const dostep =
+    auth.stan === "zalogowany" &&
+    !auth.profil.must_change_password &&
+    czyRola(auth.profil.rola, ["kierownik", "admin"]);
+  const { data: awarie = [], isLoading } = useQuery({ ...awarieQuery, enabled: dostep });
 
   const { staty, trend } = useMemo(() => {
     const teraz = Date.now();
@@ -94,7 +104,7 @@ function Dashboard() {
   const alarmy = staty.filter((s) => s.alarm);
 
   return (
-    <AppShell title="Analizy">
+    <AppShell title="Analizy" dozwoloneRole={["kierownik", "admin"]}>
       {isLoading && <p className="text-muted-foreground">Wczytywanie...</p>}
 
       <div className="mb-4 grid grid-cols-3 gap-2">
@@ -129,7 +139,11 @@ function Dashboard() {
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <Metryka etykieta="90 dni" wartosc={s.d90} alarm={s.d90 >= 3} />
-                <Metryka etykieta="Wysoka / 60 dni" wartosc={s.wysokie60} alarm={s.wysokie60 >= 2} />
+                <Metryka
+                  etykieta="Wysoka / 60 dni"
+                  wartosc={s.wysokie60}
+                  alarm={s.wysokie60 >= 2}
+                />
                 <Metryka
                   etykieta="Przestój 30 dni"
                   wartosc={`${s.przestoj30} h`}
@@ -169,7 +183,13 @@ function Dashboard() {
             <XAxis dataKey="m" fontSize={11} />
             <YAxis allowDecimals={false} fontSize={11} />
             <Tooltip />
-            <Line type="monotone" dataKey="liczba" name="Awarie" stroke="var(--primary)" strokeWidth={3} />
+            <Line
+              type="monotone"
+              dataKey="liczba"
+              name="Awarie"
+              stroke="var(--primary)"
+              strokeWidth={3}
+            />
           </LineChart>
         </ResponsiveContainer>
       </section>
@@ -177,7 +197,15 @@ function Dashboard() {
   );
 }
 
-function Kafel({ etykieta, wartosc, alarm }: { etykieta: string; wartosc: number; alarm?: boolean }) {
+function Kafel({
+  etykieta,
+  wartosc,
+  alarm,
+}: {
+  etykieta: string;
+  wartosc: number;
+  alarm?: boolean;
+}) {
   return (
     <div
       className={`rounded-2xl border-2 bg-card p-3 text-center ${
@@ -201,7 +229,9 @@ function Metryka({
 }) {
   return (
     <div className={`rounded-xl p-2 ${alarm ? "bg-destructive/10" : "bg-muted"}`}>
-      <p className={`font-display text-xl font-bold ${alarm ? "text-destructive" : ""}`}>{wartosc}</p>
+      <p className={`font-display text-xl font-bold ${alarm ? "text-destructive" : ""}`}>
+        {wartosc}
+      </p>
       <p className="text-[10px] font-semibold uppercase text-muted-foreground">{etykieta}</p>
     </div>
   );

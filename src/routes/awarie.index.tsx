@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { awarieQuery, urzadzeniaQuery } from "@/lib/queries";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/awarie/")({
   head: () => ({
@@ -20,10 +21,14 @@ export const Route = createFileRoute("/awarie/")({
       { title: "Lista awarii — Ewidencja awarii urządzeń" },
       {
         name: "description",
-        content: "Przeglądaj i filtruj zgłoszone awarie urządzeń według statusu, krytyczności i dat.",
+        content:
+          "Przeglądaj i filtruj zgłoszone awarie urządzeń według statusu, krytyczności i dat.",
       },
       { property: "og:title", content: "Lista awarii — Ewidencja awarii urządzeń" },
-      { property: "og:description", content: "Filtrowanie awarii po urządzeniu, statusie i dacie." },
+      {
+        property: "og:description",
+        content: "Filtrowanie awarii po urządzeniu, statusie i dacie.",
+      },
     ],
   }),
   component: Lista,
@@ -32,8 +37,10 @@ export const Route = createFileRoute("/awarie/")({
 const WSZYSTKIE = "__all__";
 
 function Lista() {
-  const { data: awarie = [], isLoading } = useQuery(awarieQuery);
-  const { data: urzadzenia = [] } = useQuery(urzadzeniaQuery);
+  const auth = useAuth();
+  const gotowy = auth.stan === "zalogowany" && !auth.profil.must_change_password;
+  const { data: awarie = [], isLoading } = useQuery({ ...awarieQuery, enabled: gotowy });
+  const { data: urzadzenia = [] } = useQuery({ ...urzadzeniaQuery, enabled: gotowy });
 
   const [urz, setUrz] = useState(WSZYSTKIE);
   const [status, setStatus] = useState(WSZYSTKIE);
@@ -56,7 +63,13 @@ function Lista() {
   );
 
   return (
-    <AppShell title="Lista awarii">
+    <AppShell
+      title={
+        auth.stan === "zalogowany" && auth.profil.rola === "pracownik"
+          ? "Moje awarie"
+          : "Lista awarii"
+      }
+    >
       <div className="mb-4 space-y-3 rounded-2xl border border-border bg-card p-4">
         <Select value={urz} onValueChange={setUrz}>
           <SelectTrigger className="h-12 text-base">
@@ -97,11 +110,21 @@ function Lista() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Od</Label>
-            <Input type="date" value={od} onChange={(e) => setOd(e.target.value)} className="h-12" />
+            <Input
+              type="date"
+              value={od}
+              onChange={(e) => setOd(e.target.value)}
+              className="h-12"
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Do</Label>
-            <Input type="date" value={do_} onChange={(e) => setDo(e.target.value)} className="h-12" />
+            <Input
+              type="date"
+              value={do_}
+              onChange={(e) => setDo(e.target.value)}
+              className="h-12"
+            />
           </div>
         </div>
       </div>

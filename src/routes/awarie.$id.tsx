@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { awarieQuery, pracownicyQuery } from "@/lib/queries";
+import { awarieQuery } from "@/lib/queries";
+import { useAuth } from "@/lib/auth";
+import { czyRola } from "@/lib/uprawnienia";
 import { aktualizujAwarie } from "@/lib/offline";
 
 export const Route = createFileRoute("/awarie/$id")({
@@ -26,8 +28,11 @@ function Szczegoly() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: awarie = [], isLoading } = useQuery(awarieQuery);
-  const { data: pracownicy = [] } = useQuery(pracownicyQuery);
+  const auth = useAuth();
+  const gotowy = auth.stan === "zalogowany" && !auth.profil.must_change_password;
+  const mozeZamykac =
+    auth.stan === "zalogowany" && czyRola(auth.profil.rola, ["technik", "kierownik", "admin"]);
+  const { data: awarie = [], isLoading } = useQuery({ ...awarieQuery, enabled: gotowy });
 
   const awaria = awarie.find((a) => a.id === id);
   const [przyczyna, setPrzyczyna] = useState("");
@@ -49,7 +54,7 @@ function Szczegoly() {
     );
   }
 
-  const osoba = pracownicy.find((p) => p.id === awaria.osoba_zglaszajaca_id)?.imie_nazwisko ?? "—";
+  const osoba = awaria.zglaszajacy_nazwa ?? "—";
 
   async function zamknij() {
     if (!awaria) return;
@@ -58,13 +63,20 @@ function Szczegoly() {
       return;
     }
     setZapis(true);
-    const wynik = await aktualizujAwarie(awaria.id, {
-      przyczyna: przyczyna.trim(),
-      czas_przestoju_h: Number(czas),
-      status: "Zamknieta",
-      data_zamkniecia: new Date().toISOString(),
-    });
-    setZapis(false);
+    let wynik: Awaited<ReturnType<typeof aktualizujAwarie>>;
+    try {
+      wynik = await aktualizujAwarie(awaria.id, {
+        przyczyna: przyczyna.trim(),
+        czas_przestoju_h: Number(czas),
+        status: "Zamknieta",
+        data_zamkniecia: new Date().toISOString(),
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Nie udało się zapisać zmiany.");
+      return;
+    } finally {
+      setZapis(false);
+    }
     await qc.invalidateQueries();
     toast.success(
       wynik === "zsynchronizowano"
@@ -78,7 +90,10 @@ function Szczegoly() {
     <AppShell title={awaria.nr_technologiczny}>
       <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
         <Wiersz etykieta="Urządzenie" wartosc={awaria.nazwa_urzadzenia} />
-        <Wiersz etykieta="Data awarii" wartosc={new Date(awaria.data_awarii).toLocaleString("pl-PL")} />
+        <Wiersz
+          etykieta="Data awarii"
+          wartosc={new Date(awaria.data_awarii).toLocaleString("pl-PL")}
+        />
         <Wiersz etykieta="Zgłaszający" wartosc={osoba} />
         <Wiersz etykieta="Krytyczność skutku" wartosc={awaria.krytycznosc_skutku} />
         <Wiersz etykieta="Status" wartosc={awaria.status} />
@@ -86,18 +101,23 @@ function Szczegoly() {
         {awaria.status === "Zamknieta" && (
           <>
             <Wiersz etykieta="Przyczyna" wartosc={awaria.przyczyna ?? "—"} />
-            <Wiersz etykieta="Czas przestoju (h)" wartosc={String(awaria.czas_przestoju_h ?? "—")} />
+            <Wiersz
+              etykieta="Czas przestoju (h)"
+              wartosc={String(awaria.czas_przestoju_h ?? "—")}
+            />
             <Wiersz
               etykieta="Data zamknięcia"
               wartosc={
-                awaria.data_zamkniecia ? new Date(awaria.data_zamkniecia).toLocaleString("pl-PL") : "—"
+                awaria.data_zamkniecia
+                  ? new Date(awaria.data_zamkniecia).toLocaleString("pl-PL")
+                  : "—"
               }
             />
           </>
         )}
       </div>
 
-      {awaria.status === "Otwarta" && (
+      {awaria.status === "Otwarta" && mozeZamykac && (
         <div className="mt-5 space-y-4 rounded-2xl border border-border bg-card p-4">
           <h2 className="font-display text-xl font-bold uppercase">Zamknięcie awarii</h2>
           <div className="space-y-2">
@@ -139,7 +159,9 @@ function Szczegoly() {
 function Wiersz({ etykieta, wartosc }: { etykieta: string; wartosc: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{etykieta}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {etykieta}
+      </p>
       <p className="text-base">{wartosc}</p>
     </div>
   );
