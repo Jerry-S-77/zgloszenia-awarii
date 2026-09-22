@@ -944,16 +944,16 @@ describe("scalAwarie", () => {
     expect(wynik?.status).toBe("zamknieta");
     expect(wynik?._pending).toBe(true);
   });
-  it("operacje 'do_sprawdzenia' nie wpływają na scalanie (pomijane wcześniej przez getMojaKolejka)", () => {
+  it("scalAwarie samo nie filtruje 'do_sprawdzenia' — ufa wejściu, filtrowanie to obowiązek wywołującego", () => {
     const zdalna = awaria("a");
     const odrzucona = op({
       type: "update",
       payload: { id: "a", status: "zamknieta" },
       status: "do_sprawdzenia",
     });
-    // scalAwarie ufa wejściu: filtrowanie do "oczekuje" jest zadaniem getMojaKolejka, nie tej funkcji.
-    // Test dokumentuje, że przekazanie samej odrzuconej operacji nadal ją zastosuje — dlatego
-    // getMojaKolejka MUSI filtrować przed wywołaniem scalAwarie (patrz krok 6 tego zadania).
+    // Ta funkcja przyjmuje każdą przekazaną operację, więc nadal ją zastosuje. Dlatego
+    // getMojaKolejka MUSI filtrować do "oczekuje" PRZED wywołaniem scalAwarie (patrz krok 6 tego
+    // zadania) — ten test dokumentuje kontrakt, nie zachowanie całego potoku odczytu.
     const [wynik] = scalAwarie([zdalna], [odrzucona]);
     expect(wynik?.status).toBe("zamknieta");
   });
