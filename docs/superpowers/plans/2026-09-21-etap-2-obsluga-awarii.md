@@ -238,10 +238,18 @@ Expected: FAIL (kolumny `numer`/`wersja`/`przypisany_technik_id` i enum `status_
 create type public.status_awarii as enum ('zgloszona', 'przyjeta', 'w_naprawie', 'oczekuje_na_czesc', 'zamknieta');
 
 alter table public.awarie drop constraint awarie_status_check;
+-- Polityka awarie_insert (etap 1) sprawdza status w WITH CHECK, więc Postgres nie pozwoli zmienić
+-- typu kolumny, dopóki polityka na niej wisi. Usuwamy ją tu, odtwarzamy na końcu migracji z nową
+-- wartością enuma.
+drop policy awarie_insert on public.awarie;
+-- Domyślnej wartości starej kolumny ('Otwarta', text) Postgres nie potrafi automatycznie
+-- rzutować na nowy enum przy jednoczesnej zmianie typu — najpierw usuwamy DEFAULT, potem
+-- zmieniamy typ (z USING dla istniejących wierszy), na końcu ustawiamy nowy DEFAULT.
+alter table public.awarie alter column status drop default;
 alter table public.awarie
   alter column status type public.status_awarii
-  using (case status when 'Otwarta' then 'zgloszona' when 'Zamknieta' then 'zamknieta' end)::public.status_awarii,
-  alter column status set default 'zgloszona';
+  using (case status when 'Otwarta' then 'zgloszona' when 'Zamknieta' then 'zamknieta' end)::public.status_awarii;
+alter table public.awarie alter column status set default 'zgloszona';
 
 alter table public.awarie
   add column wersja integer not null default 1,
@@ -337,8 +345,8 @@ create trigger awarie_przejscie_statusu
   before update on public.awarie
   for each row execute function public.awarie_waliduj_przejscie();
 
--- Nowa awaria musi startować jako 'zgloszona', bez danych zamknięcia i bez przypisania z góry.
-drop policy awarie_insert on public.awarie;
+-- Nowa awaria musi startować jako 'zgloszona', bez danych zamknięcia i bez przypisania z góry
+-- (polityka usunięta na początku tej migracji, żeby dało się zmienić typ kolumny status).
 create policy awarie_insert on public.awarie for insert to authenticated
   with check (
     public.moja_rola() is not null
