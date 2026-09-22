@@ -22,7 +22,7 @@ async function wstaw(zglaszajacy: string, nazwa: string): Promise<string> {
     nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI",
     opis_awarii: `${ZNACZNIK} ${nazwa}`,
     krytycznosc_skutku: "Niska",
-    status: "zgloszona",
+    status: "zgloszona" as const,
     zglaszajacy_id: zglaszajacy,
     zglaszajacy_nazwa: nazwa,
   };
@@ -257,6 +257,7 @@ describe("technik, kierownik, admin", () => {
     try {
       const { error } = await k
         .from("awarie")
+        // @ts-expect-error — celowo nieprawidłowa wartość statusu: test sprawdza odrzucenie przez bazę w czasie działania
         .update({ status: "Cokolwiek" })
         .eq("id", awariaPracownika)
         .select("id");

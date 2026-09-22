@@ -112,7 +112,7 @@ test("technik nie może ponownie otworzyć zamkniętej awarii, kierownik może",
       przyczyna: "Test",
       czas_przestoju_h: 1,
       data_zamkniecia: new Date().toISOString(),
-      zglaszajacy_id: zgloszajacy?.id,
+      zglaszajacy_id: zgloszajacy?.id ?? null,
       zglaszajacy_nazwa: "Test pracownik",
     })
     .select("id")
@@ -154,7 +154,7 @@ test("konflikt wersji offline trafia do 'Do sprawdzenia' i nie blokuje reszty ko
       opis_awarii: opisKonflikt,
       krytycznosc_skutku: "Niska",
       status: "w_naprawie",
-      zglaszajacy_id: zgloszajacy?.id,
+      zglaszajacy_id: zgloszajacy?.id ?? null,
       zglaszajacy_nazwa: "Test pracownik",
     })
     .select("id, wersja")

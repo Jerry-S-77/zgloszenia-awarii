@@ -303,8 +303,10 @@ test("zimny start: token wygasł, odświeżenie chwilowo zablokowane — użytko
   });
 
   // Odświeżenie tokenu zablokowane: symuluje okno ok. 60 s po nieudanej próbie (cooldown auth-js).
-  let odblokuj: (() => void) | null = null;
-  const blokada = new Promise<void>((resolve) => (odblokuj = resolve));
+  let odblokuj = () => {};
+  const blokada = new Promise<void>((resolve) => {
+    odblokuj = resolve;
+  });
   await context.route("**/auth/v1/token**", async (route) => {
     await blokada;
     await route.continue();
@@ -315,7 +317,7 @@ test("zimny start: token wygasł, odświeżenie chwilowo zablokowane — użytko
   await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible({ timeout: 5_000 });
   expect(page.url()).not.toContain("/logowanie");
 
-  odblokuj?.();
+  odblokuj();
   await context.unroute("**/auth/v1/token**");
   await expect(page.getByRole("button", { name: "Zgłoś awarię" })).toBeVisible();
   expect(page.url()).not.toContain("/logowanie");
