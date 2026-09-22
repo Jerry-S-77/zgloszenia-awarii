@@ -109,7 +109,10 @@ function Dashboard() {
 
       <div className="mb-4 grid grid-cols-3 gap-2">
         <Kafel etykieta="Awarie ogółem" wartosc={awarie.length} />
-        <Kafel etykieta="Otwarte" wartosc={awarie.filter((a) => a.status === "Otwarta").length} />
+        <Kafel
+          etykieta="Otwarte"
+          wartosc={awarie.filter((a) => a.status !== "zamknieta").length}
+        />
         <Kafel etykieta="Alarmy" wartosc={alarmy.length} alarm={alarmy.length > 0} />
       </div>
 

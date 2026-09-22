@@ -13,8 +13,11 @@ const awaria = (id: string, dodatki: Partial<AwariaLokalna> = {}): AwariaLokalna
   krytycznosc_skutku: "Niska",
   zglaszajacy_id: null,
   zglaszajacy_nazwa: null,
-  status: "Otwarta",
+  status: "zgloszona",
   data_zamkniecia: null,
+  numer: "AWR-2026-001",
+  wersja: 1,
+  przypisany_technik_id: null,
   ...dodatki,
 });
 

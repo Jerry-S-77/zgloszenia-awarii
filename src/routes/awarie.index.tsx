@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { awarieQuery, urzadzeniaQuery } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
+import { ETYKIETY_STATUSOW, STATUSY_AWARII } from "@/lib/statusy-awarii";
 
 export const Route = createFileRoute("/awarie/")({
   head: () => ({
@@ -91,8 +92,11 @@ function Lista() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={WSZYSTKIE}>Każdy status</SelectItem>
-              <SelectItem value="Otwarta">Otwarta</SelectItem>
-              <SelectItem value="Zamknieta">Zamknieta</SelectItem>
+              {STATUSY_AWARII.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {ETYKIETY_STATUSOW[s]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={kryt} onValueChange={setKryt}>
@@ -142,15 +146,18 @@ function Lista() {
           >
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-display text-lg font-bold">{a.nr_technologiczny}</span>
+                <span className="font-display text-lg font-bold">
+                  {a.numer ?? "oczekuje na numer"}
+                </span>
+                <span className="text-sm text-muted-foreground">{a.nr_technologiczny}</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                    a.status === "Otwarta"
-                      ? "bg-warning text-warning-foreground"
-                      : "bg-success text-success-foreground"
+                    a.status === "zamknieta"
+                      ? "bg-success text-success-foreground"
+                      : "bg-warning text-warning-foreground"
                   }`}
                 >
-                  {a.status}
+                  {ETYKIETY_STATUSOW[a.status]}
                 </span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-bold ${
