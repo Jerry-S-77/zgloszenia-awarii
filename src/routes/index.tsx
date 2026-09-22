@@ -78,8 +78,11 @@ function Zgloszenie() {
         krytycznosc_skutku: krytycznosc,
         zglaszajacy_id: null, // ustawia baza z konta (trigger), wartość od klienta jest ignorowana
         zglaszajacy_nazwa: null,
-        status: "Otwarta",
+        status: "zgloszona",
         data_zamkniecia: null,
+        numer: null,
+        wersja: 1,
+        przypisany_technik_id: null,
       });
     } catch (e) {
       // Formularza nie czyścimy: użytkownik może poprawić dane lub spróbować ponownie.
@@ -192,7 +195,7 @@ function Zgloszenie() {
           {zapisuje ? "Zapisywanie..." : "Zgłoś awarię"}
         </Button>
         <p className="text-center text-xs text-muted-foreground">
-          Status zgłoszenia ustawiany automatycznie na „Otwarta”.
+          Status zgłoszenia ustawiany automatycznie na „Zgłoszona”. Numer nada system po zapisaniu.
         </p>
       </form>
     </AppShell>
