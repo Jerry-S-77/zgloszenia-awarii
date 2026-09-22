@@ -193,6 +193,22 @@ describe("historia", () => {
   });
 });
 
+describe("numer niezmienny", () => {
+  it("UPDATE nie zmienia numeru nadanego przy wstawieniu, nawet gdy klient próbuje go podmienić", async () => {
+    const a = await wstaw("zgloszona", "numer niezmienny");
+    const technik = await zalogujLinkiem(KONTA.technik.email);
+    const { data, error } = await technik
+      .from("awarie")
+      .update({ status: "przyjeta", numer: "AWR-2099-999" })
+      .eq("id", a.id)
+      .eq("wersja", a.wersja)
+      .select("numer")
+      .single();
+    expect(error).toBeNull();
+    expect(data?.numer).toBe(a.numer);
+  });
+});
+
 describe("komentarze", () => {
   it("zgłaszający dodaje komentarz do własnej awarii, autor z konta", async () => {
     const a = await wstaw("zgloszona", "komentarz wlasny");
