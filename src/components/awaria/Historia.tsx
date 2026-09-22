@@ -16,11 +16,19 @@ function opisWpisu(typ: string, dane: unknown): string {
 }
 
 export function Historia({ awariaId }: { awariaId: string }) {
-  const { data: wpisy = [], isLoading } = useQuery(historiaQuery(awariaId));
+  const { data: wpisy = [], isLoading, isError } = useQuery(historiaQuery(awariaId));
   return (
     <div className="space-y-3">
       <h2 className="font-display text-xl font-bold uppercase">Historia</h2>
       {isLoading && <p className="text-sm text-muted-foreground">Wczytywanie...</p>}
+      {isError && (
+        <p className="text-sm text-destructive">
+          Nie udało się wczytać historii. Sprawdź połączenie.
+        </p>
+      )}
+      {!isLoading && !isError && wpisy.length === 0 && (
+        <p className="text-sm text-muted-foreground">Brak wpisów.</p>
+      )}
       <div className="space-y-2">
         {wpisy.map((w) => (
           <div key={w.id} className="border-l-2 border-border pl-3">

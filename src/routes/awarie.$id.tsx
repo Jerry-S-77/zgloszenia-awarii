@@ -71,8 +71,8 @@ function Szczegoly() {
   const przejscia = dozwolonePrzejscia(awaria.status, rola);
   const osoba = awaria.zglaszajacy_nazwa ?? "—";
 
-  async function wykonajPrzejscie(na: StatusAwarii, dane: Partial<Awaria> = {}) {
-    if (!awaria) return;
+  async function wykonajPrzejscie(na: StatusAwarii, dane: Partial<Awaria> = {}): Promise<boolean> {
+    if (!awaria) return false;
     setZapis(true);
     let wynik: Awaited<ReturnType<typeof aktualizujAwarie>>;
     try {
@@ -84,10 +84,9 @@ function Szczegoly() {
       } else {
         toast.error(e instanceof Error ? e.message : "Nie udało się zapisać zmiany.");
       }
-      return;
+      return false;
     } finally {
       setZapis(false);
-      setCelStatusu(null);
     }
     await qc.invalidateQueries();
     toast.success(
@@ -95,6 +94,7 @@ function Szczegoly() {
         ? "Zapisano i zsynchronizowano"
         : "Zapisano lokalnie, oczekuje na synchronizację",
     );
+    return true;
   }
 
   function klikPrzejscia(na: StatusAwarii) {
@@ -110,13 +110,16 @@ function Szczegoly() {
       toast.error("Podaj przyczynę i czas przestoju.");
       return;
     }
-    await wykonajPrzejscie(celStatusu, {
+    const udalo = await wykonajPrzejscie(celStatusu, {
       przyczyna: przyczyna.trim(),
       czas_przestoju_h: Number(czas),
       data_zamkniecia: new Date().toISOString(),
     });
-    setPrzyczyna("");
-    setCzas("");
+    if (udalo) {
+      setPrzyczyna("");
+      setCzas("");
+      setCelStatusu(null);
+    }
   }
 
   return (
