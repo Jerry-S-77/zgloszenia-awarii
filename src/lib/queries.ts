@@ -63,3 +63,21 @@ export const profileQuery = queryOptions({
     return data ?? [];
   },
 });
+
+export type WpisHistorii = Database["public"]["Tables"]["awarie_historia"]["Row"];
+
+export function historiaQuery(awariaId: string) {
+  return queryOptions({
+    queryKey: ["awarie", awariaId, "historia"],
+    queryFn: async (): Promise<WpisHistorii[]> => {
+      wymagajSieci();
+      const { data, error } = await supabase
+        .from("awarie_historia")
+        .select("*")
+        .eq("awaria_id", awariaId)
+        .order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
