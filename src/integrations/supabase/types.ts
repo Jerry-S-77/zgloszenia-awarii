@@ -446,7 +446,7 @@ export type Database = {
     Enums: {
       rola_uzytkownika: "pracownik" | "technik" | "kierownik" | "admin";
       status_awarii: "zgloszona" | "przyjeta" | "w_naprawie" | "oczekuje_na_czesc" | "zamknieta";
-      status_propozycji: "oczekuje" | "zatwierdzona" | "odrzucona";
+      status_propozycji: "oczekuje" | "zatwierdzona" | "odrzucona" | "nieaktualna";
       status_urzadzenia: "proponowane" | "aktywne" | "wycofane";
       status_uzytkownika: "aktywny" | "zablokowany";
       typ_historii_awarii: "utworzenie" | "zmiana_statusu" | "przypisanie" | "edycja";
@@ -573,7 +573,7 @@ export const Constants = {
     Enums: {
       rola_uzytkownika: ["pracownik", "technik", "kierownik", "admin"],
       status_awarii: ["zgloszona", "przyjeta", "w_naprawie", "oczekuje_na_czesc", "zamknieta"],
-      status_propozycji: ["oczekuje", "zatwierdzona", "odrzucona"],
+      status_propozycji: ["oczekuje", "zatwierdzona", "odrzucona", "nieaktualna"],
       status_urzadzenia: ["proponowane", "aktywne", "wycofane"],
       status_uzytkownika: ["aktywny", "zablokowany"],
       typ_historii_awarii: ["utworzenie", "zmiana_statusu", "przypisanie", "edycja"],
