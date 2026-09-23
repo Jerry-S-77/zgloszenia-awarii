@@ -103,3 +103,11 @@ export function formatujDate(data: string | null): string {
   const [r, m, d] = data.split("-");
   return `${d}.${m}.${r}`;
 }
+
+/** Kolor paska i licznika; zawsze razem z etykietą tekstową (kolor nie jest jedyną informacją). */
+export const KOLOR_STATUSU: Record<StatusPrzegladu, { pasek: string; tekst: string }> = {
+  opozniony: { pasek: "border-l-destructive", tekst: "text-destructive" },
+  wkrotce: { pasek: "border-l-warning", tekst: "text-warning-foreground" },
+  zaplanowany: { pasek: "border-l-success", tekst: "text-success" },
+  do_uzupelnienia: { pasek: "border-l-muted-foreground", tekst: "text-muted-foreground" },
+};

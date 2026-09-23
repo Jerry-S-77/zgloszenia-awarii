@@ -13,7 +13,11 @@ let id: Record<KluczKonta, string>;
 
 type StatusTestowy = "zgloszona" | "przyjeta" | "w_naprawie" | "oczekuje_na_czesc" | "zamknieta";
 
-async function wstaw(status: StatusTestowy, nazwa: string, dodatkowe: Record<string, unknown> = {}) {
+async function wstaw(
+  status: StatusTestowy,
+  nazwa: string,
+  dodatkowe: Record<string, unknown> = {},
+) {
   const rekord = {
     id: crypto.randomUUID(),
     nr_technologiczny: "HVAC-01",
@@ -87,7 +91,11 @@ describe("przejścia statusu", () => {
   it("pracownik nie zmienia statusu", async () => {
     const a = await wstaw("zgloszona", "pracownik brak praw");
     const pracownik = await zalogujLinkiem(KONTA.pracownik.email);
-    const { data } = await pracownik.from("awarie").update({ status: "przyjeta" }).eq("id", a.id).select();
+    const { data } = await pracownik
+      .from("awarie")
+      .update({ status: "przyjeta" })
+      .eq("id", a.id)
+      .select();
     expect(data).toEqual([]);
   });
 
@@ -133,7 +141,11 @@ describe("konflikt wersji", () => {
   it("zapis z nieaktualną wersją zmienia 0 wierszy zamiast nadpisać", async () => {
     const a = await wstaw("zgloszona", "konflikt wersji");
     const technik = await zalogujLinkiem(KONTA.technik.email);
-    await technik.from("awarie").update({ status: "przyjeta" }).eq("id", a.id).eq("wersja", a.wersja);
+    await technik
+      .from("awarie")
+      .update({ status: "przyjeta" })
+      .eq("id", a.id)
+      .eq("wersja", a.wersja);
     const { data } = await technik
       .from("awarie")
       .update({ status: "w_naprawie" })
@@ -162,7 +174,11 @@ describe("historia", () => {
   it("utworzenie i zmiana statusu zapisują wpisy historii, autor z konta", async () => {
     const a = await wstaw("zgloszona", "historia");
     const technik = await zalogujLinkiem(KONTA.technik.email);
-    await technik.from("awarie").update({ status: "przyjeta" }).eq("id", a.id).eq("wersja", a.wersja);
+    await technik
+      .from("awarie")
+      .update({ status: "przyjeta" })
+      .eq("id", a.id)
+      .eq("wersja", a.wersja);
     const { data, error } = await admin
       .from("awarie_historia")
       .select("typ, autor_id, dane")
@@ -176,11 +192,17 @@ describe("historia", () => {
   it("pracownik czyta historię własnej awarii, ale nie cudzej", async () => {
     const a = await wstaw("zgloszona", "historia widocznosc");
     const pracownik = await zalogujLinkiem(KONTA.pracownik.email);
-    const { data: wlasna } = await pracownik.from("awarie_historia").select("id").eq("awaria_id", a.id);
+    const { data: wlasna } = await pracownik
+      .from("awarie_historia")
+      .select("id")
+      .eq("awaria_id", a.id);
     expect((wlasna ?? []).length).toBeGreaterThan(0);
 
     const cudza = await wstaw("zgloszona", "historia cudza", { zglaszajacy_id: id.pracownik2 });
-    const { data: obca } = await pracownik.from("awarie_historia").select("id").eq("awaria_id", cudza.id);
+    const { data: obca } = await pracownik
+      .from("awarie_historia")
+      .select("id")
+      .eq("awaria_id", cudza.id);
     expect(obca).toEqual([]);
   });
   it("nikt nie wstawia ani nie zmienia historii bezpośrednio", async () => {
@@ -238,7 +260,9 @@ describe("komentarze", () => {
   it("pusty komentarz jest odrzucany", async () => {
     const a = await wstaw("zgloszona", "komentarz pusty");
     const technik = await zalogujLinkiem(KONTA.technik.email);
-    const { error } = await technik.from("awarie_komentarze").insert({ awaria_id: a.id, tresc: "   " });
+    const { error } = await technik
+      .from("awarie_komentarze")
+      .insert({ awaria_id: a.id, tresc: "   " });
     expect(error).not.toBeNull();
   });
 });

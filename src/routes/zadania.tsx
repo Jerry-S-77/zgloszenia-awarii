@@ -3,8 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { KartaPrzegladu } from "@/components/przeglady/KartaPrzegladu";
 import { awarieQuery } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
+import { dzisLokalnie, sortujPoPilnosci, statusPrzegladu } from "@/lib/przeglady";
+import { przegladyQuery } from "@/lib/przeglady-zapytania";
 import { ETYKIETY_STATUSOW } from "@/lib/statusy-awarii";
 import type { AwariaLokalna } from "@/lib/types";
 
@@ -12,7 +15,10 @@ export const Route = createFileRoute("/zadania")({
   head: () => ({
     meta: [
       { title: "Zadania — Ewidencja awarii urządzeń" },
-      { name: "description", content: "Awarie do przyjęcia i przypisane do bieżącego technika." },
+      {
+        name: "description",
+        content: "Awarie do przyjęcia, przypisane do mnie i najbliższe przeglądy.",
+      },
     ],
   }),
   component: Zadania,
@@ -45,6 +51,19 @@ function Zadania() {
   const gotowy = auth.stan === "zalogowany" && !auth.profil.must_change_password;
   const { data: awarie = [], isLoading } = useQuery({ ...awarieQuery, enabled: gotowy });
   const userId = auth.stan === "zalogowany" ? auth.profil.id : null;
+  const { data: przeglady = [], isError: bladPrzegladow } = useQuery({
+    ...przegladyQuery,
+    enabled: gotowy,
+  });
+  const dzis = dzisLokalnie();
+  const pilnePrzeglady = useMemo(
+    () =>
+      sortujPoPilnosci(przeglady).filter((p) => {
+        const s = statusPrzegladu(p, dzis);
+        return s === "opozniony" || s === "wkrotce";
+      }),
+    [przeglady, dzis],
+  );
 
   const { doPrzyjecia, przypisaneDoMnie } = useMemo(
     () => ({
@@ -83,6 +102,27 @@ function Zadania() {
           {!isLoading && przypisaneDoMnie.length === 0 && (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-muted-foreground">
               Brak awarii przypisanych do Ciebie.
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="mb-3 font-display text-xl font-bold uppercase">
+          Przeglądy w najbliższym terminie
+        </h2>
+        <div className="space-y-3">
+          {pilnePrzeglady.map((p) => (
+            <KartaPrzegladu key={p.id} p={p} dzis={dzis} />
+          ))}
+          {bladPrzegladow && (
+            <p className="text-sm text-destructive">
+              Nie udało się wczytać przeglądów. Sprawdź połączenie.
+            </p>
+          )}
+          {!bladPrzegladow && pilnePrzeglady.length === 0 && (
+            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-muted-foreground">
+              Brak opóźnionych przeglądów i przeglądów w ciągu 14 dni.
             </p>
           )}
         </div>

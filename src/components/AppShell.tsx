@@ -1,6 +1,7 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   BarChart3,
+  CalendarCheck,
   ClipboardPlus,
   Download,
   ListChecks,
@@ -10,7 +11,13 @@ import {
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
-import { czyRola, pozycjeNawigacji, type IkonaNawigacji, type Rola } from "@/lib/uprawnienia";
+import {
+  czyAktywna,
+  czyRola,
+  pozycjeNawigacji,
+  type IkonaNawigacji,
+  type Rola,
+} from "@/lib/uprawnienia";
 import { DoSprawdzenia } from "./DoSprawdzenia";
 import { MenuUzytkownika } from "./MenuUzytkownika";
 import { StatusPolaczenia } from "./StatusPolaczenia";
@@ -19,6 +26,7 @@ const IKONY: Record<IkonaNawigacji, LucideIcon> = {
   zglos: ClipboardPlus,
   lista: ListChecks,
   zadania: ListTodo,
+  przeglady: CalendarCheck,
   analizy: BarChart3,
   eksport: Download,
   admin: Settings,
@@ -29,6 +37,7 @@ type Props = { title: string; children: ReactNode; dozwoloneRole?: readonly Rola
 export function AppShell({ title, children, dozwoloneRole }: Props) {
   const auth = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const wymuszonaZmiana = auth.stan === "zalogowany" && auth.profil.must_change_password;
 
   useEffect(() => {
@@ -80,15 +89,18 @@ export function AppShell({ title, children, dozwoloneRole }: Props) {
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-2xl items-end justify-around">
-          {pozycje.map(({ to, label, ikona, glowna }) => {
+          {pozycje.map((pozycja) => {
+            const { to, label, ikona, glowna } = pozycja;
             const Ikona = IKONY[ikona];
+            const aktywna = czyAktywna(pathname, pozycja);
             return (
               <Link
                 key={`${to}-${label}`}
                 to={to}
-                activeOptions={{ exact: to === "/" }}
-                className="flex min-h-14 min-w-16 flex-1 flex-col items-center justify-end gap-1 pb-2 text-xs font-semibold text-muted-foreground transition-colors"
-                activeProps={{ className: glowna ? "text-warning" : "text-primary" }}
+                aria-current={aktywna ? "page" : undefined}
+                className={`flex min-h-14 min-w-16 flex-1 flex-col items-center justify-end gap-1 pb-2 text-xs font-semibold transition-colors ${
+                  aktywna ? (glowna ? "text-warning" : "text-primary") : "text-muted-foreground"
+                }`}
               >
                 {glowna ? (
                   <span className="-mt-5 flex size-14 items-center justify-center rounded-full bg-warning text-warning-foreground shadow-lg">

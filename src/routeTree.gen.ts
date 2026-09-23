@@ -15,10 +15,12 @@ import { Route as EksportRouteImport } from './routes/eksport'
 import { Route as LogowanieRouteImport } from './routes/logowanie'
 import { Route as ZadaniaRouteImport } from './routes/zadania'
 import { Route as ZmianaHaslaRouteImport } from './routes/zmiana-hasla'
+import { Route as AdminUrzadzeniaRouteImport } from './routes/admin.urzadzenia'
 import { Route as AdminUzytkownicyRouteImport } from './routes/admin.uzytkownicy'
 import { Route as AwarieIndexRouteImport } from './routes/awarie.index'
 import { Route as AwarieIdRouteImport } from './routes/awarie.$id'
-import { Route as ApiPublicSyncUrzadzeniaRouteImport } from './routes/api/public/sync-urzadzenia'
+import { Route as PrzegladyIndexRouteImport } from './routes/przeglady.index'
+import { Route as PrzegladyIdRouteImport } from './routes/przeglady.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -50,6 +52,11 @@ const ZmianaHaslaRoute = ZmianaHaslaRouteImport.update({
   path: '/zmiana-hasla',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminUrzadzeniaRoute = AdminUrzadzeniaRouteImport.update({
+  id: '/admin/urzadzenia',
+  path: '/admin/urzadzenia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminUzytkownicyRoute = AdminUzytkownicyRouteImport.update({
   id: '/admin/uzytkownicy',
   path: '/admin/uzytkownicy',
@@ -65,9 +72,14 @@ const AwarieIdRoute = AwarieIdRouteImport.update({
   path: '/awarie/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicSyncUrzadzeniaRoute = ApiPublicSyncUrzadzeniaRouteImport.update({
-  id: '/api/public/sync-urzadzenia',
-  path: '/api/public/sync-urzadzenia',
+const PrzegladyIndexRoute = PrzegladyIndexRouteImport.update({
+  id: '/przeglady/',
+  path: '/przeglady/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrzegladyIdRoute = PrzegladyIdRouteImport.update({
+  id: '/przeglady/$id',
+  path: '/przeglady/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -78,10 +90,12 @@ export interface FileRoutesByFullPath {
   '/logowanie': typeof LogowanieRoute
   '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
+  '/admin/urzadzenia': typeof AdminUrzadzeniaRoute
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
+  '/przeglady/$id': typeof PrzegladyIdRoute
   '/awarie/': typeof AwarieIndexRoute
-  '/api/public/sync-urzadzenia': typeof ApiPublicSyncUrzadzeniaRoute
+  '/przeglady/': typeof PrzegladyIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,10 +104,12 @@ export interface FileRoutesByTo {
   '/logowanie': typeof LogowanieRoute
   '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
+  '/admin/urzadzenia': typeof AdminUrzadzeniaRoute
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
+  '/przeglady/$id': typeof PrzegladyIdRoute
   '/awarie': typeof AwarieIndexRoute
-  '/api/public/sync-urzadzenia': typeof ApiPublicSyncUrzadzeniaRoute
+  '/przeglady': typeof PrzegladyIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,10 +119,12 @@ export interface FileRoutesById {
   '/logowanie': typeof LogowanieRoute
   '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
+  '/admin/urzadzenia': typeof AdminUrzadzeniaRoute
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
+  '/przeglady/$id': typeof PrzegladyIdRoute
   '/awarie/': typeof AwarieIndexRoute
-  '/api/public/sync-urzadzenia': typeof ApiPublicSyncUrzadzeniaRoute
+  '/przeglady/': typeof PrzegladyIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,10 +135,12 @@ export interface FileRouteTypes {
     | '/logowanie'
     | '/zadania'
     | '/zmiana-hasla'
+    | '/admin/urzadzenia'
     | '/admin/uzytkownicy'
     | '/awarie/$id'
+    | '/przeglady/$id'
     | '/awarie/'
-    | '/api/public/sync-urzadzenia'
+    | '/przeglady/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -129,10 +149,12 @@ export interface FileRouteTypes {
     | '/logowanie'
     | '/zadania'
     | '/zmiana-hasla'
+    | '/admin/urzadzenia'
     | '/admin/uzytkownicy'
     | '/awarie/$id'
+    | '/przeglady/$id'
     | '/awarie'
-    | '/api/public/sync-urzadzenia'
+    | '/przeglady'
   id:
     | '__root__'
     | '/'
@@ -141,10 +163,12 @@ export interface FileRouteTypes {
     | '/logowanie'
     | '/zadania'
     | '/zmiana-hasla'
+    | '/admin/urzadzenia'
     | '/admin/uzytkownicy'
     | '/awarie/$id'
+    | '/przeglady/$id'
     | '/awarie/'
-    | '/api/public/sync-urzadzenia'
+    | '/przeglady/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -154,10 +178,12 @@ export interface RootRouteChildren {
   LogowanieRoute: typeof LogowanieRoute
   ZadaniaRoute: typeof ZadaniaRoute
   ZmianaHaslaRoute: typeof ZmianaHaslaRoute
+  AdminUrzadzeniaRoute: typeof AdminUrzadzeniaRoute
   AdminUzytkownicyRoute: typeof AdminUzytkownicyRoute
   AwarieIdRoute: typeof AwarieIdRoute
+  PrzegladyIdRoute: typeof PrzegladyIdRoute
   AwarieIndexRoute: typeof AwarieIndexRoute
-  ApiPublicSyncUrzadzeniaRoute: typeof ApiPublicSyncUrzadzeniaRoute
+  PrzegladyIndexRoute: typeof PrzegladyIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZmianaHaslaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/urzadzenia': {
+      id: '/admin/urzadzenia'
+      path: '/admin/urzadzenia'
+      fullPath: '/admin/urzadzenia'
+      preLoaderRoute: typeof AdminUrzadzeniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/uzytkownicy': {
       id: '/admin/uzytkownicy'
       path: '/admin/uzytkownicy'
@@ -225,11 +258,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AwarieIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/sync-urzadzenia': {
-      id: '/api/public/sync-urzadzenia'
-      path: '/api/public/sync-urzadzenia'
-      fullPath: '/api/public/sync-urzadzenia'
-      preLoaderRoute: typeof ApiPublicSyncUrzadzeniaRouteImport
+    '/przeglady/': {
+      id: '/przeglady/'
+      path: '/przeglady'
+      fullPath: '/przeglady/'
+      preLoaderRoute: typeof PrzegladyIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/przeglady/$id': {
+      id: '/przeglady/$id'
+      path: '/przeglady/$id'
+      fullPath: '/przeglady/$id'
+      preLoaderRoute: typeof PrzegladyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -242,10 +282,12 @@ const rootRouteChildren: RootRouteChildren = {
   LogowanieRoute: LogowanieRoute,
   ZadaniaRoute: ZadaniaRoute,
   ZmianaHaslaRoute: ZmianaHaslaRoute,
+  AdminUrzadzeniaRoute: AdminUrzadzeniaRoute,
   AdminUzytkownicyRoute: AdminUzytkownicyRoute,
   AwarieIdRoute: AwarieIdRoute,
+  PrzegladyIdRoute: PrzegladyIdRoute,
   AwarieIndexRoute: AwarieIndexRoute,
-  ApiPublicSyncUrzadzeniaRoute: ApiPublicSyncUrzadzeniaRoute,
+  PrzegladyIndexRoute: PrzegladyIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

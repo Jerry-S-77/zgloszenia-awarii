@@ -13,21 +13,31 @@ export function czyRola(rola: Rola | null | undefined, dozwolone: readonly Rola[
 }
 
 export type Sciezka =
-  "/" | "/awarie" | "/zadania" | "/dashboard" | "/eksport" | "/admin/uzytkownicy";
-export type IkonaNawigacji = "zglos" | "lista" | "zadania" | "analizy" | "eksport" | "admin";
+  | "/"
+  | "/awarie"
+  | "/zadania"
+  | "/przeglady"
+  | "/dashboard"
+  | "/eksport"
+  | "/admin/uzytkownicy"
+  | "/admin/urzadzenia";
+export type IkonaNawigacji =
+  "zglos" | "lista" | "zadania" | "przeglady" | "analizy" | "eksport" | "admin";
 export type PozycjaNawigacji = {
   to: Sciezka;
   label: string;
   ikona: IkonaNawigacji;
   glowna: boolean;
+  /** Pozycja jest aktywna dla każdej ścieżki pod tym prefiksem (domyślnie: `to`). */
+  prefiks?: string;
 };
 
-const poz = (to: Sciezka, label: string, ikona: IkonaNawigacji): PozycjaNawigacji => ({
-  to,
-  label,
-  ikona,
-  glowna: false,
-});
+const poz = (
+  to: Sciezka,
+  label: string,
+  ikona: IkonaNawigacji,
+  prefiks?: string,
+): PozycjaNawigacji => ({ to, label, ikona, glowna: false, ...(prefiks ? { prefiks } : {}) });
 
 const ZGLOS: PozycjaNawigacji = {
   to: "/",
@@ -41,27 +51,37 @@ function pozostale(rola: Rola): PozycjaNawigacji[] {
     case "pracownik":
       return [poz("/awarie", "Moje", "lista")];
     case "technik":
-      return [poz("/zadania", "Zadania", "zadania"), poz("/awarie", "Awarie", "lista")];
+      return [
+        poz("/zadania", "Zadania", "zadania"),
+        poz("/awarie", "Awarie", "lista"),
+        poz("/przeglady", "Przeglądy", "przeglady"),
+      ];
     case "kierownik":
       return [
-        poz("/awarie", "Awarie", "lista"),
         poz("/dashboard", "Analizy", "analizy"),
-        poz("/eksport", "Eksport", "eksport"),
+        poz("/awarie", "Awarie", "lista"),
+        poz("/przeglady", "Przeglądy", "przeglady"),
       ];
     case "admin":
       return [
         poz("/zadania", "Zadania", "zadania"),
         poz("/awarie", "Awarie", "lista"),
-        poz("/dashboard", "Analizy", "analizy"),
-        poz("/eksport", "Eksport", "eksport"),
-        poz("/admin/uzytkownicy", "Admin", "admin"),
+        poz("/przeglady", "Przeglądy", "przeglady"),
+        poz("/admin/uzytkownicy", "Admin", "admin", "/admin"),
       ];
   }
 }
 
-/** Przycisk „Zgłoś" trafia w środek paska: na indeks floor(liczba_pozostałych / 2). */
+/** Przycisk „Zgłoś" trafia w środek paska: na indeks ceil(liczba_pozostałych / 2). */
 export function pozycjeNawigacji(rola: Rola): PozycjaNawigacji[] {
   const inne = pozostale(rola);
-  const indeks = Math.floor(inne.length / 2);
+  const indeks = Math.ceil(inne.length / 2);
   return [...inne.slice(0, indeks), ZGLOS, ...inne.slice(indeks)];
+}
+
+/** Czy pozycja paska jest aktywna na danej ścieżce („/" tylko dokładnie, reszta z podstronami). */
+export function czyAktywna(pathname: string, pozycja: PozycjaNawigacji): boolean {
+  const baza = pozycja.prefiks ?? pozycja.to;
+  if (baza === "/") return pathname === "/";
+  return pathname === baza || pathname.startsWith(`${baza}/`);
 }

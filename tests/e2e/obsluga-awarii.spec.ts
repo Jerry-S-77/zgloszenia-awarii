@@ -27,7 +27,10 @@ async function otworz(page: Page, sciezka: string) {
     () => {
       const maKlucz = (o: object | null, p: string) =>
         o !== null && Object.getOwnPropertyNames(o).some((k) => k.startsWith(p));
-      return maKlucz(document, "__reactContainer$") && maKlucz(document.querySelector("form, button"), "__reactProps$");
+      return (
+        maKlucz(document, "__reactContainer$") &&
+        maKlucz(document.querySelector("form, button"), "__reactProps$")
+      );
     },
     undefined,
     { timeout: 15_000 },
@@ -47,7 +50,11 @@ async function zaloguj(page: Page, email: string) {
 test.beforeAll(async () => {
   await przygotujKonta();
   const { error } = await klientAdmin().from("urzadzenia").upsert(
-    { nr_technologiczny: "HVAC-01", nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI", status: "aktywne" },
+    {
+      nr_technologiczny: "HVAC-01",
+      nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI",
+      status: "aktywne",
+    },
     { onConflict: "nr_technologiczny" },
   );
   if (error) throw error;
@@ -55,7 +62,9 @@ test.beforeAll(async () => {
 });
 test.afterAll(() => klientAdmin().from("awarie").delete().like("opis_awarii", `${ZNACZNIK}%`));
 
-test("technik przyjmuje, naprawia, zamyka z komentarzem; historia i numer widoczne", async ({ page }) => {
+test("technik przyjmuje, naprawia, zamyka z komentarzem; historia i numer widoczne", async ({
+  page,
+}) => {
   const opis = `${ZNACZNIK} pompa głośna`;
   await zaloguj(page, KONTA.pracownik.email);
   await page.getByRole("combobox").click();
@@ -100,7 +109,11 @@ test("technik przyjmuje, naprawia, zamyka z komentarzem; historia i numer widocz
 test("technik nie może ponownie otworzyć zamkniętej awarii, kierownik może", async ({ page }) => {
   const opis = `${ZNACZNIK} zamknięta do reopenu`;
   const admin = klientAdmin();
-  const { data: zgloszajacy } = await admin.from("profiles").select("id").eq("email", KONTA.pracownik.email).single();
+  const { data: zgloszajacy } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", KONTA.pracownik.email)
+    .single();
   const { data: awaria } = await admin
     .from("awarie")
     .insert({
@@ -186,7 +199,12 @@ test("konflikt wersji offline trafia do 'Do sprawdzenia' i nie blokuje reszty ko
   // wersja w bazie rośnie, więc kolejka zsynchronizuje się z nieaktualną wersją w WHERE.
   const { error: bladAdmina } = await admin
     .from("awarie")
-    .update({ status: "zamknieta", przyczyna: "Test", czas_przestoju_h: 1, data_zamkniecia: new Date().toISOString() })
+    .update({
+      status: "zamknieta",
+      przyczyna: "Test",
+      czas_przestoju_h: 1,
+      data_zamkniecia: new Date().toISOString(),
+    })
     .eq("id", awaria?.id ?? "");
   expect(bladAdmina).toBeNull();
 
@@ -209,13 +227,19 @@ test("konflikt wersji offline trafia do 'Do sprawdzenia' i nie blokuje reszty ko
   await expect(kartaNowe.getByText("lokalnie")).toBeHidden({ timeout: 20_000 });
 
   // Odrzucona aktualizacja trafia do "Do sprawdzenia" (widoczne w nagłówku), reszta się nie blokuje.
-  await expect(page.getByRole("button", { name: /do sprawdzenia/ })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: /do sprawdzenia/ })).toBeVisible({
+    timeout: 20_000,
+  });
 
   // Baza pozostaje przy zmianie admina (odrzucona aktualizacja NIE nadpisała jej).
   await expect
     .poll(
       async () => {
-        const { data } = await admin.from("awarie").select("status").eq("id", awaria?.id ?? "").single();
+        const { data } = await admin
+          .from("awarie")
+          .select("status")
+          .eq("id", awaria?.id ?? "")
+          .single();
         return data?.status;
       },
       { timeout: 10_000 },
