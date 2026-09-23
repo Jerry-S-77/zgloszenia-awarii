@@ -18,6 +18,9 @@ dist-ssr
 
 # Wrangler / Cloudflare
 .wrangler/
+
+# Vercel (lokalny build z VERCEL=1 i powiązanie projektu)
+.vercel/
 .dev.vars
 
 # Editor directories and files
