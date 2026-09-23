@@ -434,3 +434,23 @@ describe("poprawki po przeglądzie kodu", () => {
     expect(przeglad?.data_najblizszego).toBe(dodajDni(dzis(), 7));
   });
 });
+
+describe("poprawka po przeglądzie bezpieczeństwa", () => {
+  it("wykonanie z datą wsteczną nie zamyka propozycji", async () => {
+    const nr = await noweUrzadzenie();
+    const przegladId = await ustawPrzeglad(nr, {
+      czestotliwosc_dni: 30,
+      data_ostatniego: dodajDni(dzis(), -5),
+      data_najblizszego: dodajDni(dzis(), 40),
+    });
+    await wstawAwarie(nr, 1, { czas_przestoju_h: 9 });
+    const { error } = await (
+      await jako("technik")
+    )
+      .from("przeglady_wykonania")
+      .insert({ przeglad_id: przegladId, data_wykonania: dodajDni(dzis(), -60) });
+    expect(error).toBeNull();
+    const [p] = await propozycje(przegladId);
+    expect(p?.status).toBe("oczekuje");
+  });
+});
