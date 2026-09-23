@@ -1,5 +1,7 @@
 # Zgłaszanie awarii
 
+**Aplikacja:** https://zgloszenia-awarii.vercel.app
+
 Mobilna aplikacja webowa (mobile-first, responsywna) do zgłaszania, śledzenia, ewidencji i analizy awarii urządzeń technicznych w zakładzie farmaceutycznym.
 
 Supabase jest głównym źródłem prawdy (wspólnym dla całego zespołu). W trybie offline zgłoszenie zapisuje się lokalnie (IndexedDB) w kolejce do synchronizacji i wysyła się automatycznie do Supabase po odzyskaniu połączenia; status jest widoczny dla użytkownika ("zapisano lokalnie, oczekuje na synchronizację" / "zsynchronizowano"). Klient zapytań działa w trybie `networkMode: always`, żeby lista awarii łączyła lokalną kolejkę także offline; offline użytkownik jest rozpoznawany po zapamiętanym profilu (tylko do wyświetlania, RLS nadal decyduje o dostępie do danych). Nieokreślona sesja (nieudane odświeżenie tokenu, np. tuż po powrocie sieci) zostawia stan z pamięci i jest sprawdzana ponownie; lista awarii offline wraca do swoich zapamiętanych wierszy zdalnych i dokłada do nich lokalną kolejkę.
@@ -94,7 +96,11 @@ node scripts/utworz-admina.ts <email> "<Imię Nazwisko>" --tak
 
 Skrypt czyta `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` z `.env` (wartości **produkcyjnego** projektu Supabase), wypisuje docelowy host, a bez `--tak` niczego nie tworzy. Działa tylko wtedy, gdy nie ma jeszcze aktywnego administratora. Hasło tymczasowe wyświetla jeden raz; zmiana jest wymuszona przy pierwszym logowaniu. Imię i nazwisko podaj w cudzysłowie (dokładnie dwa argumenty pozycyjne).
 
-Baza produkcyjna to nowy, własny projekt Supabase, który dopiero zostanie założony (jego identyfikator trafi do `project_id` w `supabase/config.toml`); dawna baza z Lovable jest niedostępna i nieużywana.
+Baza produkcyjna to własny projekt Supabase `zgloszenia-awarii` (jego identyfikator jest w `project_id` w `supabase/config.toml`); dawna baza z Lovable jest niedostępna i nieużywana. Konta demonstracyjne (po jednym na rolę, bez wymuszonej zmiany hasła) zakłada `node scripts/utworz-konta-demo.ts --tak`; hasła wyświetla jeden raz.
+
+## Wdrożenie
+
+Aplikacja działa na Vercel (projekt połączony z repozytorium GitHub, gałąź `master`): każdy push na `master` wdraża nową wersję. Zmienne środowiskowe w Vercelu: `SUPABASE_URL`, `VITE_SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (i informacyjnie `SUPABASE_PROJECT_ID`, `VITE_SUPABASE_PROJECT_ID`). Nitro sam wykrywa środowisko Vercel, więc konfiguracja builda nie wymaga zmian. Migracje bazy stosuje się ręcznie (`npx supabase db push --db-url <Session pooler>`).
 
 ## Odzyskiwanie dostępu administratora
 
