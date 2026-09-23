@@ -1,14 +1,7 @@
+import type { Database } from "@/integrations/supabase/types";
 import type { StatusAwarii } from "./statusy-awarii";
 
-export type Urzadzenie = {
-  nr_technologiczny: string;
-  nazwa_urzadzenia: string;
-  kategoria: string | null;
-  lokalizacja: string | null;
-  krytycznosc: string | null;
-  wlasciciel: string | null;
-  status_w_rejestrze: string;
-};
+export type Urzadzenie = Database["public"]["Tables"]["urzadzenia"]["Row"];
 
 export type Awaria = {
   id: string;

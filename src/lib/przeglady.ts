@@ -6,7 +6,12 @@
 
 export const PROG_WKROTCE_DNI = 14;
 
-export const STATUSY_PRZEGLADU = ["opozniony", "wkrotce", "zaplanowany", "do_uzupelnienia"] as const;
+export const STATUSY_PRZEGLADU = [
+  "opozniony",
+  "wkrotce",
+  "zaplanowany",
+  "do_uzupelnienia",
+] as const;
 export type StatusPrzegladu = (typeof STATUSY_PRZEGLADU)[number];
 
 export const ETYKIETY_STATUSU_PRZEGLADU: Record<StatusPrzegladu, string> = {
@@ -33,9 +38,7 @@ export function dodajDni(data: string, dni: number): string {
 
 /** Liczba dni od `od` do `do_` (dodatnia, gdy `do_` jest później). */
 export function roznicaDni(od: string, do_: string): number {
-  return Math.round(
-    (Date.parse(`${do_}T00:00:00Z`) - Date.parse(`${od}T00:00:00Z`)) / 86_400_000,
-  );
+  return Math.round((Date.parse(`${do_}T00:00:00Z`) - Date.parse(`${od}T00:00:00Z`)) / 86_400_000);
 }
 
 export function statusPrzegladu(p: TerminPrzegladu, dzis: string): StatusPrzegladu {
@@ -47,7 +50,10 @@ export function statusPrzegladu(p: TerminPrzegladu, dzis: string): StatusPrzegla
 }
 
 /** Zwierciadło triggera `przeglady_wykonania_po`: następny termin = data wykonania + częstotliwość. */
-export function nastepnyTermin(dataWykonania: string, czestotliwoscDni: number | null): string | null {
+export function nastepnyTermin(
+  dataWykonania: string,
+  czestotliwoscDni: number | null,
+): string | null {
   return czestotliwoscDni ? dodajDni(dataWykonania, czestotliwoscDni) : null;
 }
 

@@ -11,7 +11,7 @@ import type { AwariaLokalna, Urzadzenie } from "./types";
  * od razu. Ekran zachowuje poprzednie dane, bo TanStack trzyma `data` mimo błędu; zapytanie o awarie
  * zamiast błędu zwraca połączony widok, więc samo sięga po swoje poprzednie wiersze (awarieQuery).
  */
-function wymagajSieci() {
+export function wymagajSieci() {
   if (typeof navigator !== "undefined" && !navigator.onLine) throw new Error("Brak połączenia.");
 }
 
@@ -22,10 +22,10 @@ export const urzadzeniaQuery = queryOptions({
     const { data, error } = await supabase
       .from("urzadzenia")
       .select("*")
-      .eq("status_w_rejestrze", "Aktywne")
+      .eq("status", "aktywne")
       .order("nr_technologiczny");
     if (error) throw error;
-    return (data ?? []) as Urzadzenie[];
+    return data ?? [];
   },
 });
 
@@ -49,6 +49,22 @@ export const awarieQuery = queryOptions({
     const zdalne = zdalneLubZCache(pobrane, client.getQueryData<AwariaLokalna[]>(queryKey));
     const kolejka = await getMojaKolejka();
     return scalAwarie(zdalne, kolejka);
+  },
+});
+
+export type StatystykaProgow =
+  Database["public"]["Functions"]["statystyki_progow_urzadzen"]["Returns"][number];
+
+/** Progi awaryjności liczy baza (jedno źródło reguł; te same dane zasilają propozycje przeglądów). */
+export const progiQuery = queryOptions({
+  queryKey: ["progi"],
+  queryFn: async (): Promise<StatystykaProgow[]> => {
+    wymagajSieci();
+    const { data, error } = await supabase.rpc("statystyki_progow_urzadzen");
+    if (error) throw error;
+    return (data ?? [])
+      .map((s) => ({ ...s, przestoj_30: Number(s.przestoj_30) }))
+      .sort((a, b) => b.razem - a.razem || b.awarie_90 - a.awarie_90);
   },
 });
 

@@ -48,7 +48,10 @@ async function przegladUrzadzenia(nr: string) {
   return data;
 }
 
-async function ustawPrzeglad(nr: string, zmiany: Database["public"]["Tables"]["przeglady"]["Update"]) {
+async function ustawPrzeglad(
+  nr: string,
+  zmiany: Database["public"]["Tables"]["przeglady"]["Update"],
+) {
   const [p] = await przegladUrzadzenia(nr);
   if (!p) throw new Error(`Brak przeglądu dla ${nr}`);
   const { error } = await admin.from("przeglady").update(zmiany).eq("id", p.id);
@@ -91,8 +94,18 @@ afterAll(async () => {
 describe("urządzenia", () => {
   it("pracownik nie widzi urządzenia proponowanego, technik widzi", async () => {
     const nr = await noweUrzadzenie("proponowane");
-    const { data: p } = await (await jako("pracownik")).from("urzadzenia").select("nr_technologiczny").eq("nr_technologiczny", nr);
-    const { data: t } = await (await jako("technik")).from("urzadzenia").select("nr_technologiczny").eq("nr_technologiczny", nr);
+    const { data: p } = await (
+      await jako("pracownik")
+    )
+      .from("urzadzenia")
+      .select("nr_technologiczny")
+      .eq("nr_technologiczny", nr);
+    const { data: t } = await (
+      await jako("technik")
+    )
+      .from("urzadzenia")
+      .select("nr_technologiczny")
+      .eq("nr_technologiczny", nr);
     expect(p).toEqual([]);
     expect(t).toHaveLength(1);
   });
@@ -101,12 +114,16 @@ describe("urządzenia", () => {
     licznik += 1;
     const nr = `${PREFIKS}-${licznik}`;
     for (const k of ["technik", "kierownik"] as const) {
-      const { error } = await (await jako(k))
+      const { error } = await (
+        await jako(k)
+      )
         .from("urzadzenia")
         .insert({ nr_technologiczny: `${nr}${k}`, nazwa_urzadzenia: "Nie wolno" });
       expect(error, k).not.toBeNull();
     }
-    const { error } = await (await jako("admin"))
+    const { error } = await (
+      await jako("admin")
+    )
       .from("urzadzenia")
       .insert({ nr_technologiczny: nr, nazwa_urzadzenia: "Nowe urządzenie" });
     expect(error).toBeNull();
@@ -114,7 +131,9 @@ describe("urządzenia", () => {
 
   it("admin nie zmieni numeru technologicznego", async () => {
     const nr = await noweUrzadzenie();
-    const { error } = await (await jako("admin"))
+    const { error } = await (
+      await jako("admin")
+    )
       .from("urzadzenia")
       .update({ nr_technologiczny: `${nr}X` })
       .eq("nr_technologiczny", nr);
@@ -123,7 +142,9 @@ describe("urządzenia", () => {
 
   it("właściciel z konta wpisuje nazwisko do urządzenia", async () => {
     const nr = await noweUrzadzenie();
-    const { data, error } = await (await jako("admin"))
+    const { data, error } = await (
+      await jako("admin")
+    )
       .from("urzadzenia")
       .update({ wlasciciel_id: id.technik })
       .eq("nr_technologiczny", nr)
@@ -149,8 +170,18 @@ describe("urządzenia", () => {
 describe("przeglądy i wykonania", () => {
   it("pracownik nie czyta przeglądów, technik czyta", async () => {
     const nr = await noweUrzadzenie();
-    const { data: p } = await (await jako("pracownik")).from("przeglady").select("id").eq("nr_technologiczny", nr);
-    const { data: t } = await (await jako("technik")).from("przeglady").select("id").eq("nr_technologiczny", nr);
+    const { data: p } = await (
+      await jako("pracownik")
+    )
+      .from("przeglady")
+      .select("id")
+      .eq("nr_technologiczny", nr);
+    const { data: t } = await (
+      await jako("technik")
+    )
+      .from("przeglady")
+      .select("id")
+      .eq("nr_technologiczny", nr);
     expect(p).toEqual([]);
     expect(t).toHaveLength(1);
   });
@@ -158,13 +189,17 @@ describe("przeglądy i wykonania", () => {
   it("technik nie zmienia harmonogramu, kierownik zmienia", async () => {
     const nr = await noweUrzadzenie();
     const przegladId = await ustawPrzeglad(nr, { czestotliwosc_dni: 30 });
-    const { data: t } = await (await jako("technik"))
+    const { data: t } = await (
+      await jako("technik")
+    )
       .from("przeglady")
       .update({ czestotliwosc_dni: 60 })
       .eq("id", przegladId)
       .select();
     expect(t).toEqual([]);
-    const { data: k, error } = await (await jako("kierownik"))
+    const { data: k, error } = await (
+      await jako("kierownik")
+    )
       .from("przeglady")
       .update({ czestotliwosc_dni: 90 })
       .eq("id", przegladId)
@@ -187,7 +222,11 @@ describe("przeglądy i wykonania", () => {
     const [p] = await przegladUrzadzenia(nr);
     expect(p?.data_ostatniego).toBe(data);
     expect(p?.data_najblizszego).toBe(dodajDni(data, 30));
-    const { data: w } = await admin.from("przeglady_wykonania").select("autor_id").eq("przeglad_id", przegladId).single();
+    const { data: w } = await admin
+      .from("przeglady_wykonania")
+      .select("autor_id")
+      .eq("przeglad_id", przegladId)
+      .single();
     expect(w?.autor_id).toBe(id.technik);
   });
 
@@ -200,14 +239,18 @@ describe("przeglądy i wykonania", () => {
       .insert({ przeglad_id: przegladId, data_wykonania: dodajDni(dzis(), 2) });
     expect(przyszla?.message).toContain("przyszłości");
 
-    await technik.from("przeglady_wykonania").insert({ przeglad_id: przegladId, data_wykonania: dzis() });
+    await technik
+      .from("przeglady_wykonania")
+      .insert({ przeglad_id: przegladId, data_wykonania: dzis() });
     await technik
       .from("przeglady_wykonania")
       .insert({ przeglad_id: przegladId, data_wykonania: dodajDni(dzis(), -20) });
     const [p] = await przegladUrzadzenia(nr);
     expect(p?.data_ostatniego).toBe(dzis());
 
-    const { error: prac } = await (await jako("pracownik"))
+    const { error: prac } = await (
+      await jako("pracownik")
+    )
       .from("przeglady_wykonania")
       .insert({ przeglad_id: przegladId, data_wykonania: dzis() });
     expect(prac).not.toBeNull();
@@ -248,13 +291,17 @@ describe("propozycje przyspieszenia i progi", () => {
     const [prop] = await propozycje(przegladId);
     if (!prop) throw new Error("Brak propozycji");
 
-    const { error: bladTechnika } = await (await jako("technik")).rpc("przeglady_decyzja", {
+    const { error: bladTechnika } = await (
+      await jako("technik")
+    ).rpc("przeglady_decyzja", {
       p_propozycja_id: prop.id,
       p_zatwierdz: true,
     });
     expect(bladTechnika).not.toBeNull();
 
-    const { error } = await (await jako("kierownik")).rpc("przeglady_decyzja", {
+    const { error } = await (
+      await jako("kierownik")
+    ).rpc("przeglady_decyzja", {
       p_propozycja_id: prop.id,
       p_zatwierdz: true,
     });
