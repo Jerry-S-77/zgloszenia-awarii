@@ -92,7 +92,7 @@ test.beforeAll(async () => {
     {
       nr_technologiczny: "HVAC-01",
       nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI",
-      status_w_rejestrze: "Aktywne",
+      status: "aktywne",
     },
     { onConflict: "nr_technologiczny" },
   );

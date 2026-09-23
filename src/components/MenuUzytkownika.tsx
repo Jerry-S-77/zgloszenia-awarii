@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { KeyRound, LogOut, User } from "lucide-react";
+import { BarChart3, Download, KeyRound, LogOut, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth";
-import { ETYKIETY_ROL } from "@/lib/uprawnienia";
+import { czyRola, ETYKIETY_ROL } from "@/lib/uprawnienia";
 
 export function MenuUzytkownika() {
   const auth = useAuth();
@@ -31,6 +31,23 @@ export function MenuUzytkownika() {
           <p className="text-xs font-normal text-muted-foreground">{ETYKIETY_ROL[profil.rola]}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {czyRola(profil.rola, ["kierownik", "admin"]) && (
+          <>
+            <DropdownMenuItem
+              className="py-3 text-base"
+              onSelect={() => void navigate({ to: "/dashboard" })}
+            >
+              <BarChart3 className="size-5" /> Analizy
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="py-3 text-base"
+              onSelect={() => void navigate({ to: "/eksport" })}
+            >
+              <Download className="size-5" /> Eksport CSV
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem
           className="py-3 text-base"
           onSelect={() => void navigate({ to: "/zmiana-hasla" })}

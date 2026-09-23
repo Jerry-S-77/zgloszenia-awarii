@@ -47,7 +47,7 @@ async function zaloguj(page: Page, email: string) {
 test.beforeAll(async () => {
   await przygotujKonta();
   const { error } = await klientAdmin().from("urzadzenia").upsert(
-    { nr_technologiczny: "HVAC-01", nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI", status_w_rejestrze: "Aktywne" },
+    { nr_technologiczny: "HVAC-01", nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI", status: "aktywne" },
     { onConflict: "nr_technologiczny" },
   );
   if (error) throw error;

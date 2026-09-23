@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { AppShell } from "@/components/AppShell";
-import { awarieQuery } from "@/lib/queries";
+import { awarieQuery, progiQuery } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
 import { czyRola } from "@/lib/uprawnienia";
 
@@ -37,16 +37,6 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-type Stat = {
-  nr: string;
-  nazwa: string;
-  d90: number;
-  wysokie60: number;
-  przestoj30: number;
-  razem: number;
-  alarm: boolean;
-};
-
 function Dashboard() {
   const auth = useAuth();
   const dostep =
@@ -54,36 +44,13 @@ function Dashboard() {
     !auth.profil.must_change_password &&
     czyRola(auth.profil.rola, ["kierownik", "admin"]);
   const { data: awarie = [], isLoading } = useQuery({ ...awarieQuery, enabled: dostep });
+  const {
+    data: staty = [],
+    isLoading: wczytujeProgi,
+    isError: bladProgow,
+  } = useQuery({ ...progiQuery, enabled: dostep });
 
-  const { staty, trend } = useMemo(() => {
-    const teraz = Date.now();
-    const dni = (n: number) => teraz - n * 24 * 60 * 60 * 1000;
-    const mapa = new Map<string, Stat>();
-
-    for (const a of awarie) {
-      const t = new Date(a.data_awarii).getTime();
-      const s =
-        mapa.get(a.nr_technologiczny) ??
-        ({
-          nr: a.nr_technologiczny,
-          nazwa: a.nazwa_urzadzenia,
-          d90: 0,
-          wysokie60: 0,
-          przestoj30: 0,
-          razem: 0,
-          alarm: false,
-        } as Stat);
-      s.razem += 1;
-      if (t >= dni(90)) s.d90 += 1;
-      if (t >= dni(60) && a.krytycznosc_skutku === "Wysoka") s.wysokie60 += 1;
-      if (t >= dni(30)) s.przestoj30 += Number(a.czas_przestoju_h ?? 0);
-      mapa.set(a.nr_technologiczny, s);
-    }
-
-    const staty = [...mapa.values()]
-      .map((s) => ({ ...s, alarm: s.d90 >= 3 || s.wysokie60 >= 2 || s.przestoj30 >= 8 }))
-      .sort((a, b) => b.razem - a.razem || b.d90 - a.d90);
-
+  const trend = useMemo(() => {
     const miesiace = new Map<string, number>();
     for (let i = 11; i >= 0; i--) {
       const d = new Date();
@@ -95,13 +62,11 @@ function Dashboard() {
       const k = a.data_awarii.slice(0, 7);
       if (miesiace.has(k)) miesiace.set(k, (miesiace.get(k) ?? 0) + 1);
     }
-    const trend = [...miesiace.entries()].map(([m, liczba]) => ({ m: m.slice(2), liczba }));
-
-    return { staty, trend };
+    return [...miesiace.entries()].map(([m, liczba]) => ({ m: m.slice(2), liczba }));
   }, [awarie]);
 
   const top10 = staty.slice(0, 10);
-  const alarmy = staty.filter((s) => s.alarm);
+  const alarmy = staty.filter((s) => s.przekracza);
 
   return (
     <AppShell title="Analizy" dozwoloneRole={["kierownik", "admin"]}>
@@ -109,10 +74,7 @@ function Dashboard() {
 
       <div className="mb-4 grid grid-cols-3 gap-2">
         <Kafel etykieta="Awarie ogółem" wartosc={awarie.length} />
-        <Kafel
-          etykieta="Otwarte"
-          wartosc={awarie.filter((a) => a.status !== "zamknieta").length}
-        />
+        <Kafel etykieta="Otwarte" wartosc={awarie.filter((a) => a.status !== "zamknieta").length} />
         <Kafel etykieta="Alarmy" wartosc={alarmy.length} alarm={alarmy.length > 0} />
       </div>
 
@@ -124,38 +86,43 @@ function Dashboard() {
         <div className="space-y-3">
           {staty.map((s) => (
             <div
-              key={s.nr}
+              key={s.nr_technologiczny}
               className={`rounded-2xl border-2 bg-card p-4 ${
-                s.alarm ? "border-destructive" : "border-border"
+                s.przekracza ? "border-destructive" : "border-border"
               }`}
             >
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                 <div className="min-w-0">
-                  <p className="font-display text-lg font-bold">{s.nr}</p>
-                  <p className="truncate text-sm text-muted-foreground">{s.nazwa}</p>
+                  <p className="font-display text-lg font-bold">{s.nr_technologiczny}</p>
+                  <p className="truncate text-sm text-muted-foreground">{s.nazwa_urzadzenia}</p>
                 </div>
-                {s.alarm && (
+                {s.przekracza && (
                   <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground">
                     <AlertTriangle className="size-4" /> Alarm
                   </span>
                 )}
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                <Metryka etykieta="90 dni" wartosc={s.d90} alarm={s.d90 >= 3} />
+                <Metryka etykieta="90 dni" wartosc={s.awarie_90} alarm={s.awarie_90 >= 3} />
                 <Metryka
                   etykieta="Wysoka / 60 dni"
-                  wartosc={s.wysokie60}
-                  alarm={s.wysokie60 >= 2}
+                  wartosc={s.wysokie_60}
+                  alarm={s.wysokie_60 >= 2}
                 />
                 <Metryka
                   etykieta="Przestój 30 dni"
-                  wartosc={`${s.przestoj30} h`}
-                  alarm={s.przestoj30 >= 8}
+                  wartosc={`${s.przestoj_30} h`}
+                  alarm={s.przestoj_30 >= 8}
                 />
               </div>
             </div>
           ))}
-          {!isLoading && staty.length === 0 && (
+          {bladProgow && (
+            <p role="alert" className="text-sm text-destructive">
+              Nie udało się wczytać progów. Sprawdź połączenie.
+            </p>
+          )}
+          {!wczytujeProgi && !bladProgow && staty.length === 0 && (
             <p className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
               Brak danych — zgłoś pierwszą awarię.
             </p>
@@ -170,7 +137,7 @@ function Dashboard() {
             <BarChart data={top10} layout="vertical" margin={{ left: 8, right: 16 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" allowDecimals={false} fontSize={12} />
-              <YAxis dataKey="nr" type="category" width={68} fontSize={12} />
+              <YAxis dataKey="nr_technologiczny" type="category" width={68} fontSize={12} />
               <Tooltip />
               <Bar dataKey="razem" name="Awarie" fill="var(--primary)" radius={[0, 6, 6, 0]} />
             </BarChart>

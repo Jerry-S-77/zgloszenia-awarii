@@ -29,10 +29,14 @@ describe("urzadzenieSchema", () => {
     expect(wynik.uwagi).toBeNull();
   });
   it("odrzuca numer ze spacją i brak nazwy", () => {
-    expect(urzadzenieSchema.safeParse({ ...poprawne, nr_technologiczny: "HVAC 07" }).success).toBe(false);
+    expect(urzadzenieSchema.safeParse({ ...poprawne, nr_technologiczny: "HVAC 07" }).success).toBe(
+      false,
+    );
     expect(urzadzenieSchema.safeParse({ ...poprawne, nazwa_urzadzenia: " " }).success).toBe(false);
   });
   it("odrzuca nieznaną krytyczność", () => {
-    expect(urzadzenieSchema.safeParse({ ...poprawne, krytycznosc: "Bardzo wysoka" }).success).toBe(false);
+    expect(urzadzenieSchema.safeParse({ ...poprawne, krytycznosc: "Bardzo wysoka" }).success).toBe(
+      false,
+    );
   });
 });

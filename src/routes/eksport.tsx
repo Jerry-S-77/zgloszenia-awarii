@@ -14,12 +14,12 @@ export const Route = createFileRoute("/eksport")({
       { title: "Eksport CSV — Ewidencja awarii urządzeń" },
       {
         name: "description",
-        content: "Pobierz zgłoszenia awarii w formacie CSV zgodnym z arkuszem „Awarie”.",
+        content: "Pobierz zgłoszenia awarii w formacie CSV.",
       },
       { property: "og:title", content: "Eksport danych o awariach" },
       {
         property: "og:description",
-        content: "Plik CSV zgodny z arkuszem używanym w automatyzacji.",
+        content: "Plik CSV ze wszystkimi zgłoszeniami awarii.",
       },
     ],
   }),
@@ -56,7 +56,7 @@ function Eksport() {
   function pobierz() {
     const wiersze = awarie.map((a) =>
       [
-        pole(""), // ID_zgloszenia: numeracja AWR-2026-XXX nadawana w arkuszu
+        pole(a.numer), // pusty tylko dla zgłoszenia z kolejki offline, zanim baza nada numer
         pole(a.nr_technologiczny),
         pole(a.nazwa_urzadzenia),
         pole(a.data_awarii),
@@ -83,8 +83,8 @@ function Eksport() {
     <AppShell title="Eksport danych" dozwoloneRole={["kierownik", "admin"]}>
       <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
         <p className="text-base">
-          Plik CSV zawiera dokładnie kolumny arkusza „Awarie”. Kolumna <b>ID_zgloszenia</b>{" "}
-          pozostaje pusta — numeracja AWR-2026-XXX nadawana jest w arkuszu przy imporcie.
+          Plik CSV z kolumnami jak w dawnym arkuszu „Awarie”. Kolumna <b>ID_zgloszenia</b> zawiera
+          numer nadany przez system (AWR-rok-numer).
         </p>
         <ul className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
           {NAGLOWKI.map((n) => (

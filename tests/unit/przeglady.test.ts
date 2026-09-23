@@ -15,11 +15,14 @@ const DZIS = "2026-09-21";
 const p = (data_najblizszego: string | null) => ({ data_najblizszego });
 
 describe("statusPrzegladu", () => {
-  it("bez terminu: do uzupełnienia", () => expect(statusPrzegladu(p(null), DZIS)).toBe("do_uzupelnienia"));
-  it("termin wczoraj: opóźniony", () => expect(statusPrzegladu(p("2026-09-20"), DZIS)).toBe("opozniony"));
+  it("bez terminu: do uzupełnienia", () =>
+    expect(statusPrzegladu(p(null), DZIS)).toBe("do_uzupelnienia"));
+  it("termin wczoraj: opóźniony", () =>
+    expect(statusPrzegladu(p("2026-09-20"), DZIS)).toBe("opozniony"));
   it("termin dziś: wkrótce", () => expect(statusPrzegladu(p(DZIS), DZIS)).toBe("wkrotce"));
   it("za 14 dni: wkrótce", () => expect(statusPrzegladu(p("2026-10-05"), DZIS)).toBe("wkrotce"));
-  it("za 15 dni: zaplanowany", () => expect(statusPrzegladu(p("2026-10-06"), DZIS)).toBe("zaplanowany"));
+  it("za 15 dni: zaplanowany", () =>
+    expect(statusPrzegladu(p("2026-10-06"), DZIS)).toBe("zaplanowany"));
 });
 
 describe("daty", () => {
