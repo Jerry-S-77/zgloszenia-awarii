@@ -25,6 +25,7 @@ import {
   akcjeStatusu,
   ETYKIETY_STATUSU_URZADZENIA,
   KRYTYCZNOSCI,
+  normalizujKrytycznosc,
   urzadzenieSchema,
   type StatusUrzadzenia,
 } from "@/lib/urzadzenia";
@@ -62,7 +63,7 @@ export function UrzadzenieSheet({ urzadzenie, otwarte, onZmiana }: Props) {
     setNazwa(urzadzenie?.nazwa_urzadzenia ?? "");
     setKategoria(urzadzenie?.kategoria ?? "");
     setLokalizacja(urzadzenie?.lokalizacja ?? "");
-    setKrytycznosc(urzadzenie?.krytycznosc ?? "Srednia");
+    setKrytycznosc(normalizujKrytycznosc(urzadzenie?.krytycznosc) ?? "Srednia");
     setWlasciciel(urzadzenie?.wlasciciel_id ?? BRAK);
     setUwagi(urzadzenie?.uwagi ?? "");
   }, [otwarte, urzadzenie]);

@@ -5,6 +5,8 @@ import type { PowodPropozycji, Propozycja } from "@/lib/przeglady-zapytania";
 
 type Props = {
   propozycja: Propozycja;
+  /** Obecny termin przeglądu: bez terminu propozycja nie ma daty do zatwierdzenia. */
+  terminPrzegladu: string | null;
   mozeDecydowac: boolean;
   zapis: boolean;
   onDecyzja: (zatwierdz: boolean) => void;
@@ -20,8 +22,15 @@ function opisPowodu(powod: PowodPropozycji): string[] {
   return linie;
 }
 
-export function BanerPropozycji({ propozycja, mozeDecydowac, zapis, onDecyzja }: Props) {
+export function BanerPropozycji({
+  propozycja,
+  terminPrzegladu,
+  mozeDecydowac,
+  zapis,
+  onDecyzja,
+}: Props) {
   const powod = (propozycja.powod ?? {}) as PowodPropozycji;
+  const zTerminem = propozycja.proponowany_termin !== null;
   return (
     <div className="rounded-2xl border border-warning bg-warning/15 p-4">
       <p className="flex items-center gap-2 font-bold">
@@ -33,10 +42,15 @@ export function BanerPropozycji({ propozycja, mozeDecydowac, zapis, onDecyzja }:
         ))}
       </ul>
       <p className="mt-2 text-sm">
-        {propozycja.proponowany_termin ? (
+        {zTerminem ? (
           <>
-            Sugerowany termin: <b>{formatujDate(propozycja.proponowany_termin)}</b> (dziś + 7 dni).
+            Sugerowany termin: <b>dziś + 7 dni</b> (liczony w dniu zatwierdzenia; w chwili
+            zgłoszenia {formatujDate(propozycja.proponowany_termin)}).
           </>
+        ) : terminPrzegladu === null ? (
+          <b>
+            Przegląd nie ma jeszcze terminu — uzupełnij harmonogram i wykonaj go jak najszybciej.
+          </b>
         ) : (
           <b>Przegląd jest już opóźniony albo termin jest bliski — wykonaj go pilnie.</b>
         )}
@@ -48,7 +62,7 @@ export function BanerPropozycji({ propozycja, mozeDecydowac, zapis, onDecyzja }:
             disabled={zapis}
             className="h-12 text-base font-bold"
           >
-            Zatwierdź
+            {zTerminem ? "Zatwierdź" : "Przyjmij do wiadomości"}
           </Button>
           <Button
             variant="outline"

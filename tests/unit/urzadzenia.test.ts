@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { akcjeStatusu, urzadzenieSchema } from "@/lib/urzadzenia";
+import { akcjeStatusu, normalizujKrytycznosc, urzadzenieSchema } from "@/lib/urzadzenia";
 
 describe("akcjeStatusu", () => {
   it("proponowane można aktywować albo wycofać", () => {
@@ -8,6 +8,18 @@ describe("akcjeStatusu", () => {
   it("aktywne można tylko wycofać, wycofane tylko przywrócić", () => {
     expect(akcjeStatusu("aktywne").map((a) => a.na)).toEqual(["wycofane"]);
     expect(akcjeStatusu("wycofane").map((a) => a.na)).toEqual(["aktywne"]);
+  });
+});
+
+describe("normalizujKrytycznosc", () => {
+  it("ujednolica wielkość liter, spacje i polskie znaki", () => {
+    expect(normalizujKrytycznosc(" wysoka ")).toBe("Wysoka");
+    expect(normalizujKrytycznosc("Średnia")).toBe("Srednia");
+    expect(normalizujKrytycznosc("NISKA")).toBe("Niska");
+  });
+  it("nieznana lub pusta wartość daje null", () => {
+    expect(normalizujKrytycznosc("krytyczna")).toBeNull();
+    expect(normalizujKrytycznosc(null)).toBeNull();
   });
 });
 
