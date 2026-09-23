@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { czyRola, pozycjeNawigacji } from "@/lib/uprawnienia";
+import { czyAktywna, czyRola, pozycjeNawigacji } from "@/lib/uprawnienia";
 
 describe("czyRola", () => {
   it("zwraca true, gdy rola jest na liście", () => {
@@ -18,27 +18,39 @@ describe("pozycjeNawigacji", () => {
   const etykiety = (r: Parameters<typeof pozycjeNawigacji>[0]) =>
     pozycjeNawigacji(r).map((p) => p.label);
 
-  it("pracownik: Zgłoś i Moje", () => expect(etykiety("pracownik")).toEqual(["Zgłoś", "Moje"]));
-  it("technik: Zadania, Zgłoś i Awarie", () =>
-    expect(etykiety("technik")).toEqual(["Zadania", "Zgłoś", "Awarie"]));
-  it("kierownik: Zgłoś jest drugi z czterech", () => {
-    expect(etykiety("kierownik")).toEqual(["Awarie", "Zgłoś", "Analizy", "Eksport"]);
-  });
-  it("admin: Zgłoś pośrodku sześciu", () => {
-    expect(etykiety("admin")).toEqual([
-      "Zadania",
-      "Awarie",
-      "Zgłoś",
-      "Analizy",
-      "Eksport",
-      "Admin",
-    ]);
-  });
+  it("pracownik: Moje, Zgłoś", () => expect(etykiety("pracownik")).toEqual(["Moje", "Zgłoś"]));
+  it("technik: Zadania, Awarie, Zgłoś, Przeglądy", () =>
+    expect(etykiety("technik")).toEqual(["Zadania", "Awarie", "Zgłoś", "Przeglądy"]));
+  it("kierownik: Analizy zamiast Zadań", () =>
+    expect(etykiety("kierownik")).toEqual(["Analizy", "Awarie", "Zgłoś", "Przeglądy"]));
+  it("admin: Zgłoś pośrodku pięciu", () =>
+    expect(etykiety("admin")).toEqual(["Zadania", "Awarie", "Zgłoś", "Przeglądy", "Admin"]));
   it("dokładnie jedna pozycja główna (Zgłoś)", () => {
     for (const rola of ["pracownik", "technik", "kierownik", "admin"] as const) {
       const glowne = pozycjeNawigacji(rola).filter((p) => p.glowna);
       expect(glowne).toHaveLength(1);
       expect(glowne[0]?.to).toBe("/");
     }
+  });
+});
+
+describe("czyAktywna", () => {
+  const admin = pozycjeNawigacji("admin");
+  const pozycja = (label: string) => {
+    const p = admin.find((x) => x.label === label);
+    if (!p) throw new Error(label);
+    return p;
+  };
+
+  it("Zgłoś tylko na stronie głównej", () => {
+    expect(czyAktywna("/", pozycja("Zgłoś"))).toBe(true);
+    expect(czyAktywna("/awarie", pozycja("Zgłoś"))).toBe(false);
+  });
+  it("Awarie także na karcie awarii", () => {
+    expect(czyAktywna("/awarie/abc", pozycja("Awarie"))).toBe(true);
+  });
+  it("Admin na każdej podstronie /admin", () => {
+    expect(czyAktywna("/admin/urzadzenia", pozycja("Admin"))).toBe(true);
+    expect(czyAktywna("/administracja", pozycja("Admin"))).toBe(false);
   });
 });

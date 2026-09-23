@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { EdycjaUzytkownikaSheet } from "@/components/admin/EdycjaUzytkownikaSheet";
 import { HasloTymczasoweDialog, type DaneHasla } from "@/components/admin/HasloTymczasoweDialog";
 import { NoweKontoSheet } from "@/components/admin/NoweKontoSheet";
+import { ZakladkiAdmina } from "@/components/admin/ZakladkiAdmina";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { profileQuery } from "@/lib/queries";
@@ -33,6 +34,7 @@ function Uzytkownicy() {
 
   return (
     <AppShell title="Użytkownicy" dozwoloneRole={["admin"]}>
+      <ZakladkiAdmina />
       <Button className="mb-4 h-14 w-full text-base font-bold" onClick={() => setNowe(true)}>
         <UserPlus className="size-5" /> Nowe konto
       </Button>

@@ -44,13 +44,21 @@ const PRZEJSCIA: Record<StatusAwarii, Przejscie[]> = {
 };
 
 /** Dozwolone kolejne statusy dla danej roli z bieżącego statusu (pusta lista = brak przejść). */
-export function dozwolonePrzejscia(status: StatusAwarii, rola: Rola | null | undefined): Przejscie[] {
+export function dozwolonePrzejscia(
+  status: StatusAwarii,
+  rola: Rola | null | undefined,
+): Przejscie[] {
   if (!rola) return [];
   return PRZEJSCIA[status].filter((p) => p.role.includes(rola));
 }
 
 /** Cztery główne kroki osi; „oczekuje_na_czesc" to bocznik pokazywany jako odznaka na kroku „w_naprawie". */
-export const OS_GLOWNA: readonly StatusAwarii[] = ["zgloszona", "przyjeta", "w_naprawie", "zamknieta"];
+export const OS_GLOWNA: readonly StatusAwarii[] = [
+  "zgloszona",
+  "przyjeta",
+  "w_naprawie",
+  "zamknieta",
+];
 
 export function indeksNaOsi(status: StatusAwarii): number {
   const s = status === "oczekuje_na_czesc" ? "w_naprawie" : status;
