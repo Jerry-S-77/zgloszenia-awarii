@@ -15,9 +15,9 @@ poprzedni jest zamknięty i zweryfikowany. Plan późniejszego etapu pisany „n
 
 | Etap | Plan | Stan |
 |---|---|---|
-| 1. Fundament: logowanie i użytkownicy | `2026-09-21-etap-1-fundament-logowanie-uzytkownicy.md` | **gotowy do wykonania** |
-| 2. Obsługa awarii | `…-etap-2-obsluga-awarii.md` | do napisania po zamknięciu etapu 1 |
-| 3. Urządzenia i harmonogram | `…-etap-3-urzadzenia-harmonogram.md` | do napisania po zamknięciu etapu 2 |
+| 1. Fundament: logowanie i użytkownicy | `2026-09-21-etap-1-fundament-logowanie-uzytkownicy.md` | **zamknięty** (tag `etap-1-gotowy`) |
+| 2. Obsługa awarii | `2026-09-21-etap-2-obsluga-awarii.md` | **zamknięty** (tag `etap-2-gotowy`) |
+| 3. Urządzenia i harmonogram | `2026-09-23-etap-3-urzadzenia-harmonogram.md` | **zaimplementowany** (gałąź `etap-3-urzadzenia-harmonogram`); czeka na przegląd kodu i bezpieczeństwa, ręczny test na telefonie i migracje na produkcji |
 | 4. Powiadomienia w aplikacji i reguły | `…-etap-4-powiadomienia.md` | do napisania po zamknięciu etapu 3 |
 | 5. Web Push | `…-etap-5-web-push.md` (osobny spec) | po etapie 4, opcjonalny |
 | 6. Audyt końcowy i publikacja | `…-etap-6-audyt-publikacja.md` | po etapie 4 (lub 5) |
@@ -80,6 +80,7 @@ uruchomienia, jeśli `SUPABASE_URL` wskazuje na projekt, którego identyfikator 
     ok. 60–80 s), a mutacje online idą wtedy jako anon. Rozważyć traktowanie „null z błędem" jako nieokreślonego także tam.
   - Logika scalania w `awarieQuery` (dedup po id, nakładanie oczekujących aktualizacji) jest testowana tylko w części
     czystej (`zdalneLubZCache`); dodać test jednostkowy całej funkcji scalającej przy przebudowie kolejki (etap 2).
+- **Import arkuszy na produkcję (po etapie 3, za zgodą użytkownika):** `node scripts/importuj-arkusze.ts` (próba), potem `--tak`. Na produkcji istnieje testowa awaria `AWR-2026-001` z sesji zrzutów ekranu — przed importem usunąć ją albo zaakceptować, że import pominie ten numer.
 - **Lista przełączenia na produkcję (etap 6):**
   - podnieść wersję IndexedDB kolejki offline i odrzucić operacje o nieznanym kształcie przy przełączeniu na nową bazę;
   - zweryfikować na nowym projekcie produkcyjnym, że publiczna rejestracja jest wyłączona (`Allow new users to sign up` = off), bo test tego ustawienia działa tylko na projekcie testowym.
