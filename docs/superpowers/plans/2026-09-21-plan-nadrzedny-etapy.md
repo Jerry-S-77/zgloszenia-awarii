@@ -17,7 +17,7 @@ poprzedni jest zamknięty i zweryfikowany. Plan późniejszego etapu pisany „n
 |---|---|---|
 | 1. Fundament: logowanie i użytkownicy | `2026-09-21-etap-1-fundament-logowanie-uzytkownicy.md` | **zamknięty** (tag `etap-1-gotowy`) |
 | 2. Obsługa awarii | `2026-09-21-etap-2-obsluga-awarii.md` | **zamknięty** (tag `etap-2-gotowy`) |
-| 3. Urządzenia i harmonogram | `2026-09-23-etap-3-urzadzenia-harmonogram.md` | **zaimplementowany** (gałąź `etap-3-urzadzenia-harmonogram`); czeka na przegląd kodu i bezpieczeństwa, ręczny test na telefonie i migracje na produkcji |
+| 3. Urządzenia i harmonogram | `2026-09-23-etap-3-urzadzenia-harmonogram.md` | **zamknięty** (tag `etap-3-gotowy`); ręczny test na telefonie po wdrożeniu na produkcję |
 | 4. Powiadomienia w aplikacji i reguły | `…-etap-4-powiadomienia.md` | do napisania po zamknięciu etapu 3 |
 | 5. Web Push | `…-etap-5-web-push.md` (osobny spec) | po etapie 4, opcjonalny |
 | 6. Audyt końcowy i publikacja | `…-etap-6-audyt-publikacja.md` | po etapie 4 (lub 5) |
