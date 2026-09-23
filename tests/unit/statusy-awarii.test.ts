@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  dozwolonePrzejscia,
-  indeksNaOsi,
-  OS_GLOWNA,
-  wymagaDanychZamkniecia,
-} from "@/lib/statusy-awarii";
+import { dozwolonePrzejscia, indeksNaOsi, OS_GLOWNA, wymagaDanychZamkniecia } from "@/lib/statusy-awarii";
 
 describe("dozwolonePrzejscia", () => {
   it("technik ze zgłoszonej: przyjmij albo zamknij", () => {
@@ -19,12 +14,8 @@ describe("dozwolonePrzejscia", () => {
     expect(dozwolonePrzejscia("zgloszona", undefined)).toEqual([]);
   });
   it("w_naprawie i oczekuje_na_czesc są wzajemne", () => {
-    expect(dozwolonePrzejscia("w_naprawie", "technik").map((p) => p.na)).toContain(
-      "oczekuje_na_czesc",
-    );
-    expect(dozwolonePrzejscia("oczekuje_na_czesc", "technik").map((p) => p.na)).toContain(
-      "w_naprawie",
-    );
+    expect(dozwolonePrzejscia("w_naprawie", "technik").map((p) => p.na)).toContain("oczekuje_na_czesc");
+    expect(dozwolonePrzejscia("oczekuje_na_czesc", "technik").map((p) => p.na)).toContain("w_naprawie");
   });
   it("z zamkniętej wychodzi tylko ponowne otwarcie, tylko dla kierownika i admina", () => {
     expect(dozwolonePrzejscia("zamknieta", "technik")).toEqual([]);
