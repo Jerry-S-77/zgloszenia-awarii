@@ -1,4 +1,5 @@
 // Czyste mapowanie wierszy z arkuszy xlsx (dawny rejestr n8n) na rekordy bazy. Bez I/O — testowane jednostkowo.
+import { normalizujKrytycznosc } from "../../src/lib/urzadzenia.ts";
 
 export type Komorka = string | number | boolean | Date | null | undefined;
 export type Wiersz = Record<string, Komorka>;
@@ -35,7 +36,7 @@ export function normalizujNazwisko(s: string): string {
     .toLowerCase()
     .replace(/ł/g, "l")
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -77,7 +78,7 @@ export function mapujUrzadzenie(w: Wiersz, konta: readonly Konto[]) {
     nazwa_urzadzenia: nazwa,
     kategoria: tekst(w["Kategoria"]),
     lokalizacja: tekst(w["Lokalizacja"]),
-    krytycznosc: tekst(w["Krytycznosc"]),
+    krytycznosc: normalizujKrytycznosc(tekst(w["Krytycznosc"])),
     wlasciciel_nazwa: wlasciciel,
     wlasciciel_id: dopasujKonto(wlasciciel, konta),
     status: mapujStatusUrzadzenia(w["Status_w_rejestrze"]),

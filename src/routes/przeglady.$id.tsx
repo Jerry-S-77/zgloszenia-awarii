@@ -77,7 +77,13 @@ function KartaPrzegladuEkran() {
     setZapis(true);
     try {
       await zdecydujPropozycje(propozycja.id, zatwierdz);
-      toast.success(zatwierdz ? "Zatwierdzono nowy termin przeglądu" : "Odrzucono propozycję");
+      toast.success(
+        !zatwierdz
+          ? "Odrzucono propozycję"
+          : propozycja.proponowany_termin
+            ? "Zatwierdzono nowy termin przeglądu"
+            : "Przyjęto propozycję do wiadomości",
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Nie udało się zapisać decyzji.");
     } finally {
@@ -92,6 +98,7 @@ function KartaPrzegladuEkran() {
         <div className="mb-5">
           <BanerPropozycji
             propozycja={propozycja}
+            terminPrzegladu={przeglad.data_najblizszego}
             mozeDecydowac={mozeDecydowac}
             zapis={zapis}
             onDecyzja={(z) => void decyzja(z)}

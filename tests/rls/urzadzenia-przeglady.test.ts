@@ -390,3 +390,47 @@ describe("anon", () => {
     }
   });
 });
+
+describe("poprawki po przeglądzie kodu", () => {
+  it("wykonanie przeglądu zamyka oczekującą propozycję jako nieaktualną", async () => {
+    const nr = await noweUrzadzenie();
+    const przegladId = await ustawPrzeglad(nr, {
+      czestotliwosc_dni: 30,
+      data_najblizszego: dodajDni(dzis(), 40),
+    });
+    await wstawAwarie(nr, 1, { czas_przestoju_h: 9 });
+    expect((await propozycje(przegladId))[0]?.status).toBe("oczekuje");
+    const { error } = await (
+      await jako("technik")
+    )
+      .from("przeglady_wykonania")
+      .insert({ przeglad_id: przegladId, data_wykonania: dzis() });
+    expect(error).toBeNull();
+    const [p] = await propozycje(przegladId);
+    expect(p?.status).toBe("nieaktualna");
+    const [przeglad] = await przegladUrzadzenia(nr);
+    expect(przeglad?.data_najblizszego).toBe(dodajDni(dzis(), 30));
+  });
+
+  it("zatwierdzenie liczy termin od dnia decyzji, nie od dnia utworzenia propozycji", async () => {
+    const nr = await noweUrzadzenie();
+    const przegladId = await ustawPrzeglad(nr, { data_najblizszego: dodajDni(dzis(), 40) });
+    await wstawAwarie(nr, 1, { czas_przestoju_h: 9 });
+    const [prop] = await propozycje(przegladId);
+    if (!prop) throw new Error("Brak propozycji");
+    // Propozycja „sprzed dwóch tygodni": termin z dnia utworzenia leży już w przeszłości.
+    await admin
+      .from("przeglady_propozycje")
+      .update({ proponowany_termin: dodajDni(dzis(), -7) })
+      .eq("id", prop.id);
+    const { error } = await (
+      await jako("kierownik")
+    ).rpc("przeglady_decyzja", {
+      p_propozycja_id: prop.id,
+      p_zatwierdz: true,
+    });
+    expect(error).toBeNull();
+    const [przeglad] = await przegladUrzadzenia(nr);
+    expect(przeglad?.data_najblizszego).toBe(dodajDni(dzis(), 7));
+  });
+});

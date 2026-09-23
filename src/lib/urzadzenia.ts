@@ -27,6 +27,17 @@ export function akcjeStatusu(status: StatusUrzadzenia): AkcjaStatusu[] {
 }
 
 export const KRYTYCZNOSCI = ["Niska", "Srednia", "Wysoka"] as const;
+export type Krytycznosc = (typeof KRYTYCZNOSCI)[number];
+
+/** „wysoka", „Średnia ", „NISKA" → wartość słownikowa; nieznana wartość → null (dane z arkuszy bywają różne). */
+export function normalizujKrytycznosc(v: string | null | undefined): Krytycznosc | null {
+  const klucz = (v ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return KRYTYCZNOSCI.find((k) => k.toLowerCase() === klucz) ?? null;
+}
 
 const opcjonalnyTekst = (max: number) =>
   z
