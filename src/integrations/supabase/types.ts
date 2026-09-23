@@ -214,6 +214,143 @@ export type Database = {
         };
         Relationships: [];
       };
+      przeglady: {
+        Row: {
+          created_at: string;
+          czestotliwosc_dni: number | null;
+          data_najblizszego: string | null;
+          data_ostatniego: string | null;
+          id: string;
+          nr_technologiczny: string;
+          typ_czynnosci: string | null;
+          uwagi: string | null;
+          wykonawca: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          czestotliwosc_dni?: number | null;
+          data_najblizszego?: string | null;
+          data_ostatniego?: string | null;
+          id?: string;
+          nr_technologiczny: string;
+          typ_czynnosci?: string | null;
+          uwagi?: string | null;
+          wykonawca?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          czestotliwosc_dni?: number | null;
+          data_najblizszego?: string | null;
+          data_ostatniego?: string | null;
+          id?: string;
+          nr_technologiczny?: string;
+          typ_czynnosci?: string | null;
+          uwagi?: string | null;
+          wykonawca?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "przeglady_nr_technologiczny_fkey";
+            columns: ["nr_technologiczny"];
+            isOneToOne: false;
+            referencedRelation: "urzadzenia";
+            referencedColumns: ["nr_technologiczny"];
+          },
+        ];
+      };
+      przeglady_propozycje: {
+        Row: {
+          created_at: string;
+          decyzja_at: string | null;
+          decyzja_id: string | null;
+          id: string;
+          powod: Json;
+          proponowany_termin: string | null;
+          przeglad_id: string;
+          status: Database["public"]["Enums"]["status_propozycji"];
+        };
+        Insert: {
+          created_at?: string;
+          decyzja_at?: string | null;
+          decyzja_id?: string | null;
+          id?: string;
+          powod?: Json;
+          proponowany_termin?: string | null;
+          przeglad_id: string;
+          status?: Database["public"]["Enums"]["status_propozycji"];
+        };
+        Update: {
+          created_at?: string;
+          decyzja_at?: string | null;
+          decyzja_id?: string | null;
+          id?: string;
+          powod?: Json;
+          proponowany_termin?: string | null;
+          przeglad_id?: string;
+          status?: Database["public"]["Enums"]["status_propozycji"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "przeglady_propozycje_decyzja_id_fkey";
+            columns: ["decyzja_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "przeglady_propozycje_przeglad_id_fkey";
+            columns: ["przeglad_id"];
+            isOneToOne: false;
+            referencedRelation: "przeglady";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      przeglady_wykonania: {
+        Row: {
+          autor_id: string | null;
+          created_at: string;
+          data_wykonania: string;
+          id: string;
+          przeglad_id: string;
+          uwagi: string | null;
+          wykonawca: string | null;
+        };
+        Insert: {
+          autor_id?: string | null;
+          created_at?: string;
+          data_wykonania: string;
+          id?: string;
+          przeglad_id: string;
+          uwagi?: string | null;
+          wykonawca?: string | null;
+        };
+        Update: {
+          autor_id?: string | null;
+          created_at?: string;
+          data_wykonania?: string;
+          id?: string;
+          przeglad_id?: string;
+          uwagi?: string | null;
+          wykonawca?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "przeglady_wykonania_autor_id_fkey";
+            columns: ["autor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "przeglady_wykonania_przeglad_id_fkey";
+            columns: ["przeglad_id"];
+            isOneToOne: false;
+            referencedRelation: "przeglady";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       urzadzenia: {
         Row: {
           created_at: string;
@@ -222,8 +359,10 @@ export type Database = {
           lokalizacja: string | null;
           nazwa_urzadzenia: string;
           nr_technologiczny: string;
-          status_w_rejestrze: string;
-          wlasciciel: string | null;
+          status: Database["public"]["Enums"]["status_urzadzenia"];
+          uwagi: string | null;
+          wlasciciel_id: string | null;
+          wlasciciel_nazwa: string | null;
         };
         Insert: {
           created_at?: string;
@@ -232,8 +371,10 @@ export type Database = {
           lokalizacja?: string | null;
           nazwa_urzadzenia: string;
           nr_technologiczny: string;
-          status_w_rejestrze?: string;
-          wlasciciel?: string | null;
+          status?: Database["public"]["Enums"]["status_urzadzenia"];
+          uwagi?: string | null;
+          wlasciciel_id?: string | null;
+          wlasciciel_nazwa?: string | null;
         };
         Update: {
           created_at?: string;
@@ -242,16 +383,27 @@ export type Database = {
           lokalizacja?: string | null;
           nazwa_urzadzenia?: string;
           nr_technologiczny?: string;
-          status_w_rejestrze?: string;
-          wlasciciel?: string | null;
+          status?: Database["public"]["Enums"]["status_urzadzenia"];
+          uwagi?: string | null;
+          wlasciciel_id?: string | null;
+          wlasciciel_nazwa?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "urzadzenia_wlasciciel_id_fkey";
+            columns: ["wlasciciel_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      dzis_pl: { Args: never; Returns: string };
       mam_role: {
         Args: { dozwolone: Database["public"]["Enums"]["rola_uzytkownika"][] };
         Returns: boolean;
@@ -260,11 +412,42 @@ export type Database = {
         Args: never;
         Returns: Database["public"]["Enums"]["rola_uzytkownika"];
       };
+      przeglady_decyzja: {
+        Args: { p_propozycja_id: string; p_zatwierdz: boolean };
+        Returns: undefined;
+      };
+      przeglady_sprawdz_progi: { Args: { p_nr: string }; Returns: undefined };
+      statystyki_progow_urzadzen: {
+        Args: never;
+        Returns: {
+          awarie_90: number;
+          nazwa_urzadzenia: string;
+          nr_technologiczny: string;
+          przekracza: boolean;
+          przestoj_30: number;
+          razem: number;
+          wysokie_60: number;
+        }[];
+      };
+      urzadzenia_przekraczajace_progi: {
+        Args: never;
+        Returns: {
+          awarie_90: number;
+          nazwa_urzadzenia: string;
+          nr_technologiczny: string;
+          przekracza: boolean;
+          przestoj_30: number;
+          razem: number;
+          wysokie_60: number;
+        }[];
+      };
       widzi_awarie: { Args: { p_awaria_id: string }; Returns: boolean };
     };
     Enums: {
       rola_uzytkownika: "pracownik" | "technik" | "kierownik" | "admin";
       status_awarii: "zgloszona" | "przyjeta" | "w_naprawie" | "oczekuje_na_czesc" | "zamknieta";
+      status_propozycji: "oczekuje" | "zatwierdzona" | "odrzucona";
+      status_urzadzenia: "proponowane" | "aktywne" | "wycofane";
       status_uzytkownika: "aktywny" | "zablokowany";
       typ_historii_awarii: "utworzenie" | "zmiana_statusu" | "przypisanie" | "edycja";
     };
@@ -390,6 +573,8 @@ export const Constants = {
     Enums: {
       rola_uzytkownika: ["pracownik", "technik", "kierownik", "admin"],
       status_awarii: ["zgloszona", "przyjeta", "w_naprawie", "oczekuje_na_czesc", "zamknieta"],
+      status_propozycji: ["oczekuje", "zatwierdzona", "odrzucona"],
+      status_urzadzenia: ["proponowane", "aktywne", "wycofane"],
       status_uzytkownika: ["aktywny", "zablokowany"],
       typ_historii_awarii: ["utworzenie", "zmiana_statusu", "przypisanie", "edycja"],
     },
