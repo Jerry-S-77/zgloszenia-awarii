@@ -18,6 +18,7 @@ import {
   type IkonaNawigacji,
   type Rola,
 } from "@/lib/uprawnienia";
+import { BanerOffline } from "./BanerOffline";
 import { DoSprawdzenia } from "./DoSprawdzenia";
 import { MenuUzytkownika } from "./MenuUzytkownika";
 import { StatusPolaczenia } from "./StatusPolaczenia";
@@ -76,6 +77,7 @@ export function AppShell({ title, children, dozwoloneRole }: Props) {
           </div>
         </div>
       </header>
+      <BanerOffline rola={rola} />
 
       <main className="mx-auto max-w-2xl px-4 py-5">
         {brakDostepu ? (

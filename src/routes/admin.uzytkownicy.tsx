@@ -8,6 +8,7 @@ import { HasloTymczasoweDialog, type DaneHasla } from "@/components/admin/HasloT
 import { NoweKontoSheet } from "@/components/admin/NoweKontoSheet";
 import { ZakladkiAdmina } from "@/components/admin/ZakladkiAdmina";
 import { Button } from "@/components/ui/button";
+import { useOnline } from "@/hooks/use-online";
 import { useAuth } from "@/lib/auth";
 import { profileQuery } from "@/lib/queries";
 import { ETYKIETY_ROL } from "@/lib/uprawnienia";
@@ -26,6 +27,7 @@ function Uzytkownicy() {
     isError,
   } = useQuery({ ...profileQuery, enabled: jestAdminem });
   const [nowe, setNowe] = useState(false);
+  const online = useOnline();
   const [wybranyId, setWybranyId] = useState<string | null>(null);
   const [haslo, setHaslo] = useState<DaneHasla | null>(null);
   // Profil wybranego użytkownika bierzemy zawsze ze świeżych danych zapytania, nie z kopii.
@@ -35,8 +37,13 @@ function Uzytkownicy() {
   return (
     <AppShell title="Użytkownicy" dozwoloneRole={["admin"]}>
       <ZakladkiAdmina />
-      <Button className="mb-4 h-14 w-full text-base font-bold" onClick={() => setNowe(true)}>
-        <UserPlus className="size-5" /> Nowe konto
+      <Button
+        className="mb-4 h-14 w-full text-base font-bold"
+        disabled={!online}
+        onClick={() => setNowe(true)}
+      >
+        <UserPlus className="size-5" />{" "}
+        {online ? "Nowe konto" : "Zakładanie kont wymaga połączenia"}
       </Button>
 
       {isLoading && <p className="text-muted-foreground">Wczytywanie...</p>}

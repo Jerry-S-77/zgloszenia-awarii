@@ -19,6 +19,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { useOnline } from "@/hooks/use-online";
 import { profileQuery } from "@/lib/queries";
 import type { Urzadzenie } from "@/lib/types";
 import {
@@ -56,6 +57,8 @@ export function UrzadzenieSheet({ urzadzenie, otwarte, onZmiana }: Props) {
   const [wlasciciel, setWlasciciel] = useState(BRAK);
   const [uwagi, setUwagi] = useState("");
   const [zapis, setZapis] = useState(false);
+  const online = useOnline();
+  const blokada = zapis || !online;
 
   useEffect(() => {
     if (!otwarte) return;
@@ -143,7 +146,7 @@ export function UrzadzenieSheet({ urzadzenie, otwarte, onZmiana }: Props) {
                 key={a.na}
                 type="button"
                 variant={a.na === "aktywne" ? "default" : "outline"}
-                disabled={zapis}
+                disabled={blokada}
                 onClick={() => void zmienStatus(a.na)}
                 className="h-12 text-base font-bold"
               >
@@ -222,8 +225,14 @@ export function UrzadzenieSheet({ urzadzenie, otwarte, onZmiana }: Props) {
               className="text-base"
             />
           </div>
-          <Button type="submit" disabled={zapis} className="h-16 w-full text-lg font-bold">
-            {zapis ? "Zapisywanie..." : urzadzenie ? "Zapisz zmiany" : "Dodaj urządzenie"}
+          <Button type="submit" disabled={blokada} className="h-16 w-full text-lg font-bold">
+            {zapis
+              ? "Zapisywanie..."
+              : !online
+                ? "Wymaga połączenia"
+                : urzadzenie
+                  ? "Zapisz zmiany"
+                  : "Dodaj urządzenie"}
           </Button>
         </form>
       </SheetContent>

@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { UrzadzenieSheet } from "@/components/admin/UrzadzenieSheet";
 import { ZakladkiAdmina } from "@/components/admin/ZakladkiAdmina";
 import { Button } from "@/components/ui/button";
+import { useOnline } from "@/hooks/use-online";
 import { useAuth } from "@/lib/auth";
 import { ETYKIETY_STATUSU_URZADZENIA, type StatusUrzadzenia } from "@/lib/urzadzenia";
 import { wszystkieUrzadzeniaQuery } from "@/lib/urzadzenia-zapytania";
@@ -30,6 +31,7 @@ function Urzadzenia() {
     isError,
   } = useQuery({ ...wszystkieUrzadzeniaQuery, enabled: jestAdminem });
   const [nowe, setNowe] = useState(false);
+  const online = useOnline();
   const [wybranyNr, setWybranyNr] = useState<string | null>(null);
   // Zawsze świeży wiersz z zapytania, nie kopia z chwili kliknięcia.
   const wybrany = urzadzenia.find((u) => u.nr_technologiczny === wybranyNr) ?? null;
@@ -37,8 +39,12 @@ function Urzadzenia() {
   return (
     <AppShell title="Urządzenia" dozwoloneRole={["admin"]}>
       <ZakladkiAdmina />
-      <Button className="mb-4 h-14 w-full text-base font-bold" onClick={() => setNowe(true)}>
-        <Plus className="size-5" /> Dodaj urządzenie
+      <Button
+        className="mb-4 h-14 w-full text-base font-bold"
+        disabled={!online}
+        onClick={() => setNowe(true)}
+      >
+        <Plus className="size-5" /> {online ? "Dodaj urządzenie" : "Dodawanie wymaga połączenia"}
       </Button>
 
       {isLoading && <p className="text-muted-foreground">Wczytywanie...</p>}

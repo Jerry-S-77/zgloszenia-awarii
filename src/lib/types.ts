@@ -18,7 +18,6 @@ export type Awaria = {
   data_zamkniecia: string | null;
   numer: string | null;
   wersja: number;
-  przypisany_technik_id: string | null;
 };
 
 export type AwariaLokalna = Awaria & { _pending?: boolean };
