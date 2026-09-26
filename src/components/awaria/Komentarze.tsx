@@ -3,10 +3,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useOnline } from "@/hooks/use-online";
 import { dodajKomentarz, komentarzeQuery } from "@/lib/komentarze";
 
 export function Komentarze({ awariaId }: { awariaId: string }) {
   const qc = useQueryClient();
+  const online = useOnline();
   const { data: komentarze = [], isLoading, isError } = useQuery(komentarzeQuery(awariaId));
   const [tresc, setTresc] = useState("");
   const [zapis, setZapis] = useState(false);
@@ -55,8 +57,12 @@ export function Komentarze({ awariaId }: { awariaId: string }) {
           placeholder="Dodaj komentarz..."
           className="text-base"
         />
-        <Button onClick={wyslij} disabled={zapis || !tresc.trim()} className="h-12 w-full">
-          {zapis ? "Zapisywanie..." : "Dodaj komentarz"}
+        <Button
+          onClick={wyslij}
+          disabled={zapis || !online || !tresc.trim()}
+          className="h-12 w-full"
+        >
+          {zapis ? "Zapisywanie..." : online ? "Dodaj komentarz" : "Komentarze wymagają połączenia"}
         </Button>
       </div>
     </div>

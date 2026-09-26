@@ -18,7 +18,6 @@ const awaria = (id: string, dodatki: Partial<AwariaLokalna> = {}): AwariaLokalna
   data_zamkniecia: null,
   numer: "AWR-2026-001",
   wersja: 1,
-  przypisany_technik_id: null,
   ...dodatki,
 });
 

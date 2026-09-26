@@ -8,6 +8,7 @@ import { awarieQuery } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
 import { dzisLokalnie, sortujPoPilnosci, statusPrzegladu } from "@/lib/przeglady";
 import { przegladyQuery } from "@/lib/przeglady-zapytania";
+import { mojeZespolyQuery } from "@/lib/zespol";
 import { ETYKIETY_STATUSOW } from "@/lib/statusy-awarii";
 import type { AwariaLokalna } from "@/lib/types";
 
@@ -51,6 +52,7 @@ function Zadania() {
   const gotowy = auth.stan === "zalogowany" && !auth.profil.must_change_password;
   const { data: awarie = [], isLoading } = useQuery({ ...awarieQuery, enabled: gotowy });
   const userId = auth.stan === "zalogowany" ? auth.profil.id : null;
+  const { data: mojeZespoly = [] } = useQuery({ ...mojeZespolyQuery(userId), enabled: gotowy });
   const { data: przeglady = [], isError: bladPrzegladow } = useQuery({
     ...przegladyQuery,
     enabled: gotowy,
@@ -69,10 +71,10 @@ function Zadania() {
     () => ({
       doPrzyjecia: awarie.filter((a) => a.status === "zgloszona"),
       przypisaneDoMnie: awarie.filter(
-        (a) => a.przypisany_technik_id === userId && a.status !== "zamknieta",
+        (a) => mojeZespoly.includes(a.id) && a.status !== "zamknieta",
       ),
     }),
-    [awarie, userId],
+    [awarie, mojeZespoly],
   );
 
   return (

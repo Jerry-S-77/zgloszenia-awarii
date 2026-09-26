@@ -82,7 +82,6 @@ function Zgloszenie() {
         data_zamkniecia: null,
         numer: null,
         wersja: 1,
-        przypisany_technik_id: null,
       });
     } catch (e) {
       // Formularza nie czyścimy: użytkownik może poprawić dane lub spróbować ponownie.

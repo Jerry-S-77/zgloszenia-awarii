@@ -10,8 +10,13 @@ function opisWpisu(typ: string, dane: unknown): string {
     const na = ETYKIETY_STATUSOW[d["na"] as StatusAwarii] ?? String(d["na"]);
     return `Status: ${z} → ${na}`;
   }
-  if (typ === "przypisanie")
+  if (typ === "przypisanie") {
+    const nazwa = typeof d["nazwa"] === "string" ? d["nazwa"] : "osoba";
+    if (d["akcja"] === "dolaczenie") return `Do zespołu dołączył(a): ${nazwa}`;
+    if (d["akcja"] === "odejscie") return `Z zespołu odszedł/odeszła: ${nazwa}`;
+    // Wpisy sprzed etapu 3b (pojedyncze przypisanie technika).
     return d["technik_id"] ? "Przypisano technika" : "Usunięto przypisanie";
+  }
   return "Edycja";
 }
 

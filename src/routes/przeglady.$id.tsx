@@ -8,6 +8,7 @@ import { BanerPropozycji } from "@/components/przeglady/BanerPropozycji";
 import { EdycjaHarmonogramuSheet } from "@/components/przeglady/EdycjaHarmonogramuSheet";
 import { OdnotujWykonanieSheet } from "@/components/przeglady/OdnotujWykonanieSheet";
 import { Button } from "@/components/ui/button";
+import { useOnline } from "@/hooks/use-online";
 import { useAuth } from "@/lib/auth";
 import {
   dzisLokalnie,
@@ -53,6 +54,7 @@ function KartaPrzegladuEkran() {
   const [wykonanieOtwarte, setWykonanieOtwarte] = useState(false);
   const [edycjaOtwarta, setEdycjaOtwarta] = useState(false);
   const [zapis, setZapis] = useState(false);
+  const online = useOnline();
 
   const przeglad = przeglady.find((p) => p.id === id);
   const tytul = przeglad?.nr_technologiczny ?? "Przegląd";
@@ -100,7 +102,7 @@ function KartaPrzegladuEkran() {
             propozycja={propozycja}
             terminPrzegladu={przeglad.data_najblizszego}
             mozeDecydowac={mozeDecydowac}
-            zapis={zapis}
+            zapis={zapis || !online}
             onDecyzja={(z) => void decyzja(z)}
           />
         </div>
@@ -135,7 +137,13 @@ function KartaPrzegladuEkran() {
       </div>
 
       <div className="mt-5 grid gap-2">
+        {!online && (
+          <p className="text-sm text-muted-foreground">
+            Odnotowanie wykonania i zmiany harmonogramu wymagają połączenia.
+          </p>
+        )}
         <Button
+          disabled={!online}
           onClick={() => setWykonanieOtwarte(true)}
           className="h-14 w-full text-base font-bold"
         >
@@ -144,6 +152,7 @@ function KartaPrzegladuEkran() {
         {mozeDecydowac && (
           <Button
             variant="outline"
+            disabled={!online}
             onClick={() => setEdycjaOtwarta(true)}
             className="h-12 w-full text-base font-bold"
           >
