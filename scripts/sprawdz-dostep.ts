@@ -6,6 +6,8 @@
 // Wywołania RPC idą z poprawnymi nazwami argumentów, więc odmowę (42501) zwraca sama baza, zanim
 // funkcja się wykona; przy braku odmowy skrypt zgłasza błąd.
 
+export {};
+
 const produkcja = process.argv.includes("--prod");
 try {
   process.loadEnvFile(produkcja ? ".env" : ".env.test");
