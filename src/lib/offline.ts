@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { czyBladSieci, czyDuplikat } from "./kolejka-bledy";
 import type { Awaria } from "./types";
+import { wyslijZdjecie, type ZdjecieDoWyslania } from "./zdjecia-wysylka";
 import { klasyfikujSesje, odczytajIdZCache, wybierzUserId } from "./uzytkownik-cache";
 
 const DB_NAME = "awarie-offline";
@@ -30,12 +31,24 @@ export type QueueOp =
       status: StatusOperacji;
       powod?: string;
       oczekiwanaWersja?: number;
+    }
+  | {
+      opId: string;
+      type: "zdjecie";
+      payload: ZdjecieDoWyslania;
+      /** Zmniejszony JPEG; IndexedDB przechowuje Blob bez konwersji. */
+      plik: Blob;
+      createdAt: number;
+      userId: string;
+      status: StatusOperacji;
+      powod?: string;
     };
 
 /** Operacja bez opId, daty, statusu i właściciela: te pola dokłada `zakolejkuj`. */
 export type NowaOperacja =
   | { type: "insert"; payload: Awaria }
-  | { type: "update"; payload: { id: string } & Partial<Awaria>; oczekiwanaWersja?: number };
+  | { type: "update"; payload: { id: string } & Partial<Awaria>; oczekiwanaWersja?: number }
+  | { type: "zdjecie"; payload: ZdjecieDoWyslania; plik: Blob };
 
 export class KonfliktWersjiError extends Error {
   constructor() {
@@ -92,7 +105,7 @@ export async function enqueue(op: QueueOp) {
 }
 
 /** Dokłada do kolejki operację zalogowanego użytkownika; bez sesji nic nie zapisuje. */
-async function zakolejkuj(op: NowaOperacja) {
+export async function zakolejkuj(op: NowaOperacja) {
   const userId = await biezacyUserId();
   if (!userId) throw new Error("Zaloguj się, aby zapisać zgłoszenie.");
   await enqueue({
@@ -220,7 +233,9 @@ export async function syncQueue(): Promise<number> {
       let blad: { code?: string; message?: string } | null = null;
       let brakWierszy = false;
       let dolaczDoZespolu: { awariaId: string; uzytkownikId: string } | null = null;
-      if (op.type === "insert") {
+      if (op.type === "zdjecie") {
+        blad = await wyslijZdjecie(op.payload, op.plik);
+      } else if (op.type === "insert") {
         const { pola } = oczyscPrzestarzalePola(op.payload, undefined);
         const { error } = await supabase.from("awarie").insert(pola as typeof op.payload);
         if (error && !czyDuplikat(error)) blad = error;

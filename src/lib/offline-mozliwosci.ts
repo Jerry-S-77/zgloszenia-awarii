@@ -4,14 +4,17 @@ export type MozliwosciOffline = { mozna: string[]; niemozna: string[] };
 
 /**
  * Co da się zrobić bez internetu, a co nie — dla baneru „Brak połączenia”. Zgodne z architekturą: przez kolejkę
- * offline idą tylko zgłoszenia i zmiany statusu awarii; reszta (komentarze, zespół, przeglądy, urządzenia,
+ * offline idą tylko zgłoszenia, zdjęcia do awarii i zmiany statusu awarii; reszta (komentarze, zespół, przeglądy, urządzenia,
  * konta, analizy) działa wyłącznie online.
  */
 export function mozliwosciOffline(rola: Rola): MozliwosciOffline {
   const obsluga = czyRola(rola, ["technik", "kierownik", "admin"]);
   const decyzje = czyRola(rola, ["kierownik", "admin"]);
 
-  const mozna = ["Zgłosić awarię — wyśle się sama po powrocie sieci"];
+  const mozna = [
+    "Zgłosić awarię — wyśle się sama po powrocie sieci",
+    "Dodać zdjęcia do awarii (do 3) — wyślą się po powrocie sieci",
+  ];
   if (obsluga) {
     mozna.push("Zmienić status awarii (przyjęcie, naprawa, zamknięcie) — zapisze się w kolejce");
   }
