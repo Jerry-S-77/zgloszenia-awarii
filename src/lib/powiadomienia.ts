@@ -52,7 +52,9 @@ export function useNaZywoPowiadomienia(uzytkownikId: string | null) {
   useEffect(() => {
     if (!uzytkownikId) return;
     const kanal = supabase
-      .channel(`powiadomienia:${uzytkownikId}`)
+      // Unikalna nazwa: przy nawigacji dzwonek montuje się na nowo, a kanał o tej samej nazwie może jeszcze
+      // być w trakcie zamykania — realtime-js zwróciłby wtedy ten zamykany kanał i nasłuch by przepadł.
+      .channel(`powiadomienia:${uzytkownikId}:${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         {

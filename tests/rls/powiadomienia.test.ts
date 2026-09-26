@@ -227,3 +227,46 @@ describe("przeglądy", () => {
     expect(typy).toEqual(["przeglad_opozniony", "przeglad_wkrotce"]);
   });
 });
+
+describe("właściciel urządzenia tylko z obsługi", () => {
+  it("pracownik jako właściciel nie dostaje powiadomień o awariach ani przeglądach", async () => {
+    const nr = `${NR}-X`;
+    await admin.from("urzadzenia").insert({
+      nr_technologiczny: nr,
+      nazwa_urzadzenia: "Test E4 właściciel",
+      status: "aktywne",
+      wlasciciel_id: id.pracownik2,
+    });
+    const { data: przeglad } = await admin
+      .from("przeglady")
+      .update({ data_najblizszego: dodajDni(dzis(), 2) })
+      .eq("nr_technologiczny", nr)
+      .select("id")
+      .single();
+    const { data: awaria } = await (
+      await jako("pracownik")
+    )
+      .from("awarie")
+      .insert({
+        nr_technologiczny: nr,
+        nazwa_urzadzenia: "Test E4 właściciel",
+        opis_awarii: `${ZNACZNIK} właściciel pracownik`,
+        krytycznosc_skutku: "Niska",
+      })
+      .select("id")
+      .single();
+    await admin.rpc("powiadomienia_przegladow");
+    const { data: poAwarii } = await admin
+      .from("powiadomienia")
+      .select("id")
+      .eq("uzytkownik_id", id.pracownik2)
+      .eq("awaria_id", awaria!.id);
+    const { data: poPrzegladzie } = await admin
+      .from("powiadomienia")
+      .select("id")
+      .eq("uzytkownik_id", id.pracownik2)
+      .eq("przeglad_id", przeglad!.id);
+    expect(poAwarii).toEqual([]);
+    expect(poPrzegladzie).toEqual([]);
+  });
+});
