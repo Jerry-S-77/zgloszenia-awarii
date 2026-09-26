@@ -18,6 +18,8 @@ Supabase jest głównym źródłem prawdy (wspólnym dla całego zespołu). W tr
 7. **przeglady_wykonania** — odnotowane wykonania (tylko dopisywanie); trigger ustawia autora z konta, odrzuca datę z przyszłości i przelicza terminy: ostatni = data wykonania, najbliższy = data + częstotliwość.
 8. **przeglady_propozycje** — propozycje przyspieszenia przeglądu tworzone przez bazę, gdy urządzenie przekroczy próg awaryjności (≥3 awarie/90 dni, ≥2 „Wysoka”/60 dni, ≥8 h przestoju/30 dni; funkcja `statystyki_progow_urzadzen()`): najwyżej jedna oczekująca na przegląd, termin dziś + 7 dni (albo „wykonaj pilnie”, gdy przegląd już jest opóźniony). Decyzję (zatwierdź / odrzuć) podejmuje kierownik lub admin przez funkcję `przeglady_decyzja`.
 
+9. **powiadomienia** — powiadomienia w aplikacji; tworzy je wyłącznie baza (triggery i codzienne zadanie `pg_cron` o 04:00 UTC), każdy czyta tylko własne i może jedynie oznaczyć je jako przeczytane. Reguły: nowa awaria → technicy, kierownicy i właściciel urządzenia z obsługi („Wysoka” = krytyczne); dodanie do zespołu przez inną osobę → dodana osoba; przyjęcie lub zamknięcie → zgłaszający; propozycja przyspieszenia oraz przegląd za ≤ 14 dni i opóźniony → właściciel urządzenia i kierownicy (jedno przypomnienie na przegląd i termin). Zapisy kluczem serwisowym (np. import) nie powiadamiają.
+
 Schemat: `supabase/migrations/`. Dostęp do wszystkich tabel ma tylko zalogowany, aktywny użytkownik (rola `anon` nie ma uprawnień); zasady opisuje sekcja „Role i uprawnienia”.
 
 ## Ekrany
@@ -34,6 +36,7 @@ Wszystkie ekrany poza logowaniem wymagają zalogowania. Dolny pasek nawigacji za
 8. **Urządzenia** (`/admin/urzadzenia`, tylko admin) — dodawanie (jako „Proponowane”), edycja, właściciel z listy kont, aktywacja, wycofanie i przywrócenie.
 9. **Użytkownicy** (`/admin/uzytkownicy`, tylko admin) — lista kont, „Nowe konto” z hasłem tymczasowym pokazanym raz, reset hasła (nowe hasło tymczasowe, także pokazane raz), zmiana roli, blokada i odblokowanie konta.
 10. **Dashboard analiz** — progi alarmowe liczone w bazie (`statystyki_progow_urzadzen()`, te same reguły tworzą propozycje przeglądów): ≥3 awarie/urządzenie w 90 dni, ≥2 awarie o krytyczności „Wysoka”/urządzenie w 60 dni, ≥8h przestoju/urządzenie w 30 dni, ranking TOP 10, trend miesięczny (kierownik, admin).
+12. **Powiadomienia** (`/powiadomienia`, wszyscy; dzwonek w nagłówku z licznikiem nieprzeczytanych, odświeżany na żywo przez Supabase Realtime) — lista z wyróżnieniem krytycznych i nieprzeczytanych, dotknięcie prowadzi do karty awarii lub przeglądu i oznacza powiadomienie jako przeczytane, „Oznacz wszystkie jako przeczytane”.
 11. **Eksport danych** (kierownik, admin) — CSV z kolumnami dawnego arkusza „Awarie”; `ID_zgloszenia` to numer nadany przez bazę.
 
 ## Role i uprawnienia
