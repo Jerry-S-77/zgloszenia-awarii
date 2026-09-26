@@ -220,6 +220,70 @@ export type Database = {
         };
         Relationships: [];
       };
+      powiadomienia: {
+        Row: {
+          awaria_id: string | null;
+          created_at: string;
+          id: string;
+          klucz: string | null;
+          krytyczne: boolean;
+          link: string | null;
+          przeczytane: boolean;
+          przeglad_id: string | null;
+          tresc: string;
+          typ: Database["public"]["Enums"]["typ_powiadomienia"];
+          uzytkownik_id: string;
+        };
+        Insert: {
+          awaria_id?: string | null;
+          created_at?: string;
+          id?: string;
+          klucz?: string | null;
+          krytyczne?: boolean;
+          link?: string | null;
+          przeczytane?: boolean;
+          przeglad_id?: string | null;
+          tresc: string;
+          typ: Database["public"]["Enums"]["typ_powiadomienia"];
+          uzytkownik_id: string;
+        };
+        Update: {
+          awaria_id?: string | null;
+          created_at?: string;
+          id?: string;
+          klucz?: string | null;
+          krytyczne?: boolean;
+          link?: string | null;
+          przeczytane?: boolean;
+          przeglad_id?: string | null;
+          tresc?: string;
+          typ?: Database["public"]["Enums"]["typ_powiadomienia"];
+          uzytkownik_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "powiadomienia_awaria_id_fkey";
+            columns: ["awaria_id"];
+            isOneToOne: false;
+            referencedRelation: "awarie";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "powiadomienia_przeglad_id_fkey";
+            columns: ["przeglad_id"];
+            isOneToOne: false;
+            referencedRelation: "przeglady";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "powiadomienia_uzytkownik_id_fkey";
+            columns: ["uzytkownik_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           created_at: string;
@@ -449,6 +513,11 @@ export type Database = {
         Args: never;
         Returns: Database["public"]["Enums"]["rola_uzytkownika"];
       };
+      odbiorcy_przegladu: { Args: { p_przeglad: string }; Returns: string[] };
+      odbiorcy_rol: {
+        Args: { p_role: Database["public"]["Enums"]["rola_uzytkownika"][] };
+        Returns: string[];
+      };
       osoba_obslugi: { Args: { p_id: string }; Returns: boolean };
       osoby_obslugi: {
         Args: never;
@@ -458,6 +527,20 @@ export type Database = {
           rola: Database["public"]["Enums"]["rola_uzytkownika"];
         }[];
       };
+      powiadom: {
+        Args: {
+          p_awaria?: string;
+          p_klucz?: string;
+          p_krytyczne?: boolean;
+          p_link: string;
+          p_przeglad?: string;
+          p_tresc: string;
+          p_typ: Database["public"]["Enums"]["typ_powiadomienia"];
+          p_uzytkownik: string;
+        };
+        Returns: undefined;
+      };
+      powiadomienia_przegladow: { Args: never; Returns: undefined };
       przeglady_decyzja: {
         Args: { p_propozycja_id: string; p_zatwierdz: boolean };
         Returns: undefined;
@@ -496,6 +579,13 @@ export type Database = {
       status_urzadzenia: "proponowane" | "aktywne" | "wycofane";
       status_uzytkownika: "aktywny" | "zablokowany";
       typ_historii_awarii: "utworzenie" | "zmiana_statusu" | "przypisanie" | "edycja";
+      typ_powiadomienia:
+        | "nowa_awaria"
+        | "przydzielenie"
+        | "zmiana_statusu"
+        | "propozycja_przegladu"
+        | "przeglad_wkrotce"
+        | "przeglad_opozniony";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -623,6 +713,14 @@ export const Constants = {
       status_urzadzenia: ["proponowane", "aktywne", "wycofane"],
       status_uzytkownika: ["aktywny", "zablokowany"],
       typ_historii_awarii: ["utworzenie", "zmiana_statusu", "przypisanie", "edycja"],
+      typ_powiadomienia: [
+        "nowa_awaria",
+        "przydzielenie",
+        "zmiana_statusu",
+        "propozycja_przegladu",
+        "przeglad_wkrotce",
+        "przeglad_opozniony",
+      ],
     },
   },
 } as const;
