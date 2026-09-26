@@ -42,8 +42,11 @@ export function DoSprawdzenia() {
             {operacje.map((op) => (
               <div key={op.opId} className="rounded-2xl border border-destructive/50 bg-card p-3">
                 <p className="text-sm font-semibold">
-                  {op.type === "insert" ? "Zgłoszenie" : `Zmiana zgłoszenia`}
-                  {op.type === "update" ? ` ${op.payload.id.slice(0, 8)}` : ""}
+                  {op.type === "insert"
+                    ? "Zgłoszenie"
+                    : op.type === "zdjecie"
+                      ? `Zdjęcie do zgłoszenia ${op.payload.awaria_id.slice(0, 8)}`
+                      : `Zmiana zgłoszenia ${op.payload.id.slice(0, 8)}`}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {op.powod ?? "Zapis został odrzucony."}

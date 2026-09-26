@@ -17,7 +17,8 @@ export function politykaCsp(deweloperski: boolean): string {
     `script-src ${skrypty.join(" ")}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "img-src 'self' data: blob:",
+    // Podpisane linki do zdjęć awarii w Supabase Storage.
+    "img-src 'self' data: blob: https://*.supabase.co",
     `connect-src ${polaczenia.join(" ")}`,
     "manifest-src 'self'",
     "worker-src 'self' blob:",
