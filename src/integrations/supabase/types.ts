@@ -22,7 +22,6 @@ export type Database = {
           numer: string | null;
           opis_awarii: string;
           przyczyna: string | null;
-          przypisany_technik_id: string | null;
           status: Database["public"]["Enums"]["status_awarii"];
           wersja: number;
           zglaszajacy_id: string | null;
@@ -40,7 +39,6 @@ export type Database = {
           numer?: string | null;
           opis_awarii: string;
           przyczyna?: string | null;
-          przypisany_technik_id?: string | null;
           status?: Database["public"]["Enums"]["status_awarii"];
           wersja?: number;
           zglaszajacy_id?: string | null;
@@ -58,7 +56,6 @@ export type Database = {
           numer?: string | null;
           opis_awarii?: string;
           przyczyna?: string | null;
-          przypisany_technik_id?: string | null;
           status?: Database["public"]["Enums"]["status_awarii"];
           wersja?: number;
           zglaszajacy_id?: string | null;
@@ -71,13 +68,6 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "urzadzenia";
             referencedColumns: ["nr_technologiczny"];
-          },
-          {
-            foreignKeyName: "awarie_przypisany_technik_id_fkey";
-            columns: ["przypisany_technik_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
           },
           {
             foreignKeyName: "awarie_zglaszajacy_id_fkey";
@@ -165,6 +155,52 @@ export type Database = {
             columns: ["awaria_id"];
             isOneToOne: false;
             referencedRelation: "awarie";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      awarie_zespol: {
+        Row: {
+          awaria_id: string;
+          created_at: string;
+          dodal_id: string | null;
+          nazwa: string;
+          uzytkownik_id: string;
+        };
+        Insert: {
+          awaria_id: string;
+          created_at?: string;
+          dodal_id?: string | null;
+          nazwa: string;
+          uzytkownik_id: string;
+        };
+        Update: {
+          awaria_id?: string;
+          created_at?: string;
+          dodal_id?: string | null;
+          nazwa?: string;
+          uzytkownik_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "awarie_zespol_awaria_id_fkey";
+            columns: ["awaria_id"];
+            isOneToOne: false;
+            referencedRelation: "awarie";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "awarie_zespol_dodal_id_fkey";
+            columns: ["dodal_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "awarie_zespol_uzytkownik_id_fkey";
+            columns: ["uzytkownik_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -403,6 +439,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      awaria_otwarta: { Args: { p_awaria_id: string }; Returns: boolean };
       dzis_pl: { Args: never; Returns: string };
       mam_role: {
         Args: { dozwolone: Database["public"]["Enums"]["rola_uzytkownika"][] };
@@ -411,6 +448,15 @@ export type Database = {
       moja_rola: {
         Args: never;
         Returns: Database["public"]["Enums"]["rola_uzytkownika"];
+      };
+      osoba_obslugi: { Args: { p_id: string }; Returns: boolean };
+      osoby_obslugi: {
+        Args: never;
+        Returns: {
+          id: string;
+          imie_nazwisko: string;
+          rola: Database["public"]["Enums"]["rola_uzytkownika"];
+        }[];
       };
       przeglady_decyzja: {
         Args: { p_propozycja_id: string; p_zatwierdz: boolean };
