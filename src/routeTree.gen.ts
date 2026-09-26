@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EksportRouteImport } from './routes/eksport'
 import { Route as LogowanieRouteImport } from './routes/logowanie'
+import { Route as PowiadomieniaRouteImport } from './routes/powiadomienia'
 import { Route as ZadaniaRouteImport } from './routes/zadania'
 import { Route as ZmianaHaslaRouteImport } from './routes/zmiana-hasla'
 import { Route as AdminUrzadzeniaRouteImport } from './routes/admin.urzadzenia'
@@ -40,6 +41,11 @@ const EksportRoute = EksportRouteImport.update({
 const LogowanieRoute = LogowanieRouteImport.update({
   id: '/logowanie',
   path: '/logowanie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PowiadomieniaRoute = PowiadomieniaRouteImport.update({
+  id: '/powiadomienia',
+  path: '/powiadomienia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZadaniaRoute = ZadaniaRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
   '/logowanie': typeof LogowanieRoute
+  '/powiadomienia': typeof PowiadomieniaRoute
   '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
   '/admin/urzadzenia': typeof AdminUrzadzeniaRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
   '/logowanie': typeof LogowanieRoute
+  '/powiadomienia': typeof PowiadomieniaRoute
   '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
   '/admin/urzadzenia': typeof AdminUrzadzeniaRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
   '/logowanie': typeof LogowanieRoute
+  '/powiadomienia': typeof PowiadomieniaRoute
   '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
   '/admin/urzadzenia': typeof AdminUrzadzeniaRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/eksport'
     | '/logowanie'
+    | '/powiadomienia'
     | '/zadania'
     | '/zmiana-hasla'
     | '/admin/urzadzenia'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/eksport'
     | '/logowanie'
+    | '/powiadomienia'
     | '/zadania'
     | '/zmiana-hasla'
     | '/admin/urzadzenia'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/eksport'
     | '/logowanie'
+    | '/powiadomienia'
     | '/zadania'
     | '/zmiana-hasla'
     | '/admin/urzadzenia'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   EksportRoute: typeof EksportRoute
   LogowanieRoute: typeof LogowanieRoute
+  PowiadomieniaRoute: typeof PowiadomieniaRoute
   ZadaniaRoute: typeof ZadaniaRoute
   ZmianaHaslaRoute: typeof ZmianaHaslaRoute
   AdminUrzadzeniaRoute: typeof AdminUrzadzeniaRoute
@@ -214,6 +227,13 @@ declare module '@tanstack/react-router' {
       path: '/logowanie'
       fullPath: '/logowanie'
       preLoaderRoute: typeof LogowanieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/powiadomienia': {
+      id: '/powiadomienia'
+      path: '/powiadomienia'
+      fullPath: '/powiadomienia'
+      preLoaderRoute: typeof PowiadomieniaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/zadania': {
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   EksportRoute: EksportRoute,
   LogowanieRoute: LogowanieRoute,
+  PowiadomieniaRoute: PowiadomieniaRoute,
   ZadaniaRoute: ZadaniaRoute,
   ZmianaHaslaRoute: ZmianaHaslaRoute,
   AdminUrzadzeniaRoute: AdminUrzadzeniaRoute,
