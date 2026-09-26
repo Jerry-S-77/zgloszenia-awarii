@@ -171,7 +171,7 @@ export type Database = {
           awaria_id: string;
           created_at?: string;
           dodal_id?: string | null;
-          nazwa: string;
+          nazwa?: string;
           uzytkownik_id: string;
         };
         Update: {
