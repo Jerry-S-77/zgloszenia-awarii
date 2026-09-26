@@ -36,8 +36,8 @@ Wszystkie ekrany poza logowaniem wymagają zalogowania. Dolny pasek nawigacji za
 8. **Urządzenia** (`/admin/urzadzenia`, tylko admin) — dodawanie (jako „Proponowane”), edycja, właściciel z listy kont, aktywacja, wycofanie i przywrócenie.
 9. **Użytkownicy** (`/admin/uzytkownicy`, tylko admin) — lista kont, „Nowe konto” z hasłem tymczasowym pokazanym raz, reset hasła (nowe hasło tymczasowe, także pokazane raz), zmiana roli, blokada i odblokowanie konta.
 10. **Dashboard analiz** — progi alarmowe liczone w bazie (`statystyki_progow_urzadzen()`, te same reguły tworzą propozycje przeglądów): ≥3 awarie/urządzenie w 90 dni, ≥2 awarie o krytyczności „Wysoka”/urządzenie w 60 dni, ≥8h przestoju/urządzenie w 30 dni, ranking TOP 10, trend miesięczny (kierownik, admin).
-12. **Powiadomienia** (`/powiadomienia`, wszyscy; dzwonek w nagłówku z licznikiem nieprzeczytanych, odświeżany na żywo przez Supabase Realtime) — lista z wyróżnieniem krytycznych i nieprzeczytanych, dotknięcie prowadzi do karty awarii lub przeglądu i oznacza powiadomienie jako przeczytane, „Oznacz wszystkie jako przeczytane”.
 11. **Eksport danych** (kierownik, admin) — CSV z kolumnami dawnego arkusza „Awarie”; `ID_zgloszenia` to numer nadany przez bazę.
+12. **Powiadomienia** (`/powiadomienia`, wszyscy; dzwonek w nagłówku z licznikiem nieprzeczytanych, odświeżany na żywo przez Supabase Realtime) — lista z wyróżnieniem krytycznych i nieprzeczytanych, dotknięcie prowadzi do karty awarii lub przeglądu i oznacza powiadomienie jako przeczytane, „Oznacz wszystkie jako przeczytane”.
 
 ## Role i uprawnienia
 
