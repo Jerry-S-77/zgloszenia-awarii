@@ -104,7 +104,7 @@ function Zgloszenie() {
 
   return (
     <AppShell title="Zgłoś awarię">
-      <form onSubmit={wyslij} className="space-y-5">
+      <form onSubmit={wyslij} className="space-y-4">
         {auth.stan === "zalogowany" && (
           <p className="rounded-xl bg-accent p-3 text-sm text-accent-foreground">
             Zgłasza: <span className="font-semibold">{auth.profil.imie_nazwisko}</span>
@@ -128,22 +128,21 @@ function Zgloszenie() {
               ))}
             </SelectContent>
           </Select>
-          <div
-            className={`rounded-xl bg-accent p-3 text-sm text-accent-foreground ${
-              urzadzenie ? "" : "invisible"
-            }`}
-          >
-            <p>
-              <span className="font-semibold">Kategoria:</span> {urzadzenie?.kategoria}
-            </p>
-            <p>
-              <span className="font-semibold">Lokalizacja:</span> {urzadzenie?.lokalizacja}
-            </p>
-            <p>
-              <span className="font-semibold">Krytyczność urządzenia:</span>{" "}
-              {urzadzenie?.krytycznosc}
-            </p>
-          </div>
+          {/* Pokazywane dopiero po wyborze: rezerwowane puste miejsce spychało krytyczność pod dolny pasek. */}
+          {urzadzenie && (
+            <div className="rounded-xl bg-accent p-3 text-sm text-accent-foreground">
+              <p>
+                <span className="font-semibold">Kategoria:</span> {urzadzenie.kategoria}
+              </p>
+              <p>
+                <span className="font-semibold">Lokalizacja:</span> {urzadzenie.lokalizacja}
+              </p>
+              <p>
+                <span className="font-semibold">Krytyczność urządzenia:</span>{" "}
+                {urzadzenie.krytycznosc}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -167,7 +166,7 @@ function Zgloszenie() {
             id="opis"
             value={opis}
             onChange={(e) => setOpis(e.target.value)}
-            rows={5}
+            rows={3}
             placeholder="Co się stało, jakie objawy, jakie działania podjęto..."
             className="text-base"
           />
