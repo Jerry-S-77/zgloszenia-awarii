@@ -44,16 +44,14 @@ async function zaloguj(page: Page, email: string) {
 test.beforeAll(async () => {
   await przygotujKonta();
   const admin = klientAdmin();
-  const { error: bladUrzadzenia } = await admin
-    .from("urzadzenia")
-    .upsert(
-      {
-        nr_technologiczny: "HVAC-01",
-        nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI",
-        status: "aktywne",
-      },
-      { onConflict: "nr_technologiczny" },
-    );
+  const { error: bladUrzadzenia } = await admin.from("urzadzenia").upsert(
+    {
+      nr_technologiczny: "HVAC-01",
+      nazwa_urzadzenia: "AHU nr 1 - strefa CNC HPAPI",
+      status: "aktywne",
+    },
+    { onConflict: "nr_technologiczny" },
+  );
   if (bladUrzadzenia) throw bladUrzadzenia;
   const { data, error } = await admin
     .from("awarie")
