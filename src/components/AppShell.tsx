@@ -59,7 +59,7 @@ export function AppShell({ title, children, dozwoloneRole }: Props) {
   const brakDostepu = dozwoloneRole !== undefined && !czyRola(rola, dozwoloneRole);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-32">
       <header className="sticky top-0 z-20 border-b border-border bg-primary text-primary-foreground">
         <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
           <div className="min-w-0">
