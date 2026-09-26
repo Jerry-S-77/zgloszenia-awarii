@@ -116,6 +116,12 @@ Baza produkcyjna to własny projekt Supabase `zgloszenia-awarii` (jego identyfik
 
 Aplikacja działa na Vercel (projekt połączony z repozytorium GitHub, gałąź `master`): każdy push na `master` wdraża nową wersję. Zmienne środowiskowe w Vercelu: `SUPABASE_URL`, `VITE_SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (i informacyjnie `SUPABASE_PROJECT_ID`, `VITE_SUPABASE_PROJECT_ID`). Nitro sam wykrywa środowisko Vercel, więc konfiguracja builda nie wymaga zmian. Migracje bazy stosuje się ręcznie (`npx supabase db push --db-url <Session pooler>`).
 
+## Bezpieczeństwo
+
+- Każda odpowiedź serwera ma nagłówki bezpieczeństwa (`src/lib/naglowki-bezpieczenstwa.ts`, dopinane w `src/server.ts`): CSP (skrypty i style z własnej domeny, czcionki Google, połączenia tylko do Supabase, zakaz osadzania w ramce), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy` i `Permissions-Policy` (bez kamery, mikrofonu, geolokalizacji). Dodając zewnętrzną usługę (np. analitykę), trzeba ją dopisać do CSP.
+- `node scripts/sprawdz-dostep.ts` (baza testowa) albo `--prod` (produkcja) sprawdza kluczem publicznym, tylko odczytem, że każda tabela i funkcja RPC odmawia dostępu niezalogowanym, rejestracja i logowanie anonimowe są wyłączone, a Storage nie pokazuje kubełków. Jedyny wyjątek to `dzis_pl()`, która zwraca tylko dzisiejszą datę.
+- Test E2E `tests/e2e/audyt.spec.ts` sprawdza nagłówki, brak naruszeń CSP w konsoli i rozmiar elementów dotykowych (co najmniej 44×44 px) na głównych ekranach.
+
 ## Odzyskiwanie dostępu administratora
 
 Skrypt z poprzedniej sekcji odmawia działania, gdy istnieje aktywny administrator, a aplikacja nie wysyła wiadomości e-mail, więc nie ma odzyskiwania hasła linkiem. Jeśli jedyny administrator zapomni hasła, odzyskanie dostępu jest awaryjne i ręczne. W panelu Supabase otwórz **SQL Editor** i wykonaj (za `adres@admina` wstaw e-mail administratora, a za hasło tymczasowe losowy ciąg co najmniej 12 znaków, którego nigdzie indziej nie używasz):
