@@ -159,6 +159,45 @@ export type Database = {
           },
         ];
       };
+      awarie_zdjecia: {
+        Row: {
+          autor_id: string | null;
+          autor_nazwa: string | null;
+          awaria_id: string;
+          created_at: string;
+          id: string;
+        };
+        Insert: {
+          autor_id?: string | null;
+          autor_nazwa?: string | null;
+          awaria_id: string;
+          created_at?: string;
+          id: string;
+        };
+        Update: {
+          autor_id?: string | null;
+          autor_nazwa?: string | null;
+          awaria_id?: string;
+          created_at?: string;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "awarie_zdjecia_autor_id_fkey";
+            columns: ["autor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "awarie_zdjecia_awaria_id_fkey";
+            columns: ["awaria_id"];
+            isOneToOne: false;
+            referencedRelation: "awarie";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       awarie_zespol: {
         Row: {
           awaria_id: string;
@@ -571,6 +610,8 @@ export type Database = {
         }[];
       };
       widzi_awarie: { Args: { p_awaria_id: string }; Returns: boolean };
+      zdjecia_inne_pliki: { Args: { p_nazwa: string }; Returns: number };
+      zdjecie_awaria_id: { Args: { p_nazwa: string }; Returns: string };
     };
     Enums: {
       rola_uzytkownika: "pracownik" | "technik" | "kierownik" | "admin";
