@@ -20,6 +20,7 @@ import {
 } from "@/lib/uprawnienia";
 import { BanerOffline } from "./BanerOffline";
 import { DoSprawdzenia } from "./DoSprawdzenia";
+import { Dzwonek } from "./Dzwonek";
 import { MenuUzytkownika } from "./MenuUzytkownika";
 import { StatusPolaczenia } from "./StatusPolaczenia";
 
@@ -72,6 +73,7 @@ export function AppShell({ title, children, dozwoloneRole }: Props) {
           </div>
           <div className="flex items-center gap-2">
             <DoSprawdzenia />
+            <Dzwonek />
             <StatusPolaczenia />
             <MenuUzytkownika />
           </div>

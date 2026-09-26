@@ -47,12 +47,20 @@ export function StatusPolaczenia() {
         }
       : { Icon: CheckCircle2, text: "Zsynchronizowano", cls: "bg-success text-success-foreground" };
 
+  // Gdy wszystko jest zsynchronizowane, wystarczy sama ikona (miejsce na tytuł ekranu i dzwonek);
+  // tekst pokazujemy tylko wtedy, gdy jest coś do przekazania (offline, operacje w kolejce).
+  const tylkoIkona = online && oczekuje === 0;
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${stan.cls}`}
+      role="status"
+      aria-label={stan.text}
+      title={stan.text}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full text-xs font-bold ${
+        tylkoIkona ? "size-11 justify-center" : "px-3 py-1.5"
+      } ${stan.cls}`}
     >
-      <stan.Icon className="size-4 shrink-0" />
-      {stan.text}
+      <stan.Icon className={tylkoIkona ? "size-5" : "size-4 shrink-0"} />
+      {!tylkoIkona && stan.text}
     </span>
   );
 }
