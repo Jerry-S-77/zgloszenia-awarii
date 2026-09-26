@@ -29,6 +29,7 @@ const TABELE = [
   "awarie_historia",
   "awarie_komentarze",
   "awarie_zespol",
+  "awarie_zdjecia",
   "numeracja_awarii",
   "powiadomienia",
   "profiles",
@@ -54,6 +55,8 @@ const FUNKCJE: Record<string, Record<string, unknown>> = {
   statystyki_progow_urzadzen: {},
   urzadzenia_przekraczajace_progi: {},
   widzi_awarie: { p_awaria_id: ZERO },
+  zdjecie_awaria_id: { p_nazwa: `${ZERO}/${ZERO}.jpg` },
+  zdjecia_inne_pliki: { p_nazwa: `${ZERO}/${ZERO}.jpg` },
 };
 // Zwraca tylko dzisiejszą datę (Europe/Warsaw), nie czyta żadnych danych.
 const DOZWOLONE_DLA_ANON = new Set(["dzis_pl"]);
@@ -104,6 +107,17 @@ const kubelki = await fetch(`${url}/storage/v1/bucket`, {
 });
 const listaKubelkow = kubelki.ok ? ((await kubelki.json()) as unknown[]) : [];
 wynik(listaKubelkow.length === 0, `Storage: ${listaKubelkow.length} widocznych kubełków`);
+
+const plikiZdjec = await fetch(`${url}/storage/v1/object/list/zdjecia-awarii`, {
+  method: "POST",
+  headers: { ...naglowki, authorization: `Bearer ${klucz}` },
+  body: JSON.stringify({ prefix: "", limit: 10 }),
+});
+const listaZdjec = plikiZdjec.ok ? ((await plikiZdjec.json()) as unknown[]) : [];
+wynik(
+  listaZdjec.length === 0,
+  `Storage: ${listaZdjec.length} plików zdjęć widocznych bez logowania`,
+);
 
 console.log(
   bledy.length
