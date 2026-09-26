@@ -17,6 +17,8 @@ import {
 import { urzadzeniaQuery } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
 import { zapiszAwarie } from "@/lib/offline";
+import { WyborZdjec } from "@/components/WyborZdjec";
+import { dodajZdjecia, LIMIT_ZDJEC } from "@/lib/zdjecia";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -54,6 +56,7 @@ function Zgloszenie() {
   const [data, setData] = useState(lokalnyTerazISO);
   const [opis, setOpis] = useState("");
   const [krytycznosc, setKrytycznosc] = useState("Srednia");
+  const [zdjecia, setZdjecia] = useState<Blob[]>([]);
   const [zapisuje, setZapisuje] = useState(false);
 
   const urzadzenie = urzadzenia.find((u) => u.nr_technologiczny === nr);
@@ -65,10 +68,11 @@ function Zgloszenie() {
       return;
     }
     setZapisuje(true);
+    const awariaId = crypto.randomUUID();
     let wynik: Awaited<ReturnType<typeof zapiszAwarie>>;
     try {
       wynik = await zapiszAwarie({
-        id: crypto.randomUUID(),
+        id: awariaId,
         nr_technologiczny: urzadzenie.nr_technologiczny,
         nazwa_urzadzenia: urzadzenie.nazwa_urzadzenia,
         data_awarii: new Date(data).toISOString(),
@@ -90,6 +94,16 @@ function Zgloszenie() {
     } finally {
       setZapisuje(false);
     }
+    if (zdjecia.length > 0) {
+      try {
+        // Zgłoszenie jest już zapisane; zdjęcia same trafią do kolejki, jeśli zgłoszenie w niej czeka.
+        if ((await dodajZdjecia(awariaId, zdjecia)) === "lokalnie") wynik = "lokalnie";
+      } catch (e) {
+        toast.error(
+          `Zgłoszenie zapisane, ale zdjęć nie udało się dodać: ${e instanceof Error ? e.message : "błąd"}. Dodaj je na karcie awarii.`,
+        );
+      }
+    }
     await qc.invalidateQueries();
     toast.success(
       wynik === "zsynchronizowano"
@@ -97,6 +111,7 @@ function Zgloszenie() {
         : "Zapisano lokalnie, oczekuje na synchronizację",
     );
     setOpis("");
+    setZdjecia([]);
     setNr("");
     setData(lokalnyTerazISO());
     void navigate({ to: "/awarie" });
@@ -187,6 +202,11 @@ function Zgloszenie() {
               </Button>
             ))}
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-base">Zdjęcia (opcjonalnie)</Label>
+          <WyborZdjec zdjecia={zdjecia} onZmiana={setZdjecia} limit={LIMIT_ZDJEC} />
         </div>
 
         <Button type="submit" disabled={zapisuje} className="h-16 w-full text-lg font-bold">

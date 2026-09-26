@@ -17,6 +17,10 @@ function opisWpisu(typ: string, dane: unknown): string {
     // Wpisy sprzed etapu 3b (pojedyncze przypisanie technika).
     return d["technik_id"] ? "Przypisano technika" : "Usunięto przypisanie";
   }
+  if (d["akcja"] === "zdjecie_dodane" || d["akcja"] === "zdjecie_usuniete") {
+    const nazwa = typeof d["nazwa"] === "string" ? `: ${d["nazwa"]}` : "";
+    return `${d["akcja"] === "zdjecie_dodane" ? "Dodano zdjęcie" : "Usunięto zdjęcie"}${nazwa}`;
+  }
   return "Edycja";
 }
 

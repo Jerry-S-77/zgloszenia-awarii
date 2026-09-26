@@ -7,6 +7,7 @@ import { Historia } from "@/components/awaria/Historia";
 import { Komentarze } from "@/components/awaria/Komentarze";
 import { OsStatusow } from "@/components/awaria/OsStatusow";
 import { Zespol } from "@/components/awaria/Zespol";
+import { Zdjecia } from "@/components/awaria/Zdjecia";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -160,6 +161,10 @@ function Szczegoly() {
             />
           </>
         )}
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-border bg-card p-4">
+        <Zdjecia awariaId={awaria.id} rola={rola} userId={userId} />
       </div>
 
       <div className="mt-5 rounded-2xl border border-border bg-card p-4">
