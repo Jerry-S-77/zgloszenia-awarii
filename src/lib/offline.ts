@@ -187,6 +187,24 @@ function opisOdrzucenia(
   return "Zapis został odrzucony.";
 }
 
+/**
+ * Operacje zapisane w kolejce przed etapem 3b mogą zawierać usuniętą kolumnę `przypisany_technik_id`.
+ * Zdejmujemy ją przed wysłaniem (inaczej baza odrzuci cały zapis). Stare „Przypisz do mnie” zamieniamy na
+ * dołączenie do zespołu, a aktualizacja, której nic już nie zostało, tylko podbija wersję — żeby kolejne
+ * operacje na tej awarii (liczone z podbitą wersją) nie trafiały do „Do sprawdzenia”.
+ */
+export function oczyscPrzestarzalePola(
+  payload: Record<string, unknown>,
+  oczekiwanaWersja: number | undefined,
+): { pola: Record<string, unknown>; dawnePrzypisanie: string | null } {
+  const { przypisany_technik_id: przypisanie, ...pola } = payload;
+  const dawnePrzypisanie = typeof przypisanie === "string" ? przypisanie : null;
+  if (Object.keys(pola).length === 0) {
+    return { pola: { wersja: oczekiwanaWersja ?? 0 }, dawnePrzypisanie };
+  }
+  return { pola, dawnePrzypisanie };
+}
+
 let syncing = false;
 
 /** Konflikt biznesowy nie przerywa pętli: trafia do "Do sprawdzenia", a reszta kolejki idzie dalej. */
@@ -201,12 +219,19 @@ export async function syncQueue(): Promise<number> {
     for (const op of ops) {
       let blad: { code?: string; message?: string } | null = null;
       let brakWierszy = false;
+      let dolaczDoZespolu: { awariaId: string; uzytkownikId: string } | null = null;
       if (op.type === "insert") {
-        const { error } = await supabase.from("awarie").insert(op.payload);
+        const { pola } = oczyscPrzestarzalePola(op.payload, undefined);
+        const { error } = await supabase.from("awarie").insert(pola as typeof op.payload);
         if (error && !czyDuplikat(error)) blad = error;
       } else {
-        const { id, ...rest } = op.payload;
-        let zapytanie = supabase.from("awarie").update(rest).eq("id", id);
+        const { id, ...reszta } = op.payload;
+        const { pola, dawnePrzypisanie } = oczyscPrzestarzalePola(reszta, op.oczekiwanaWersja);
+        if (dawnePrzypisanie) dolaczDoZespolu = { awariaId: id, uzytkownikId: dawnePrzypisanie };
+        let zapytanie = supabase
+          .from("awarie")
+          .update(pola as typeof reszta)
+          .eq("id", id);
         if (op.oczekiwanaWersja !== undefined) {
           zapytanie = zapytanie.eq("wersja", op.oczekiwanaWersja);
         }
@@ -215,6 +240,13 @@ export async function syncQueue(): Promise<number> {
         else if (!data || data.length === 0) brakWierszy = true;
       }
       if (!blad && !brakWierszy) {
+        if (dolaczDoZespolu) {
+          // Najbliższy odpowiednik starego przypisania; błąd (np. osoba już w zespole) pomijamy.
+          await supabase.from("awarie_zespol").insert({
+            awaria_id: dolaczDoZespolu.awariaId,
+            uzytkownik_id: dolaczDoZespolu.uzytkownikId,
+          });
+        }
         await remove(op.opId);
         done++;
         continue;

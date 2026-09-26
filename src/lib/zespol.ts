@@ -27,19 +27,46 @@ export function zespolQuery(awariaId: string) {
   });
 }
 
-/** Id awarii, w których zespole jest dana osoba (widok „Zadania → Przypisane do mnie”). */
+const kluczPamieci = (uzytkownikId: string) => `zespoly:${uzytkownikId}`;
+
+function zapamietane(uzytkownikId: string): string[] | null {
+  try {
+    const wartosc = localStorage.getItem(kluczPamieci(uzytkownikId));
+    const lista: unknown = wartosc ? JSON.parse(wartosc) : null;
+    return Array.isArray(lista) && lista.every((x) => typeof x === "string") ? lista : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Id awarii, w których zespole jest dana osoba (widok „Zadania → Przypisane do mnie”). Ostatni znany stan
+ * trzymamy w telefonie, żeby offline lista nie była fałszywie pusta (sekcja działała offline przed etapem 3b).
+ */
 export function mojeZespolyQuery(uzytkownikId: string | null) {
   return queryOptions({
     queryKey: ["zespoly", uzytkownikId],
     queryFn: async (): Promise<string[]> => {
-      wymagajSieci();
       if (!uzytkownikId) return [];
-      const { data, error } = await supabase
-        .from("awarie_zespol")
-        .select("awaria_id")
-        .eq("uzytkownik_id", uzytkownikId);
-      if (error) throw error;
-      return (data ?? []).map((w) => w.awaria_id);
+      try {
+        wymagajSieci();
+        const { data, error } = await supabase
+          .from("awarie_zespol")
+          .select("awaria_id")
+          .eq("uzytkownik_id", uzytkownikId);
+        if (error) throw error;
+        const lista = (data ?? []).map((w) => w.awaria_id);
+        try {
+          localStorage.setItem(kluczPamieci(uzytkownikId), JSON.stringify(lista));
+        } catch {
+          /* pamięć przeglądarki niedostępna — lista i tak jest aktualna */
+        }
+        return lista;
+      } catch (e) {
+        const znane = zapamietane(uzytkownikId);
+        if (znane) return znane;
+        throw e;
+      }
     },
   });
 }
