@@ -25,6 +25,6 @@ Sześć etapów z planu nadrzędnego `docs/superpowers/plans/2026-09-21-plan-nad
 3. ✅ Urządzenia i harmonogram (CRUD urządzeń, przeglądy, propozycje przyspieszenia, import xlsx, usunięcie webhooka) — plan `2026-09-23-etap-3-urzadzenia-harmonogram.md`.
 4. ✅ Powiadomienia w aplikacji i reguły (dzwonek, Realtime, codzienne przypomnienia o przeglądach przez pg_cron) — plan `2026-09-26-etap-4-powiadomienia.md`.
 5. ⏳ Web Push (opcjonalny, osobny spec) — plan `…-etap-5-web-push.md`, po etapie 4.
-6. ⏳ Audyt końcowy i publikacja — plan `…-etap-6-audyt-publikacja.md`, po etapie 4 (lub 5).
+6. ✅ Audyt końcowy (nagłówki bezpieczeństwa, audyt dostępu, skan sekretów, rozmiar elementów dotykowych) — plan `2026-09-26-etap-6-audyt.md`. Etap 5 (Web Push) i zdjęcia do zgłoszeń odłożone.
 
 Nie zaczynać żadnego punktu ani etapu bez osobnego polecenia.

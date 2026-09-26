@@ -21,7 +21,7 @@ poprzedni jest zamknięty i zweryfikowany. Plan późniejszego etapu pisany „n
 | 3b. Zespół przy awarii, informacja offline | `2026-09-26-etap-3b-zespol-awarii.md` | **zamknięty** (tag `etap-3b-gotowy`) |
 | 4. Powiadomienia w aplikacji i reguły | `2026-09-26-etap-4-powiadomienia.md` | **zamknięty** (tag `etap-4-gotowy`); pg_cron działa na planie Supabase Free |
 | 5. Web Push | `…-etap-5-web-push.md` (osobny spec) | po etapie 4, opcjonalny |
-| 6. Audyt końcowy i publikacja | `…-etap-6-audyt-publikacja.md` | po etapie 4 (lub 5) |
+| 6. Audyt końcowy i publikacja | `2026-09-26-etap-6-audyt.md` | **zamknięty** (tag `etap-6-gotowy`); etap 5 odłożony |
 
 Do napisania planu każdego kolejnego etapu używamy `superpowers:writing-plans` na podstawie specyfikacji i faktycznego stanu kodu.
 
@@ -83,8 +83,8 @@ uruchomienia, jeśli `SUPABASE_URL` wskazuje na projekt, którego identyfikator 
     czystej (`zdalneLubZCache`); dodać test jednostkowy całej funkcji scalającej przy przebudowie kolejki (etap 2).
 - **Import arkuszy na produkcję (po etapie 3, za zgodą użytkownika):** `node scripts/importuj-arkusze.ts` (próba), potem `--tak`. Na produkcji istnieje testowa awaria `AWR-2026-001` z sesji zrzutów ekranu — przed importem usunąć ją albo zaakceptować, że import pominie ten numer.
 - **Lista przełączenia na produkcję (etap 6):**
-  - podnieść wersję IndexedDB kolejki offline i odrzucić operacje o nieznanym kształcie przy przełączeniu na nową bazę;
-  - zweryfikować na nowym projekcie produkcyjnym, że publiczna rejestracja jest wyłączona (`Allow new users to sign up` = off), bo test tego ustawienia działa tylko na projekcie testowym.
+  - ~~podnieść wersję IndexedDB kolejki offline~~ niepotrzebne (etap 6): produkcja działa pod nową domeną, a IndexedDB jest osobna dla każdej domeny, więc na urządzeniach nie ma kolejek z dawnej bazy; przestarzałe pole z etapu 3b czyści `oczyscPrzestarzalePola`;
+  - ✅ publiczna rejestracja wyłączona na produkcji — sprawdza to `node scripts/sprawdz-dostep.ts --prod` (etap 6).
 
 ## 5. Lista do oddania w wyzwaniu (kanał #wygrane-boss-fight)
 
