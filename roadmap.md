@@ -13,7 +13,7 @@ Status: ✅ ukończone / ⏳ zaplanowane (czeka na osobne polecenie)
 - **Zespół przy awarii i informacja offline** — kilka osób obsługi na jedną awarię (technik dołącza siebie, kierownik/admin dodaje i usuwa), baner „Brak połączenia” z listą, co działa offline. Etap 3b (plan: `docs/superpowers/plans/2026-09-26-etap-3b-zespol-awarii.md`).
 
 ## ⏳ Zaplanowane (realizować kolejno, z potwierdzeniem przed każdym)
-4. (Opcjonalnie) **Zdjęcie do zgłoszenia awarii.**
+4. ✅ **Zdjęcia do zgłoszenia awarii** — do 3 na awarię, także offline (plan `docs/superpowers/plans/2026-09-26-zdjecia-awarii.md`).
 5. (Opcjonalnie) **Powiadomienia push** przy nowym zgłoszeniu o wysokiej krytyczności.
 
 ## Rozbudowa 2026-09
