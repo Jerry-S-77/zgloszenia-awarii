@@ -23,7 +23,7 @@ Sześć etapów z planu nadrzędnego `docs/superpowers/plans/2026-09-21-plan-nad
 1. ✅ Fundament: logowanie i użytkownicy — plan `2026-09-21-etap-1-fundament-logowanie-uzytkownicy.md` (wdrożenie na produkcyjny projekt Supabase czeka na osobne polecenie).
 2. ✅ Obsługa awarii (statusy, przypisanie, komentarze, historia, numeracja, widok „Zadania”) — plan `2026-09-21-etap-2-obsluga-awarii.md`.
 3. ✅ Urządzenia i harmonogram (CRUD urządzeń, przeglądy, propozycje przyspieszenia, import xlsx, usunięcie webhooka) — plan `2026-09-23-etap-3-urzadzenia-harmonogram.md`.
-4. ⏳ Powiadomienia w aplikacji i reguły — plan `…-etap-4-powiadomienia.md`, do napisania po zamknięciu etapu 3.
+4. ✅ Powiadomienia w aplikacji i reguły (dzwonek, Realtime, codzienne przypomnienia o przeglądach przez pg_cron) — plan `2026-09-26-etap-4-powiadomienia.md`.
 5. ⏳ Web Push (opcjonalny, osobny spec) — plan `…-etap-5-web-push.md`, po etapie 4.
 6. ⏳ Audyt końcowy i publikacja — plan `…-etap-6-audyt-publikacja.md`, po etapie 4 (lub 5).
 

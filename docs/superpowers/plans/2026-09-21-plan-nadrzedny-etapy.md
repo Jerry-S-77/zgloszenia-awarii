@@ -19,7 +19,7 @@ poprzedni jest zamknięty i zweryfikowany. Plan późniejszego etapu pisany „n
 | 2. Obsługa awarii | `2026-09-21-etap-2-obsluga-awarii.md` | **zamknięty** (tag `etap-2-gotowy`) |
 | 3. Urządzenia i harmonogram | `2026-09-23-etap-3-urzadzenia-harmonogram.md` | **zamknięty** (tag `etap-3-gotowy`); ręczny test na telefonie po wdrożeniu na produkcję |
 | 3b. Zespół przy awarii, informacja offline | `2026-09-26-etap-3b-zespol-awarii.md` | **zamknięty** (tag `etap-3b-gotowy`) |
-| 4. Powiadomienia w aplikacji i reguły | `…-etap-4-powiadomienia.md` | do napisania po zamknięciu etapu 3 |
+| 4. Powiadomienia w aplikacji i reguły | `2026-09-26-etap-4-powiadomienia.md` | **zamknięty** (tag `etap-4-gotowy`); pg_cron działa na planie Supabase Free |
 | 5. Web Push | `…-etap-5-web-push.md` (osobny spec) | po etapie 4, opcjonalny |
 | 6. Audyt końcowy i publikacja | `…-etap-6-audyt-publikacja.md` | po etapie 4 (lub 5) |
 
