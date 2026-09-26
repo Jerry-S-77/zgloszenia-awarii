@@ -10,6 +10,7 @@ Status: ✅ ukończone / ⏳ zaplanowane (czeka na osobne polecenie)
 - **Obsługa awarii: statusy, przypisanie, komentarze, historia, numeracja, widok „Zadania”** — maszyna stanów statusu i numeracja `AWR-<rok>-<NNN>` egzekwowane triggerem w bazie, wersjonowanie do wykrywania konfliktów zapisu, kolejka offline nie blokuje się już na pierwszym odrzuconym zapisie (odrzucone lądują w „Do sprawdzenia”, reszta idzie dalej). Zrealizowane w etapie 2 rozbudowy (spec jak wyżej, plan: `docs/superpowers/plans/2026-09-21-etap-2-obsluga-awarii.md`).
 
 - **Urządzenia i harmonogram przeglądów w aplikacji** — rejestr urządzeń (admin), przeglądy ze statusem wyliczanym, odnotowanie wykonania, propozycje przyspieszenia z decyzją kierownika, progi liczone w bazie, jednorazowy import trzech arkuszy xlsx, numer zgłoszenia w eksporcie CSV; webhook n8n usunięty. Zrealizowane w etapie 3 rozbudowy (plan: `docs/superpowers/plans/2026-09-23-etap-3-urzadzenia-harmonogram.md`).
+- **Zespół przy awarii i informacja offline** — kilka osób obsługi na jedną awarię (technik dołącza siebie, kierownik/admin dodaje i usuwa), baner „Brak połączenia” z listą, co działa offline. Etap 3b (plan: `docs/superpowers/plans/2026-09-26-etap-3b-zespol-awarii.md`).
 
 ## ⏳ Zaplanowane (realizować kolejno, z potwierdzeniem przed każdym)
 4. (Opcjonalnie) **Zdjęcie do zgłoszenia awarii.**
