@@ -2,6 +2,9 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { zNaglowkamiBezpieczenstwa } from "./lib/naglowki-bezpieczenstwa";
+
+const DEWELOPERSKI = import.meta.env.DEV;
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -49,13 +52,19 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return zNaglowkamiBezpieczenstwa(
+        await normalizeCatastrophicSsrResponse(response),
+        DEWELOPERSKI,
+      );
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return zNaglowkamiBezpieczenstwa(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+        DEWELOPERSKI,
+      );
     }
   },
 };
