@@ -79,13 +79,16 @@ test("technik dołącza do zadania i widzi je w Zadaniach", async ({ page }) => 
   await expect(page.getByText("(Ty)")).toBeVisible();
   await expect(page.getByRole("button", { name: "Opuść zadanie" })).toBeVisible();
   await otworz(page, "/zadania");
-  await expect(page.getByText(`${ZNACZNIK} zespół`)).toBeVisible();
+  const moje = page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "Przypisane do mnie" }) });
+  await expect(moje.getByText(`${ZNACZNIK} zespół`)).toBeVisible();
 });
 
 test("kierownik dodaje drugą osobę i usuwa technika; historia z nazwiskami", async ({ page }) => {
   await zaloguj(page, KONTA.kierownik.email);
   await otworz(page, `/awarie/${awariaId}`);
-  await expect(page.getByText("Test technik")).toBeVisible();
+  await expect(page.getByText("Test technik", { exact: true })).toBeVisible();
   await page.getByRole("combobox", { name: "Osoba do dodania" }).click();
   await page.getByRole("option", { name: /Test admin/ }).click();
   await page.getByRole("button", { name: "Dodaj", exact: true }).click();
