@@ -14,7 +14,8 @@ Status: ✅ ukończone / ⏳ zaplanowane (czeka na osobne polecenie)
 
 ## ⏳ Zaplanowane (realizować kolejno, z potwierdzeniem przed każdym)
 4. ✅ **Zdjęcia do zgłoszenia awarii** — do 3 na awarię, także offline (plan `docs/superpowers/plans/2026-09-26-zdjecia-awarii.md`).
-- ✅ **Karta urządzenia, MTBF/MTTR, kategorie przyczyn i Pareto** (plan `docs/superpowers/plans/2026-09-27-analizy-urzadzen.md`). Kolejne pomysły z przeglądu rynku CMMS (kody QR, pakiet GMP, logowanie Microsoft Entra ID, listy kontrolne przeglądów, części zamienne) — tylko na osobne polecenie.
+- ✅ **Karta urządzenia, MTBF/MTTR, kategorie przyczyn i Pareto** (plan `docs/superpowers/plans/2026-09-27-analizy-urzadzen.md`). Kolejne pomysły z przeglądu rynku CMMS (kody QR, pakiet GMP, logowanie Microsoft Entra ID, części zamienne) — tylko na osobne polecenie.
+- ✅ **Listy kontrolne przeglądów** (plan `docs/superpowers/plans/2026-09-27-listy-kontrolne.md`).
 5. (Opcjonalnie) **Powiadomienia push** przy nowym zgłoszeniu o wysokiej krytyczności.
 
 ## Rozbudowa 2026-09
