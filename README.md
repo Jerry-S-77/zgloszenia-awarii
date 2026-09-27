@@ -22,6 +22,9 @@ Supabase jest głównym źródłem prawdy (wspólnym dla całego zespołu). W tr
 
 8b. **awarie_czesci** — części zamienne przy awarii: nazwa lub numer katalogowy, ilość, status (potrzebna → zamówiona → dostarczona), przewidywana dostawa. Dodaje i zmienia obsługa, tylko przy niezamkniętej awarii (potem zapis jest zamrożony); pracownik widzi części swojej awarii. Autor z konta, wpisy w historii awarii, dostarczenie powiadamia zespół awarii. Przez awarię część należy do urządzenia (historia na karcie urządzenia). Bez magazynu i stanów — to ewentualny kolejny krok.
 
+8c. **magazyn_czesci**, **urzadzenia_czesci**, **magazyn_ruchy** — magazyn części: katalog (numer katalogowy, nazwa, jednostka, stan, stan minimalny, lokalizacja), przypisanie części do urządzeń (z oznaczeniem krytycznych) i historia ruchów (przyjęcie, wydanie do awarii, korekta). Katalogiem, dostawami i korektami zarządza kierownik i admin; technik widzi stany i pobiera części do awarii. Stan zmieniają wyłącznie funkcje bazy (`magazyn_przyjecie`, `magazyn_korekta` z wymaganym powodem, `magazyn_pobierz_do_awarii`, `magazyn_import`), każda zostawia ruch; stan nie może zejść poniżej zera, a spadek poniżej minimum wysyła jedno krytyczne powiadomienie kierownikom i adminom. Import z pliku (CSV/XLSX według wzoru `public/wzory/wzor-importu-magazynu.csv`) zapisuje wszystko albo nic.
+8d. **push_subskrypcje** — powiadomienia push: subskrypcja każdego telefonu z wyborem „tylko krytyczne” (domyślnie) albo „wszystkie”. Nowe powiadomienie zleca (pg_net) wysyłkę trasie `/api/push`, która wysyła kluczami VAPID i usuwa wygasłe subskrypcje. Adres trasy i sekret są w `prywatne.push_konfiguracja` (poza API); bez tego wpisu push nie jest wysyłany.
+
 9. **powiadomienia** — powiadomienia w aplikacji; tworzy je wyłącznie baza (triggery i codzienne zadanie `pg_cron` o 04:00 UTC), każdy czyta tylko własne i może jedynie oznaczyć je jako przeczytane. Reguły: nowa awaria → technicy, kierownicy i właściciel urządzenia z obsługi („Wysoka” = krytyczne); dodanie do zespołu przez inną osobę → dodana osoba; przyjęcie lub zamknięcie → zgłaszający; propozycja przyspieszenia oraz przegląd za ≤ 14 dni i opóźniony → właściciel urządzenia i kierownicy (jedno przypomnienie na przegląd i termin). Zapisy kluczem serwisowym (np. import) nie powiadamiają.
 
 Schemat: `supabase/migrations/`. Dostęp do wszystkich tabel ma tylko zalogowany, aktywny użytkownik (rola `anon` nie ma uprawnień); zasady opisuje sekcja „Role i uprawnienia”.
@@ -42,7 +45,7 @@ Wszystkie ekrany poza logowaniem wymagają zalogowania. Dolny pasek nawigacji za
 9a. **Karta urządzenia** (`/urzadzenia/$nr`, technik, kierownik, admin; link z karty awarii, przeglądu i Analiz) — dane urządzenia, liczba awarii, przestój, MTBF i MTTR za 90 lub 365 dni, przyczyny awarii (Pareto), zużyte części (dostarczone, zsumowane po nazwie), przeglądy i pełna historia awarii.
 10. **Dashboard analiz** — sekcja „Niezawodność” (MTTR i przestój łącznie, tabela MTBF/MTTR per urządzenie, najmniej niezawodne na górze; okres 90 lub 365 dni; MTBF liczony kalendarzowo 24/7: czas okresu minus przestój, przez liczbę awarii), „Przyczyny (Pareto)” wg liczby awarii albo godzin przestoju; progi alarmowe liczone w bazie (`statystyki_progow_urzadzen()`, te same reguły tworzą propozycje przeglądów): ≥3 awarie/urządzenie w 90 dni, ≥2 awarie o krytyczności „Wysoka”/urządzenie w 60 dni, ≥8h przestoju/urządzenie w 30 dni, ranking TOP 10, trend miesięczny (kierownik, admin).
 11. **Eksport danych** (kierownik, admin) — CSV z kolumnami dawnego arkusza „Awarie” i dopisaną na końcu kolumną `Kategoria_przyczyny`; `ID_zgloszenia` to numer nadany przez bazę.
-12. **Powiadomienia** (`/powiadomienia`, wszyscy; dzwonek w nagłówku z licznikiem nieprzeczytanych, odświeżany na żywo przez Supabase Realtime) — lista z wyróżnieniem krytycznych i nieprzeczytanych, dotknięcie prowadzi do karty awarii lub przeglądu i oznacza powiadomienie jako przeczytane, „Oznacz wszystkie jako przeczytane”.
+12. **Powiadomienia** (`/powiadomienia`, wszyscy; na górze karta „Powiadomienia na telefonie” — włączenie push na tym urządzeniu i wybór krytyczne/wszystkie, na iPhonie instrukcja dodania aplikacji do ekranu początkowego; po wylogowaniu push na tym telefonie jest wyłączany; dzwonek w nagłówku z licznikiem nieprzeczytanych, odświeżany na żywo przez Supabase Realtime) — lista z wyróżnieniem krytycznych i nieprzeczytanych, dotknięcie prowadzi do karty awarii lub przeglądu i oznacza powiadomienie jako przeczytane, „Oznacz wszystkie jako przeczytane”.
 
 ## Role i uprawnienia
 
@@ -71,6 +74,8 @@ Aplikacja jest jedynym źródłem danych: dawny webhook n8n i sekret `SYNC_URZAD
 Bez połączenia nad treścią każdego ekranu pojawia się baner „Brak połączenia” z listą, co da się zrobić offline (zgłoszenie awarii, zmiana statusu — trafiają do kolejki) i co poczeka na internet (komentarze, zespół, przeglądy, urządzenia, konta, analizy); przyciski wymagające połączenia są wtedy wyszarzone.
 
 Aplikacja ma manifest PWA — można ją dodać do ekranu głównego telefonu.
+
+13. **Magazyn części** (`/magazyn`, technik, kierownik, admin; w menu konta) — lista z wyszukiwarką i filtrami (niski stan, wycofane), szczegóły części z historią ruchów, przyjęcie dostawy, korekta, edycja, przypisanie do urządzeń, dodawanie części i import z pliku z podglądem (wzór do pobrania w aplikacji). Na karcie awarii „Z magazynu”: pobranie części na stanie albo zamówienie brakującej; na karcie urządzenia jego części i stany; w Analizach „Niski stan magazynu”.
 
 ## Rozwój lokalny
 
@@ -119,7 +124,7 @@ Baza produkcyjna to własny projekt Supabase `zgloszenia-awarii` (jego identyfik
 
 ## Wdrożenie
 
-Aplikacja działa na Vercel (projekt połączony z repozytorium GitHub, gałąź `master`): każdy push na `master` wdraża nową wersję. Zmienne środowiskowe w Vercelu: `SUPABASE_URL`, `VITE_SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (i informacyjnie `SUPABASE_PROJECT_ID`, `VITE_SUPABASE_PROJECT_ID`). Nitro sam wykrywa środowisko Vercel, więc konfiguracja builda nie wymaga zmian. Migracje bazy stosuje się ręcznie (`npx supabase db push --db-url <Session pooler>`).
+Aplikacja działa na Vercel (projekt połączony z repozytorium GitHub, gałąź `master`): każdy push na `master` wdraża nową wersję. Zmienne środowiskowe w Vercelu: `SUPABASE_URL`, `VITE_SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (i informacyjnie `SUPABASE_PROJECT_ID`, `VITE_SUPABASE_PROJECT_ID`). Nitro sam wykrywa środowisko Vercel, więc konfiguracja builda nie wymaga zmian. Migracje bazy stosuje się ręcznie (`npx supabase db push --db-url <Session pooler>`). Powiadomienia push wymagają w Vercelu zmiennych `VITE_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (np. `mailto:…`) i `PUSH_SEKRET`, a w bazie wpisu `insert into prywatne.push_konfiguracja (url, sekret) values ('https://<domena>/api/push', '<ten sam PUSH_SEKRET>')` (SQL Editor). Klucze VAPID: `npx web-push generate-vapid-keys`.
 
 ## Bezpieczeństwo
 

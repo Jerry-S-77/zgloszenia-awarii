@@ -17,7 +17,8 @@ Status: ✅ ukończone / ⏳ zaplanowane (czeka na osobne polecenie)
 - ✅ **Karta urządzenia, MTBF/MTTR, kategorie przyczyn i Pareto** (plan `docs/superpowers/plans/2026-09-27-analizy-urzadzen.md`). Kolejne pomysły z przeglądu rynku CMMS (kody QR, pakiet GMP, logowanie Microsoft Entra ID) — tylko na osobne polecenie.
 - ✅ **Listy kontrolne przeglądów** (plan `docs/superpowers/plans/2026-09-27-listy-kontrolne.md`).
 - ✅ **Części zamienne przy awarii (poziom 1)** — bez magazynu (plan `docs/superpowers/plans/2026-09-27-czesci-zamienne.md`). Poziom 2 (katalog części per urządzenie, stany, alarm niskiego stanu) tylko na osobne polecenie.
-5. (Opcjonalnie) **Powiadomienia push** przy nowym zgłoszeniu o wysokiej krytyczności.
+- ✅ **Magazyn części (poziom 2)** i **powiadomienia push** — plan `docs/superpowers/plans/2026-09-28-magazyn-push.md`.
+5. ✅ **Powiadomienia push** — każdy wybiera na telefonie: tylko krytyczne albo wszystkie.
 
 ## Rozbudowa 2026-09
 
@@ -27,7 +28,7 @@ Sześć etapów z planu nadrzędnego `docs/superpowers/plans/2026-09-21-plan-nad
 2. ✅ Obsługa awarii (statusy, przypisanie, komentarze, historia, numeracja, widok „Zadania”) — plan `2026-09-21-etap-2-obsluga-awarii.md`.
 3. ✅ Urządzenia i harmonogram (CRUD urządzeń, przeglądy, propozycje przyspieszenia, import xlsx, usunięcie webhooka) — plan `2026-09-23-etap-3-urzadzenia-harmonogram.md`.
 4. ✅ Powiadomienia w aplikacji i reguły (dzwonek, Realtime, codzienne przypomnienia o przeglądach przez pg_cron) — plan `2026-09-26-etap-4-powiadomienia.md`.
-5. ⏳ Web Push (opcjonalny, osobny spec) — plan `…-etap-5-web-push.md`, po etapie 4.
+5. ✅ Web Push — zrobiony razem z magazynem (plan `2026-09-28-magazyn-push.md`).
 6. ✅ Audyt końcowy (nagłówki bezpieczeństwa, audyt dostępu, skan sekretów, rozmiar elementów dotykowych) — plan `2026-09-26-etap-6-audyt.md`. Etap 5 (Web Push) i zdjęcia do zgłoszeń odłożone.
 
 Nie zaczynać żadnego punktu ani etapu bez osobnego polecenia.
