@@ -50,8 +50,20 @@ describe("numeracja i wersja przy wstawieniu", () => {
   it("nadaje numer w formacie AWR-ROK-NNN i wersję 1", async () => {
     const a = await wstaw("zgloszona", "numeracja 1");
     const rok = new Date().getFullYear();
-    expect(a.numer).toMatch(new RegExp(`^AWR-${rok}-\\d{3}$`));
+    expect(a.numer).toMatch(new RegExp(`^AWR-${rok}-\\d{3,}$`));
     expect(a.wersja).toBe(1);
+  });
+  it("po 999 awariach w roku numer ma więcej cyfr, a nie jest ucinany (duplikat)", async () => {
+    const rok = 2100 + Math.floor(Math.random() * 800);
+    await admin.from("numeracja_awarii").upsert({ rok, ostatni: 998 });
+    const data_awarii = `${rok}-01-15T10:00:00Z`;
+    const numery = [];
+    for (const n of [1, 2, 3]) {
+      numery.push((await wstaw("zgloszona", `numeracja ${rok} ${n}`, { data_awarii })).numer);
+    }
+    expect(numery).toEqual([`AWR-${rok}-999`, `AWR-${rok}-1000`, `AWR-${rok}-1001`]);
+    await admin.from("awarie").delete().like("opis_awarii", `${ZNACZNIK} numeracja ${rok}%`);
+    await admin.from("numeracja_awarii").delete().eq("rok", rok);
   });
   it("kolejne zgłoszenia dostają rosnące numery", async () => {
     const pierwsza = await wstaw("zgloszona", "numeracja 2");
