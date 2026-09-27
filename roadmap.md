@@ -14,8 +14,9 @@ Status: ✅ ukończone / ⏳ zaplanowane (czeka na osobne polecenie)
 
 ## ⏳ Zaplanowane (realizować kolejno, z potwierdzeniem przed każdym)
 4. ✅ **Zdjęcia do zgłoszenia awarii** — do 3 na awarię, także offline.
-- ✅ **Karta urządzenia, MTBF/MTTR, kategorie przyczyn i Pareto**. Kolejne pomysły z przeglądu rynku CMMS (kody QR, pakiet GMP, logowanie Microsoft Entra ID, części zamienne) — tylko na osobne polecenie.
+- ✅ **Karta urządzenia, MTBF/MTTR, kategorie przyczyn i Pareto**. Kolejne pomysły z przeglądu rynku CMMS (kody QR, pakiet GMP, logowanie Microsoft Entra ID) — tylko na osobne polecenie.
 - ✅ **Listy kontrolne przeglądów**.
+- ✅ **Części zamienne przy awarii (poziom 1)** — bez magazynu. Poziom 2 (katalog części per urządzenie, stany, alarm niskiego stanu) tylko na osobne polecenie.
 5. (Opcjonalnie) **Powiadomienia push** przy nowym zgłoszeniu o wysokiej krytyczności.
 
 ## Rozbudowa 2026-09
