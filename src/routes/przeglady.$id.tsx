@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ClipboardCheck, Pencil } from "lucide-react";
@@ -109,10 +109,18 @@ function KartaPrzegladuEkran() {
       )}
 
       <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
-        <Wiersz
-          etykieta="Urządzenie"
-          wartosc={`${przeglad.nr_technologiczny} — ${przeglad.urzadzenia?.nazwa_urzadzenia ?? ""}`}
-        />
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Urządzenie
+          </p>
+          <Link
+            to="/urzadzenia/$nr"
+            params={{ nr: przeglad.nr_technologiczny }}
+            className="inline-flex min-h-11 items-center text-base font-semibold text-primary underline underline-offset-4"
+          >
+            {przeglad.nr_technologiczny} — {przeglad.urzadzenia?.nazwa_urzadzenia ?? ""}
+          </Link>
+        </div>
         <Wiersz etykieta="Typ czynności" wartosc={przeglad.typ_czynnosci ?? "—"} />
         <Wiersz
           etykieta="Częstotliwość"

@@ -1,4 +1,5 @@
 import type { Database } from "@/integrations/supabase/types";
+import type { KategoriaPrzyczyny } from "./kategorie-przyczyn";
 import type { StatusAwarii } from "./statusy-awarii";
 
 export type Urzadzenie = Database["public"]["Tables"]["urzadzenia"]["Row"];
@@ -18,6 +19,8 @@ export type Awaria = {
   data_zamkniecia: string | null;
   numer: string | null;
   wersja: number;
+  /** Opcjonalne: wiersze i operacje kolejki sprzed dodania słownika przyczyn go nie mają. */
+  kategoria_przyczyny?: KategoriaPrzyczyny | null;
 };
 
 export type AwariaLokalna = Awaria & { _pending?: boolean };

@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import {
   Bar,
@@ -17,6 +17,25 @@ import { AppShell } from "@/components/AppShell";
 import { awarieQuery, progiQuery } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
 import { czyRola } from "@/lib/uprawnienia";
+import { KafelWskaznika, Pareto, PrzelacznikOpcji } from "@/components/analizy/Pareto";
+import {
+  formatujCzas,
+  okresOstatnichDni,
+  pareto,
+  wOkresie,
+  wskazniki,
+  wskaznikiUrzadzen,
+  type MiaraPareto,
+} from "@/lib/wskazniki";
+
+const OKRESY = [
+  { wartosc: "90", etykieta: "90 dni" },
+  { wartosc: "365", etykieta: "365 dni" },
+] as const;
+const MIARY: { wartosc: MiaraPareto; etykieta: string }[] = [
+  { wartosc: "liczba", etykieta: "Liczba" },
+  { wartosc: "przestoj", etykieta: "Przestój" },
+];
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -65,6 +84,13 @@ function Dashboard() {
     return [...miesiace.entries()].map(([m, liczba]) => ({ m: m.slice(2), liczba }));
   }, [awarie]);
 
+  const [okres, setOkres] = useState<"90" | "365">("365");
+  const [miara, setMiara] = useState<MiaraPareto>("liczba");
+  const zakres = useMemo(() => okresOstatnichDni(Number(okres)), [okres]);
+  const ogolem = useMemo(() => wskazniki(awarie, zakres), [awarie, zakres]);
+  const urzadzenia = useMemo(() => wskaznikiUrzadzen(awarie, zakres), [awarie, zakres]);
+  const przyczyny = useMemo(() => pareto(wOkresie(awarie, zakres), miara), [awarie, zakres, miara]);
+
   const top10 = staty.slice(0, 10);
   const alarmy = staty.filter((s) => s.przekracza);
 
@@ -93,7 +119,13 @@ function Dashboard() {
             >
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                 <div className="min-w-0">
-                  <p className="font-display text-lg font-bold">{s.nr_technologiczny}</p>
+                  <Link
+                    to="/urzadzenia/$nr"
+                    params={{ nr: s.nr_technologiczny }}
+                    className="inline-flex min-h-11 items-center font-display text-lg font-bold text-primary underline underline-offset-4"
+                  >
+                    {s.nr_technologiczny}
+                  </Link>
                   <p className="truncate text-sm text-muted-foreground">{s.nazwa_urzadzenia}</p>
                 </div>
                 {s.przekracza && (
@@ -128,6 +160,76 @@ function Dashboard() {
             </p>
           )}
         </div>
+      </section>
+
+      <section className="mb-6 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-xl font-bold uppercase">Niezawodność</h2>
+          <PrzelacznikOpcji
+            etykieta="Okres analizy"
+            opcje={[...OKRESY]}
+            wartosc={okres}
+            onZmiana={setOkres}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <KafelWskaznika
+            etykieta="MTTR"
+            wartosc={formatujCzas(ogolem.mttrH)}
+            opis="średni czas przestoju"
+          />
+          <KafelWskaznika etykieta="Przestój łącznie" wartosc={formatujCzas(ogolem.przestojH)} />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          MTBF — średni czas między awariami urządzenia (czas kalendarzowy okresu minus przestój,
+          podzielony przez liczbę awarii). Najmniej niezawodne na górze.
+        </p>
+        {urzadzenia.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Brak awarii w wybranym okresie.</p>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="p-2 font-semibold">Urządzenie</th>
+                  <th className="p-2 text-right font-semibold">Awarie</th>
+                  <th className="p-2 text-right font-semibold">MTBF</th>
+                  <th className="p-2 text-right font-semibold">MTTR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {urzadzenia.map((u) => (
+                  <tr key={u.nr_technologiczny} className="border-t border-border">
+                    <td className="p-2">
+                      <Link
+                        to="/urzadzenia/$nr"
+                        params={{ nr: u.nr_technologiczny }}
+                        className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
+                      >
+                        {u.nr_technologiczny}
+                      </Link>
+                    </td>
+                    <td className="p-2 text-right tabular-nums">{u.liczba}</td>
+                    <td className="p-2 text-right tabular-nums">{formatujCzas(u.mtbfH)}</td>
+                    <td className="p-2 text-right tabular-nums">{formatujCzas(u.mttrH)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-border bg-card p-4">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-xl font-bold uppercase">Przyczyny (Pareto)</h2>
+          <PrzelacznikOpcji etykieta="Miara" opcje={MIARY} wartosc={miara} onZmiana={setMiara} />
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Zamknięte awarie z wybranego okresu. Wyróżnione kategorie dają razem ok. 80% — od nich
+          warto zacząć działania zapobiegawcze.
+        </p>
+        <Pareto pozycje={przyczyny} miara={miara} />
       </section>
 
       {top10.length > 0 && (

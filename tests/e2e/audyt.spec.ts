@@ -14,6 +14,7 @@ const EKRANY_ADMINA = [
   "/admin/uzytkownicy",
   "/admin/urzadzenia",
   "/powiadomienia",
+  "/urzadzenia/HVAC-01",
 ];
 const EKRANY_PRACOWNIKA = ["/", "/awarie", "/powiadomienia"];
 
