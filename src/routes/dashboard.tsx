@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth";
 import { czyRola } from "@/lib/uprawnienia";
 import { KafelWskaznika, Pareto, PrzelacznikOpcji } from "@/components/analizy/Pareto";
 import { CzekajaceNaCzesci } from "@/components/CzekajaceNaCzesci";
+import { formatujIlosc, magazynQuery, niskiStan } from "@/lib/magazyn";
 import {
   formatujCzas,
   okresOstatnichDni,
@@ -85,6 +86,8 @@ function Dashboard() {
     return [...miesiace.entries()].map(([m, liczba]) => ({ m: m.slice(2), liczba }));
   }, [awarie]);
 
+  const { data: magazyn = [] } = useQuery({ ...magazynQuery, enabled: dostep });
+  const niskie = magazyn.filter((c) => c.aktywna && niskiStan(c));
   const [okres, setOkres] = useState<"90" | "365">("365");
   const [miara, setMiara] = useState<MiaraPareto>("liczba");
   const zakres = useMemo(() => okresOstatnichDni(Number(okres)), [okres]);
@@ -231,6 +234,34 @@ function Dashboard() {
           warto zacząć działania zapobiegawcze.
         </p>
         <Pareto pozycje={przyczyny} miara={miara} />
+      </section>
+
+      <section className="mb-6">
+        <h2 className="mb-3 font-display text-xl font-bold uppercase">Niski stan magazynu</h2>
+        {niskie.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-border p-6 text-center text-muted-foreground">
+            Wszystkie części powyżej stanu minimalnego.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border rounded-2xl border-2 border-destructive bg-card">
+            {niskie.map((c) => (
+              <li key={c.id} className="flex items-baseline justify-between gap-2 p-3 text-sm">
+                <span className="min-w-0">
+                  <span className="font-semibold">{c.nazwa}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {c.numer_katalogowy}
+                    {c.urzadzenia_czesci.length
+                      ? ` · ${c.urzadzenia_czesci.map((u) => u.nr_technologiczny).join(", ")}`
+                      : ""}
+                  </span>
+                </span>
+                <span className="shrink-0 font-semibold text-destructive tabular-nums">
+                  {formatujIlosc(c.stan, c.jednostka)} / min {c.stan_minimalny}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="mb-6">

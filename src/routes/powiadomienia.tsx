@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { UstawieniaPush } from "@/components/UstawieniaPush";
 import { Button } from "@/components/ui/button";
 import { useOnline } from "@/hooks/use-online";
 import { useAuth } from "@/lib/auth";
@@ -67,6 +68,7 @@ function Powiadomienia() {
 
   return (
     <AppShell title="Powiadomienia">
+      <UstawieniaPush />
       {nieprzeczytane > 0 && (
         <Button
           variant="outline"

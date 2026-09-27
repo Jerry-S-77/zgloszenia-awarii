@@ -15,6 +15,7 @@ import {
 } from "@/lib/czesci";
 import { ETYKIETY_STATUSU_CZESCI, nastepnyEtap, podpowiedziNazw } from "@/lib/czesci-logika";
 import { formatujDate } from "@/lib/przeglady";
+import { PobierzZMagazynu } from "./PobierzZMagazynu";
 
 const KOLOR_STATUSU = {
   potrzebna: "bg-destructive/10 text-destructive",
@@ -44,6 +45,7 @@ export function Czesci({
     enabled: edycja,
   });
   const [formularz, setFormularz] = useState(false);
+  const [zMagazynu, setZMagazynu] = useState(false);
   const [nazwa, setNazwa] = useState("");
   const [ilosc, setIlosc] = useState("1");
   const [termin, setTermin] = useState("");
@@ -54,6 +56,7 @@ export function Czesci({
       qc.invalidateQueries({ queryKey: ["awarie", awariaId] }),
       qc.invalidateQueries({ queryKey: ["urzadzenia", nr, "czesci"] }),
       qc.invalidateQueries({ queryKey: ["czesci"] }),
+      qc.invalidateQueries({ queryKey: ["magazyn"] }),
     ]);
 
   async function wykonaj(akcja: () => Promise<void>, sukces: string) {
@@ -171,15 +174,33 @@ export function Czesci({
         })}
       </ul>
 
-      {edycja && !formularz && (
-        <Button
-          variant="outline"
-          className="h-12 w-full"
-          disabled={!online}
-          onClick={() => setFormularz(true)}
-        >
-          <Plus className="size-5" /> Dodaj część
-        </Button>
+      {edycja && !formularz && !zMagazynu && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            className="h-12"
+            disabled={!online}
+            onClick={() => setZMagazynu(true)}
+          >
+            <Package className="size-5" /> Z magazynu
+          </Button>
+          <Button
+            variant="outline"
+            className="h-12"
+            disabled={!online}
+            onClick={() => setFormularz(true)}
+          >
+            <Plus className="size-5" /> Dodaj część
+          </Button>
+        </div>
+      )}
+      {edycja && zMagazynu && (
+        <PobierzZMagazynu
+          awariaId={awariaId}
+          nr={nr}
+          onGotowe={odswiez}
+          onAnuluj={() => setZMagazynu(false)}
+        />
       )}
       {edycja && formularz && (
         <form onSubmit={dodaj} className="space-y-3 rounded-xl bg-muted p-3">
