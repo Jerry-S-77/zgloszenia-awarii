@@ -89,6 +89,7 @@ export type Database = {
           created_at: string;
           id: string;
           ilosc: number;
+          magazyn_czesc_id: string | null;
           nazwa: string;
           status: Database["public"]["Enums"]["status_czesci"];
           termin_dostawy: string | null;
@@ -101,6 +102,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           ilosc?: number;
+          magazyn_czesc_id?: string | null;
           nazwa: string;
           status?: Database["public"]["Enums"]["status_czesci"];
           termin_dostawy?: string | null;
@@ -113,6 +115,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           ilosc?: number;
+          magazyn_czesc_id?: string | null;
           nazwa?: string;
           status?: Database["public"]["Enums"]["status_czesci"];
           termin_dostawy?: string | null;
@@ -131,6 +134,13 @@ export type Database = {
             columns: ["awaria_id"];
             isOneToOne: false;
             referencedRelation: "awarie";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "awarie_czesci_magazyn_czesc_id_fkey";
+            columns: ["magazyn_czesc_id"];
+            isOneToOne: false;
+            referencedRelation: "magazyn_czesci";
             referencedColumns: ["id"];
           },
         ];
@@ -297,6 +307,103 @@ export type Database = {
             columns: ["uzytkownik_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      magazyn_czesci: {
+        Row: {
+          aktywna: boolean;
+          created_at: string;
+          id: string;
+          jednostka: string;
+          lokalizacja: string | null;
+          nazwa: string;
+          numer_katalogowy: string;
+          stan: number;
+          stan_minimalny: number;
+        };
+        Insert: {
+          aktywna?: boolean;
+          created_at?: string;
+          id?: string;
+          jednostka?: string;
+          lokalizacja?: string | null;
+          nazwa: string;
+          numer_katalogowy: string;
+          stan?: number;
+          stan_minimalny?: number;
+        };
+        Update: {
+          aktywna?: boolean;
+          created_at?: string;
+          id?: string;
+          jednostka?: string;
+          lokalizacja?: string | null;
+          nazwa?: string;
+          numer_katalogowy?: string;
+          stan?: number;
+          stan_minimalny?: number;
+        };
+        Relationships: [];
+      };
+      magazyn_ruchy: {
+        Row: {
+          autor_id: string | null;
+          autor_nazwa: string | null;
+          awaria_id: string | null;
+          created_at: string;
+          czesc_id: string;
+          id: string;
+          stan_po: number;
+          typ: Database["public"]["Enums"]["typ_ruchu_magazynu"];
+          uwagi: string | null;
+          zmiana: number;
+        };
+        Insert: {
+          autor_id?: string | null;
+          autor_nazwa?: string | null;
+          awaria_id?: string | null;
+          created_at?: string;
+          czesc_id: string;
+          id?: string;
+          stan_po: number;
+          typ: Database["public"]["Enums"]["typ_ruchu_magazynu"];
+          uwagi?: string | null;
+          zmiana: number;
+        };
+        Update: {
+          autor_id?: string | null;
+          autor_nazwa?: string | null;
+          awaria_id?: string | null;
+          created_at?: string;
+          czesc_id?: string;
+          id?: string;
+          stan_po?: number;
+          typ?: Database["public"]["Enums"]["typ_ruchu_magazynu"];
+          uwagi?: string | null;
+          zmiana?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "magazyn_ruchy_autor_id_fkey";
+            columns: ["autor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "magazyn_ruchy_awaria_id_fkey";
+            columns: ["awaria_id"];
+            isOneToOne: false;
+            referencedRelation: "awarie";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "magazyn_ruchy_czesc_id_fkey";
+            columns: ["czesc_id"];
+            isOneToOne: false;
+            referencedRelation: "magazyn_czesci";
             referencedColumns: ["id"];
           },
         ];
@@ -553,6 +660,44 @@ export type Database = {
           },
         ];
       };
+      push_subskrypcje: {
+        Row: {
+          auth: string;
+          created_at: string;
+          endpoint: string;
+          id: string;
+          p256dh: string;
+          tylko_krytyczne: boolean;
+          uzytkownik_id: string;
+        };
+        Insert: {
+          auth: string;
+          created_at?: string;
+          endpoint: string;
+          id?: string;
+          p256dh: string;
+          tylko_krytyczne?: boolean;
+          uzytkownik_id: string;
+        };
+        Update: {
+          auth?: string;
+          created_at?: string;
+          endpoint?: string;
+          id?: string;
+          p256dh?: string;
+          tylko_krytyczne?: boolean;
+          uzytkownik_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_subskrypcje_uzytkownik_id_fkey";
+            columns: ["uzytkownik_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       urzadzenia: {
         Row: {
           created_at: string;
@@ -600,6 +745,39 @@ export type Database = {
           },
         ];
       };
+      urzadzenia_czesci: {
+        Row: {
+          czesc_id: string;
+          krytyczna: boolean;
+          nr_technologiczny: string;
+        };
+        Insert: {
+          czesc_id: string;
+          krytyczna?: boolean;
+          nr_technologiczny: string;
+        };
+        Update: {
+          czesc_id?: string;
+          krytyczna?: boolean;
+          nr_technologiczny?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "urzadzenia_czesci_czesc_id_fkey";
+            columns: ["czesc_id"];
+            isOneToOne: false;
+            referencedRelation: "magazyn_czesci";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "urzadzenia_czesci_nr_technologiczny_fkey";
+            columns: ["nr_technologiczny"];
+            isOneToOne: false;
+            referencedRelation: "urzadzenia";
+            referencedColumns: ["nr_technologiczny"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -610,6 +788,29 @@ export type Database = {
       lista_kontrolna_poprawna: {
         Args: { p_lista: string[] };
         Returns: boolean;
+      };
+      magazyn_import: { Args: { p_wiersze: Json }; Returns: Json };
+      magazyn_korekta: {
+        Args: { p_czesc: string; p_nowy_stan: number; p_uwagi: string };
+        Returns: number;
+      };
+      magazyn_pobierz_do_awarii: {
+        Args: { p_awaria: string; p_czesc: string; p_ilosc: number };
+        Returns: string;
+      };
+      magazyn_przyjecie: {
+        Args: { p_czesc: string; p_ilosc: number; p_uwagi?: string };
+        Returns: number;
+      };
+      magazyn_zmien_stan: {
+        Args: {
+          p_awaria: string;
+          p_czesc: string;
+          p_typ: Database["public"]["Enums"]["typ_ruchu_magazynu"];
+          p_uwagi: string;
+          p_zmiana: number;
+        };
+        Returns: number;
       };
       mam_role: {
         Args: { dozwolone: Database["public"]["Enums"]["rola_uzytkownika"][] };
@@ -652,6 +853,15 @@ export type Database = {
         Returns: undefined;
       };
       przeglady_sprawdz_progi: { Args: { p_nr: string }; Returns: undefined };
+      push_zapisz_subskrypcje: {
+        Args: {
+          p_auth: string;
+          p_endpoint: string;
+          p_p256dh: string;
+          p_tylko_krytyczne?: boolean;
+        };
+        Returns: undefined;
+      };
       statystyki_progow_urzadzen: {
         Args: never;
         Returns: {
@@ -698,7 +908,9 @@ export type Database = {
         | "przeglad_wkrotce"
         | "przeglad_opozniony"
         | "przeglad_nieprawidlowosc"
-        | "czesc_dostarczona";
+        | "czesc_dostarczona"
+        | "niski_stan";
+      typ_ruchu_magazynu: "przyjecie" | "wydanie" | "korekta";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -837,7 +1049,9 @@ export const Constants = {
         "przeglad_opozniony",
         "przeglad_nieprawidlowosc",
         "czesc_dostarczona",
+        "niski_stan",
       ],
+      typ_ruchu_magazynu: ["przyjecie", "wydanie", "korekta"],
     },
   },
 } as const;
