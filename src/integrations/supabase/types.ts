@@ -16,6 +16,7 @@ export type Database = {
           data_awarii: string;
           data_zamkniecia: string | null;
           id: string;
+          kategoria_przyczyny: Database["public"]["Enums"]["kategoria_przyczyny"] | null;
           krytycznosc_skutku: string;
           nazwa_urzadzenia: string;
           nr_technologiczny: string;
@@ -33,6 +34,7 @@ export type Database = {
           data_awarii?: string;
           data_zamkniecia?: string | null;
           id?: string;
+          kategoria_przyczyny?: Database["public"]["Enums"]["kategoria_przyczyny"] | null;
           krytycznosc_skutku: string;
           nazwa_urzadzenia: string;
           nr_technologiczny: string;
@@ -50,6 +52,7 @@ export type Database = {
           data_awarii?: string;
           data_zamkniecia?: string | null;
           id?: string;
+          kategoria_przyczyny?: Database["public"]["Enums"]["kategoria_przyczyny"] | null;
           krytycznosc_skutku?: string;
           nazwa_urzadzenia?: string;
           nr_technologiczny?: string;
@@ -614,6 +617,8 @@ export type Database = {
       zdjecie_awaria_id: { Args: { p_nazwa: string }; Returns: string };
     };
     Enums: {
+      kategoria_przyczyny:
+        "mechaniczna" | "elektryczna" | "automatyka" | "media" | "obsluga" | "inna";
       rola_uzytkownika: "pracownik" | "technik" | "kierownik" | "admin";
       status_awarii: "zgloszona" | "przyjeta" | "w_naprawie" | "oczekuje_na_czesc" | "zamknieta";
       status_propozycji: "oczekuje" | "zatwierdzona" | "odrzucona" | "nieaktualna";
@@ -748,6 +753,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      kategoria_przyczyny: ["mechaniczna", "elektryczna", "automatyka", "media", "obsluga", "inna"],
       rola_uzytkownika: ["pracownik", "technik", "kierownik", "admin"],
       status_awarii: ["zgloszona", "przyjeta", "w_naprawie", "oczekuje_na_czesc", "zamknieta"],
       status_propozycji: ["oczekuje", "zatwierdzona", "odrzucona", "nieaktualna"],

@@ -213,6 +213,7 @@ describe("technik, kierownik, admin", () => {
       .update({
         status: "zamknieta",
         przyczyna: "Test",
+        kategoria_przyczyny: "inna",
         data_zamkniecia: new Date().toISOString(),
       })
       .eq("id", awariaPracownika2)
@@ -238,6 +239,7 @@ describe("technik, kierownik, admin", () => {
       .update({
         status: "zamknieta",
         przyczyna: "Test",
+        kategoria_przyczyny: "inna",
         data_zamkniecia: new Date().toISOString(),
         zglaszajacy_id: id.technik,
         zglaszajacy_nazwa: "Podmiana",
