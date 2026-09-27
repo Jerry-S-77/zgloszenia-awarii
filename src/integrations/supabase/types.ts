@@ -363,6 +363,7 @@ export type Database = {
           data_najblizszego: string | null;
           data_ostatniego: string | null;
           id: string;
+          lista_kontrolna: string[];
           nr_technologiczny: string;
           typ_czynnosci: string | null;
           uwagi: string | null;
@@ -374,6 +375,7 @@ export type Database = {
           data_najblizszego?: string | null;
           data_ostatniego?: string | null;
           id?: string;
+          lista_kontrolna?: string[];
           nr_technologiczny: string;
           typ_czynnosci?: string | null;
           uwagi?: string | null;
@@ -385,6 +387,7 @@ export type Database = {
           data_najblizszego?: string | null;
           data_ostatniego?: string | null;
           id?: string;
+          lista_kontrolna?: string[];
           nr_technologiczny?: string;
           typ_czynnosci?: string | null;
           uwagi?: string | null;
@@ -454,6 +457,7 @@ export type Database = {
           created_at: string;
           data_wykonania: string;
           id: string;
+          lista_kontrolna: Json;
           przeglad_id: string;
           uwagi: string | null;
           wykonawca: string | null;
@@ -463,6 +467,7 @@ export type Database = {
           created_at?: string;
           data_wykonania: string;
           id?: string;
+          lista_kontrolna?: Json;
           przeglad_id: string;
           uwagi?: string | null;
           wykonawca?: string | null;
@@ -472,6 +477,7 @@ export type Database = {
           created_at?: string;
           data_wykonania?: string;
           id?: string;
+          lista_kontrolna?: Json;
           przeglad_id?: string;
           uwagi?: string | null;
           wykonawca?: string | null;
@@ -547,6 +553,10 @@ export type Database = {
     Functions: {
       awaria_otwarta: { Args: { p_awaria_id: string }; Returns: boolean };
       dzis_pl: { Args: never; Returns: string };
+      lista_kontrolna_poprawna: {
+        Args: { p_lista: string[] };
+        Returns: boolean;
+      };
       mam_role: {
         Args: { dozwolone: Database["public"]["Enums"]["rola_uzytkownika"][] };
         Returns: boolean;
@@ -631,7 +641,8 @@ export type Database = {
         | "zmiana_statusu"
         | "propozycja_przegladu"
         | "przeglad_wkrotce"
-        | "przeglad_opozniony";
+        | "przeglad_opozniony"
+        | "przeglad_nieprawidlowosc";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -767,6 +778,7 @@ export const Constants = {
         "propozycja_przegladu",
         "przeglad_wkrotce",
         "przeglad_opozniony",
+        "przeglad_nieprawidlowosc",
       ],
     },
   },
