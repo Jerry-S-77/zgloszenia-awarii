@@ -14,6 +14,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { dzisLokalnie, formatujDate, nastepnyTermin } from "@/lib/przeglady";
 import { odnotujWykonanie, type PrzegladZUrzadzeniem } from "@/lib/przeglady-zapytania";
+import { bladWynikow, doZapisu, pusteWyniki, type WynikPunktu } from "@/lib/lista-kontrolna";
+import { WypelnianieListyKontrolnej } from "./ListaKontrolna";
 
 type Props = {
   przeglad: PrzegladZUrzadzeniem;
@@ -27,6 +29,7 @@ export function OdnotujWykonanieSheet({ przeglad, otwarte, onZmiana }: Props) {
   const [data, setData] = useState(dzis);
   const [wykonawca, setWykonawca] = useState(przeglad.wykonawca ?? "");
   const [uwagi, setUwagi] = useState("");
+  const [wyniki, setWyniki] = useState<WynikPunktu[]>([]);
   const [zapis, setZapis] = useState(false);
 
   useEffect(() => {
@@ -34,8 +37,9 @@ export function OdnotujWykonanieSheet({ przeglad, otwarte, onZmiana }: Props) {
       setData(dzisLokalnie());
       setWykonawca(przeglad.wykonawca ?? "");
       setUwagi("");
+      setWyniki(pusteWyniki(przeglad.lista_kontrolna ?? []));
     }
-  }, [otwarte, przeglad.wykonawca]);
+  }, [otwarte, przeglad.wykonawca, przeglad.lista_kontrolna]);
 
   const nastepny = data ? nastepnyTermin(data, przeglad.czestotliwosc_dni) : null;
 
@@ -43,6 +47,8 @@ export function OdnotujWykonanieSheet({ przeglad, otwarte, onZmiana }: Props) {
     e.preventDefault();
     if (!data) return void toast.error("Podaj datę wykonania.");
     if (data > dzis) return void toast.error("Data wykonania nie może być w przyszłości.");
+    const blad = bladWynikow(wyniki);
+    if (blad) return void toast.error(blad);
     setZapis(true);
     try {
       await odnotujWykonanie({
@@ -50,6 +56,7 @@ export function OdnotujWykonanieSheet({ przeglad, otwarte, onZmiana }: Props) {
         dataWykonania: data,
         wykonawca: wykonawca.trim() || null,
         uwagi: uwagi.trim() || null,
+        listaKontrolna: doZapisu(wyniki),
       });
       await qc.invalidateQueries({ queryKey: ["przeglady"] });
       toast.success("Odnotowano wykonanie przeglądu");
@@ -97,6 +104,12 @@ export function OdnotujWykonanieSheet({ przeglad, otwarte, onZmiana }: Props) {
               className="h-14 text-base"
             />
           </div>
+          {wyniki.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-base font-medium">Lista kontrolna</p>
+              <WypelnianieListyKontrolnej wyniki={wyniki} onZmiana={setWyniki} />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="uwagi-wykonania" className="text-base">
               Uwagi

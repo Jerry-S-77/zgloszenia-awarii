@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import type { ZapisanyWynik } from "./lista-kontrolna";
 import { wymagajSieci } from "./queries";
 
 /**
@@ -20,7 +21,12 @@ export type PrzegladZUrzadzeniem = Tabele["przeglady"]["Row"] & {
 };
 export type ZmianyHarmonogramu = Pick<
   Tabele["przeglady"]["Update"],
-  "typ_czynnosci" | "czestotliwosc_dni" | "data_najblizszego" | "wykonawca" | "uwagi"
+  | "typ_czynnosci"
+  | "czestotliwosc_dni"
+  | "data_najblizszego"
+  | "wykonawca"
+  | "uwagi"
+  | "lista_kontrolna"
 >;
 
 export type PowodPropozycji = {
@@ -77,6 +83,7 @@ export async function odnotujWykonanie(dane: {
   dataWykonania: string;
   wykonawca: string | null;
   uwagi: string | null;
+  listaKontrolna: ZapisanyWynik[];
 }): Promise<void> {
   wymagajPolaczenia();
   const { error } = await supabase.from("przeglady_wykonania").insert({
@@ -84,13 +91,17 @@ export async function odnotujWykonanie(dane: {
     data_wykonania: dane.dataWykonania,
     wykonawca: dane.wykonawca,
     uwagi: dane.uwagi,
+    lista_kontrolna: dane.listaKontrolna,
   });
   if (error) {
-    throw new Error(
-      error.message.includes("przyszłości")
-        ? "Data wykonania nie może być w przyszłości."
-        : "Nie udało się zapisać wykonania przeglądu.",
-    );
+    if (error.message.includes("przyszłości")) {
+      throw new Error("Data wykonania nie może być w przyszłości.");
+    }
+    // Komunikaty walidacji listy kontrolnej z bazy są już po polsku i konkretne (który punkt).
+    if (/lista kontrolna|listę kontrolną|nieprawidłowość|punktu/i.test(error.message)) {
+      throw new Error(error.message);
+    }
+    throw new Error("Nie udało się zapisać wykonania przeglądu.");
   }
 }
 
