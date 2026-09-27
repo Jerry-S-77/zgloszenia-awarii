@@ -22,6 +22,7 @@ import { Route as AwarieIndexRouteImport } from './routes/awarie.index'
 import { Route as AwarieIdRouteImport } from './routes/awarie.$id'
 import { Route as PrzegladyIndexRouteImport } from './routes/przeglady.index'
 import { Route as PrzegladyIdRouteImport } from './routes/przeglady.$id'
+import { Route as UrzadzeniaNrRouteImport } from './routes/urzadzenia.$nr'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -88,6 +89,11 @@ const PrzegladyIdRoute = PrzegladyIdRouteImport.update({
   path: '/przeglady/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UrzadzeniaNrRoute = UrzadzeniaNrRouteImport.update({
+  id: '/urzadzenia/$nr',
+  path: '/urzadzenia/$nr',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/przeglady/$id': typeof PrzegladyIdRoute
+  '/urzadzenia/$nr': typeof UrzadzeniaNrRoute
   '/awarie/': typeof AwarieIndexRoute
   '/przeglady/': typeof PrzegladyIndexRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/przeglady/$id': typeof PrzegladyIdRoute
+  '/urzadzenia/$nr': typeof UrzadzeniaNrRoute
   '/awarie': typeof AwarieIndexRoute
   '/przeglady': typeof PrzegladyIndexRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/przeglady/$id': typeof PrzegladyIdRoute
+  '/urzadzenia/$nr': typeof UrzadzeniaNrRoute
   '/awarie/': typeof AwarieIndexRoute
   '/przeglady/': typeof PrzegladyIndexRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/admin/uzytkownicy'
     | '/awarie/$id'
     | '/przeglady/$id'
+    | '/urzadzenia/$nr'
     | '/awarie/'
     | '/przeglady/'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/admin/uzytkownicy'
     | '/awarie/$id'
     | '/przeglady/$id'
+    | '/urzadzenia/$nr'
     | '/awarie'
     | '/przeglady'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/admin/uzytkownicy'
     | '/awarie/$id'
     | '/przeglady/$id'
+    | '/urzadzenia/$nr'
     | '/awarie/'
     | '/przeglady/'
   fileRoutesById: FileRoutesById
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   AdminUzytkownicyRoute: typeof AdminUzytkownicyRoute
   AwarieIdRoute: typeof AwarieIdRoute
   PrzegladyIdRoute: typeof PrzegladyIdRoute
+  UrzadzeniaNrRoute: typeof UrzadzeniaNrRoute
   AwarieIndexRoute: typeof AwarieIndexRoute
   PrzegladyIndexRoute: typeof PrzegladyIndexRoute
 }
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrzegladyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/urzadzenia/$nr': {
+      id: '/urzadzenia/$nr'
+      path: '/urzadzenia/$nr'
+      fullPath: '/urzadzenia/$nr'
+      preLoaderRoute: typeof UrzadzeniaNrRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -307,6 +327,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminUzytkownicyRoute: AdminUzytkownicyRoute,
   AwarieIdRoute: AwarieIdRoute,
   PrzegladyIdRoute: PrzegladyIdRoute,
+  UrzadzeniaNrRoute: UrzadzeniaNrRoute,
   AwarieIndexRoute: AwarieIndexRoute,
   PrzegladyIndexRoute: PrzegladyIndexRoute,
 }
