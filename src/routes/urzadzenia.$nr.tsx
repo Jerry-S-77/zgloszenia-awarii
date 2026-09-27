@@ -14,6 +14,8 @@ import {
   statusPrzegladu,
 } from "@/lib/przeglady";
 import { przegladyQuery } from "@/lib/przeglady-zapytania";
+import { czesciUrzadzeniaQuery } from "@/lib/czesci";
+import { historiaCzesci } from "@/lib/czesci-logika";
 import { awarieQuery, wymagajSieci } from "@/lib/queries";
 import { ETYKIETY_STATUSOW } from "@/lib/statusy-awarii";
 import { czyRola } from "@/lib/uprawnienia";
@@ -65,6 +67,10 @@ function KartaUrzadzenia() {
   const { data: wszystkie = [], isLoading } = useQuery({ ...awarieQuery, enabled: dostep });
   const { data: przeglady = [], isError: bladPrzegladow } = useQuery({
     ...przegladyQuery,
+    enabled: dostep,
+  });
+  const { data: czesci = [], isError: bladCzesci } = useQuery({
+    ...czesciUrzadzeniaQuery(nr),
     enabled: dostep,
   });
   const [okres, setOkres] = useState<"90" | "365">("365");
@@ -125,6 +131,30 @@ function KartaUrzadzenia() {
           Przyczyny awarii ({okres} dni)
         </h2>
         <Pareto pozycje={przyczyny} miara="liczba" />
+      </section>
+
+      <section className="mb-4 rounded-2xl border border-border bg-card p-4">
+        <h2 className="mb-1 font-display text-xl font-bold uppercase">Zużyte części</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Dostarczone części ze wszystkich awarii urządzenia, najczęściej wymieniane na górze.
+        </p>
+        {bladCzesci && (
+          <p className="text-sm text-muted-foreground">Części są widoczne po połączeniu.</p>
+        )}
+        {!bladCzesci && historiaCzesci(czesci).length === 0 && (
+          <p className="text-sm text-muted-foreground">Brak zapisanych części.</p>
+        )}
+        <ul className="divide-y divide-border">
+          {historiaCzesci(czesci).map((c) => (
+            <li key={c.nazwa} className="flex items-baseline justify-between gap-2 py-2 text-sm">
+              <span className="min-w-0 font-semibold">{c.nazwa}</span>
+              <span className="shrink-0 text-right text-muted-foreground tabular-nums">
+                {c.ilosc} szt. · {c.awarie} {c.awarie === 1 ? "awaria" : "awarie"} · ostatnio{" "}
+                {new Date(c.ostatnio).toLocaleDateString("pl-PL")}
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="mb-4 rounded-2xl border border-border bg-card p-4">

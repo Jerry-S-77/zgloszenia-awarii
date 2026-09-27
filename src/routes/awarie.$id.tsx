@@ -8,6 +8,7 @@ import { Komentarze } from "@/components/awaria/Komentarze";
 import { OsStatusow } from "@/components/awaria/OsStatusow";
 import { Zespol } from "@/components/awaria/Zespol";
 import { Zdjecia } from "@/components/awaria/Zdjecia";
+import { Czesci } from "@/components/awaria/Czesci";
 import { WyborKategorii } from "@/components/awaria/WyborKategorii";
 import {
   BEZ_KATEGORII,
@@ -235,6 +236,16 @@ function Szczegoly() {
 
       <div className="mt-5 rounded-2xl border border-border bg-card p-4">
         <Zdjecia awariaId={awaria.id} rola={rola} userId={userId} />
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-border bg-card p-4">
+        <Czesci
+          awariaId={awaria.id}
+          nr={awaria.nr_technologiczny}
+          zamknieta={awaria.status === "zamknieta"}
+          czekaNaCzesc={awaria.status === "oczekuje_na_czesc"}
+          obsluga={obsluga}
+        />
       </div>
 
       <div className="mt-5 rounded-2xl border border-border bg-card p-4">
