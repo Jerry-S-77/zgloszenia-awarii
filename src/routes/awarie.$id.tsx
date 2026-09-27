@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -8,6 +8,13 @@ import { Komentarze } from "@/components/awaria/Komentarze";
 import { OsStatusow } from "@/components/awaria/OsStatusow";
 import { Zespol } from "@/components/awaria/Zespol";
 import { Zdjecia } from "@/components/awaria/Zdjecia";
+import { WyborKategorii } from "@/components/awaria/WyborKategorii";
+import {
+  BEZ_KATEGORII,
+  ETYKIETY_KATEGORII,
+  type KategoriaPrzyczyny,
+} from "@/lib/kategorie-przyczyn";
+import { czyRola } from "@/lib/uprawnienia";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +59,8 @@ function Szczegoly() {
   const [celStatusu, setCelStatusu] = useState<StatusAwarii | null>(null);
   const [przyczyna, setPrzyczyna] = useState("");
   const [czas, setCzas] = useState("");
+  const [kategoria, setKategoria] = useState<KategoriaPrzyczyny | null>(null);
+  const [uzupelnienie, setUzupelnienie] = useState<KategoriaPrzyczyny | null>(null);
   const [zapis, setZapis] = useState(false);
 
   if (isLoading) {
@@ -72,6 +81,7 @@ function Szczegoly() {
   const rola = auth.stan === "zalogowany" ? auth.profil.rola : null;
   const userId = auth.stan === "zalogowany" ? auth.profil.id : null;
   const przejscia = dozwolonePrzejscia(awaria.status, rola);
+  const obsluga = czyRola(rola, ["technik", "kierownik", "admin"]);
   const osoba = awaria.zglaszajacy_nazwa ?? "—";
 
   async function wykonajPrzejscie(na: StatusAwarii, dane: Partial<Awaria> = {}): Promise<boolean> {
@@ -108,18 +118,42 @@ function Szczegoly() {
     void wykonajPrzejscie(na);
   }
 
+  async function zapiszKategorie() {
+    if (!awaria || !uzupelnienie) return;
+    setZapis(true);
+    try {
+      const wynik = await aktualizujAwarie(
+        awaria.id,
+        { kategoria_przyczyny: uzupelnienie },
+        awaria.wersja,
+      );
+      await qc.invalidateQueries({ queryKey: ["awarie"] });
+      setUzupelnienie(null);
+      toast.success(
+        wynik === "zsynchronizowano" ? "Kategoria zapisana" : "Kategoria zapisana lokalnie",
+      );
+    } catch (e) {
+      if (e instanceof KonfliktWersjiError) await qc.invalidateQueries({ queryKey: ["awarie"] });
+      toast.error(e instanceof Error ? e.message : "Nie udało się zapisać kategorii.");
+    } finally {
+      setZapis(false);
+    }
+  }
+
   async function potwierdzZamkniecie() {
-    if (!celStatusu || !przyczyna.trim() || czas === "") {
-      toast.error("Podaj przyczynę i czas przestoju.");
+    if (!celStatusu || !kategoria || !przyczyna.trim() || czas === "") {
+      toast.error("Wybierz kategorię, podaj przyczynę i czas przestoju.");
       return;
     }
     const udalo = await wykonajPrzejscie(celStatusu, {
       przyczyna: przyczyna.trim(),
+      kategoria_przyczyny: kategoria,
       czas_przestoju_h: Number(czas),
       data_zamkniecia: new Date().toISOString(),
     });
     if (udalo) {
       setPrzyczyna("");
+      setKategoria(null);
       setCzas("");
       setCelStatusu(null);
     }
@@ -132,10 +166,25 @@ function Szczegoly() {
       </div>
 
       <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
-        <Wiersz
-          etykieta="Urządzenie"
-          wartosc={`${awaria.nr_technologiczny} — ${awaria.nazwa_urzadzenia}`}
-        />
+        {obsluga ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Urządzenie
+            </p>
+            <Link
+              to="/urzadzenia/$nr"
+              params={{ nr: awaria.nr_technologiczny }}
+              className="inline-flex min-h-11 items-center text-base font-semibold text-primary underline underline-offset-4"
+            >
+              {awaria.nr_technologiczny} — {awaria.nazwa_urzadzenia}
+            </Link>
+          </div>
+        ) : (
+          <Wiersz
+            etykieta="Urządzenie"
+            wartosc={`${awaria.nr_technologiczny} — ${awaria.nazwa_urzadzenia}`}
+          />
+        )}
         <Wiersz
           etykieta="Data awarii"
           wartosc={new Date(awaria.data_awarii).toLocaleString("pl-PL")}
@@ -147,6 +196,27 @@ function Szczegoly() {
         {awaria.status === "zamknieta" && (
           <>
             <Wiersz etykieta="Przyczyna" wartosc={awaria.przyczyna ?? "—"} />
+            <Wiersz
+              etykieta="Kategoria przyczyny"
+              wartosc={
+                awaria.kategoria_przyczyny
+                  ? ETYKIETY_KATEGORII[awaria.kategoria_przyczyny]
+                  : BEZ_KATEGORII
+              }
+            />
+            {!awaria.kategoria_przyczyny && obsluga && (
+              <div className="space-y-2 rounded-xl bg-muted p-3">
+                <p className="text-sm font-semibold">Uzupełnij kategorię przyczyny</p>
+                <WyborKategorii wartosc={uzupelnienie} onZmiana={setUzupelnienie} />
+                <Button
+                  className="h-12 w-full"
+                  disabled={!uzupelnienie || zapis}
+                  onClick={() => void zapiszKategorie()}
+                >
+                  Zapisz kategorię
+                </Button>
+              </div>
+            )}
             <Wiersz
               etykieta="Czas przestoju (h)"
               wartosc={String(awaria.czas_przestoju_h ?? "—")}
@@ -194,6 +264,10 @@ function Szczegoly() {
             </div>
           ) : (
             <div className="space-y-3">
+              <div className="space-y-2">
+                <p className="text-base font-medium">Kategoria przyczyny</p>
+                <WyborKategorii wartosc={kategoria} onZmiana={setKategoria} />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="przyczyna" className="text-base">
                   Przyczyna

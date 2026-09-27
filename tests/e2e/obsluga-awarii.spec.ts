@@ -98,6 +98,7 @@ test("technik przyjmuje, naprawia, zamyka z komentarzem; historia i numer widocz
   await expect(page.getByText("Wymieniono uszczelkę.")).toBeVisible();
 
   await page.getByRole("button", { name: "Zamknij awarię" }).click();
+  await page.getByRole("radio", { name: "Mechaniczna" }).click();
   await page.getByLabel("Przyczyna").fill("Uszkodzona uszczelka");
   await page.getByLabel("Czas przestoju (h)").fill("1.5");
   await page.getByRole("button", { name: "Zamknij awarię" }).click();

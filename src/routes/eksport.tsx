@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { awarieQuery } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
 import { czyRola } from "@/lib/uprawnienia";
+import { ETYKIETY_KATEGORII } from "@/lib/kategorie-przyczyn";
 
 export const Route = createFileRoute("/eksport")({
   head: () => ({
@@ -38,6 +39,8 @@ const NAGLOWKI = [
   "Osoba_zglaszajaca",
   "Status",
   "Data_zamkniecia",
+  // Dopisana na końcu, żeby kolumny dawnego arkusza zostały na swoich miejscach.
+  "Kategoria_przyczyny",
 ];
 
 function pole(v: string | number | null | undefined) {
@@ -67,6 +70,7 @@ function Eksport() {
         pole(a.zglaszajacy_nazwa),
         pole(a.status),
         pole(a.data_zamkniecia),
+        pole(a.kategoria_przyczyny ? ETYKIETY_KATEGORII[a.kategoria_przyczyny] : ""),
       ].join(","),
     );
     const csv = "\uFEFF" + [NAGLOWKI.join(","), ...wiersze].join("\r\n");
