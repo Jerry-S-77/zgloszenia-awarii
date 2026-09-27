@@ -81,6 +81,60 @@ export type Database = {
           },
         ];
       };
+      awarie_czesci: {
+        Row: {
+          autor_id: string | null;
+          autor_nazwa: string | null;
+          awaria_id: string;
+          created_at: string;
+          id: string;
+          ilosc: number;
+          nazwa: string;
+          status: Database["public"]["Enums"]["status_czesci"];
+          termin_dostawy: string | null;
+          zmieniono_at: string;
+        };
+        Insert: {
+          autor_id?: string | null;
+          autor_nazwa?: string | null;
+          awaria_id: string;
+          created_at?: string;
+          id?: string;
+          ilosc?: number;
+          nazwa: string;
+          status?: Database["public"]["Enums"]["status_czesci"];
+          termin_dostawy?: string | null;
+          zmieniono_at?: string;
+        };
+        Update: {
+          autor_id?: string | null;
+          autor_nazwa?: string | null;
+          awaria_id?: string;
+          created_at?: string;
+          id?: string;
+          ilosc?: number;
+          nazwa?: string;
+          status?: Database["public"]["Enums"]["status_czesci"];
+          termin_dostawy?: string | null;
+          zmieniono_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "awarie_czesci_autor_id_fkey";
+            columns: ["autor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "awarie_czesci_awaria_id_fkey";
+            columns: ["awaria_id"];
+            isOneToOne: false;
+            referencedRelation: "awarie";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       awarie_historia: {
         Row: {
           autor_id: string | null;
@@ -631,6 +685,7 @@ export type Database = {
         "mechaniczna" | "elektryczna" | "automatyka" | "media" | "obsluga" | "inna";
       rola_uzytkownika: "pracownik" | "technik" | "kierownik" | "admin";
       status_awarii: "zgloszona" | "przyjeta" | "w_naprawie" | "oczekuje_na_czesc" | "zamknieta";
+      status_czesci: "potrzebna" | "zamowiona" | "dostarczona";
       status_propozycji: "oczekuje" | "zatwierdzona" | "odrzucona" | "nieaktualna";
       status_urzadzenia: "proponowane" | "aktywne" | "wycofane";
       status_uzytkownika: "aktywny" | "zablokowany";
@@ -642,7 +697,8 @@ export type Database = {
         | "propozycja_przegladu"
         | "przeglad_wkrotce"
         | "przeglad_opozniony"
-        | "przeglad_nieprawidlowosc";
+        | "przeglad_nieprawidlowosc"
+        | "czesc_dostarczona";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -767,6 +823,7 @@ export const Constants = {
       kategoria_przyczyny: ["mechaniczna", "elektryczna", "automatyka", "media", "obsluga", "inna"],
       rola_uzytkownika: ["pracownik", "technik", "kierownik", "admin"],
       status_awarii: ["zgloszona", "przyjeta", "w_naprawie", "oczekuje_na_czesc", "zamknieta"],
+      status_czesci: ["potrzebna", "zamowiona", "dostarczona"],
       status_propozycji: ["oczekuje", "zatwierdzona", "odrzucona", "nieaktualna"],
       status_urzadzenia: ["proponowane", "aktywne", "wycofane"],
       status_uzytkownika: ["aktywny", "zablokowany"],
@@ -779,6 +836,7 @@ export const Constants = {
         "przeglad_wkrotce",
         "przeglad_opozniony",
         "przeglad_nieprawidlowosc",
+        "czesc_dostarczona",
       ],
     },
   },

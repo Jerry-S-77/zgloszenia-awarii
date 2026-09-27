@@ -30,6 +30,7 @@ const TABELE = [
   "awarie_komentarze",
   "awarie_zespol",
   "awarie_zdjecia",
+  "awarie_czesci",
   "numeracja_awarii",
   "powiadomienia",
   "profiles",
