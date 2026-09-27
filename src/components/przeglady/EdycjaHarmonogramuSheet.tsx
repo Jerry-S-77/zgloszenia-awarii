@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { zapiszHarmonogram, type PrzegladZUrzadzeniem } from "@/lib/przeglady-zapytania";
+import { oczyscPunkty } from "@/lib/lista-kontrolna";
+import { EdytorListyKontrolnej } from "./ListaKontrolna";
 
 type Props = {
   przeglad: PrzegladZUrzadzeniem;
@@ -27,6 +29,7 @@ export function EdycjaHarmonogramuSheet({ przeglad, otwarte, onZmiana }: Props) 
   const [termin, setTermin] = useState("");
   const [wykonawca, setWykonawca] = useState("");
   const [uwagi, setUwagi] = useState("");
+  const [punkty, setPunkty] = useState<string[]>([]);
   const [zapis, setZapis] = useState(false);
 
   useEffect(() => {
@@ -36,6 +39,7 @@ export function EdycjaHarmonogramuSheet({ przeglad, otwarte, onZmiana }: Props) 
     setTermin(przeglad.data_najblizszego ?? "");
     setWykonawca(przeglad.wykonawca ?? "");
     setUwagi(przeglad.uwagi ?? "");
+    setPunkty(przeglad.lista_kontrolna ?? []);
   }, [otwarte, przeglad]);
 
   async function zapisz(e: React.FormEvent) {
@@ -44,6 +48,8 @@ export function EdycjaHarmonogramuSheet({ przeglad, otwarte, onZmiana }: Props) 
     if (dni !== null && (!Number.isInteger(dni) || dni < 1 || dni > 3650)) {
       return void toast.error("Częstotliwość: liczba dni od 1 do 3650.");
     }
+    const lista = oczyscPunkty(punkty);
+    if (lista.blad) return void toast.error(lista.blad);
     setZapis(true);
     try {
       await zapiszHarmonogram(przeglad.id, {
@@ -52,6 +58,7 @@ export function EdycjaHarmonogramuSheet({ przeglad, otwarte, onZmiana }: Props) 
         data_najblizszego: termin || null,
         wykonawca: wykonawca.trim() || null,
         uwagi: uwagi.trim() || null,
+        lista_kontrolna: lista.punkty,
       });
       await qc.invalidateQueries({ queryKey: ["przeglady"] });
       toast.success("Zapisano harmonogram");
@@ -136,6 +143,14 @@ export function EdycjaHarmonogramuSheet({ przeglad, otwarte, onZmiana }: Props) 
               onChange={(e) => setUwagi(e.target.value)}
               className="text-base"
             />
+          </div>
+          <div className="space-y-2">
+            <p className="text-base font-medium">Lista kontrolna</p>
+            <p className="text-xs text-muted-foreground">
+              Punkty do sprawdzenia przy każdym wykonaniu. Zmiana listy nie zmienia zapisanych
+              wykonań.
+            </p>
+            <EdytorListyKontrolnej punkty={punkty} onZmiana={setPunkty} />
           </div>
           <Button type="submit" disabled={zapis} className="h-16 w-full text-lg font-bold">
             {zapis ? "Zapisywanie..." : "Zapisz harmonogram"}

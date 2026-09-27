@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { BanerPropozycji } from "@/components/przeglady/BanerPropozycji";
 import { EdycjaHarmonogramuSheet } from "@/components/przeglady/EdycjaHarmonogramuSheet";
 import { OdnotujWykonanieSheet } from "@/components/przeglady/OdnotujWykonanieSheet";
+import { WynikiListyKontrolnej } from "@/components/przeglady/ListaKontrolna";
+import { odczytajWyniki } from "@/lib/lista-kontrolna";
 import { Button } from "@/components/ui/button";
 import { useOnline } from "@/hooks/use-online";
 import { useAuth } from "@/lib/auth";
@@ -142,6 +144,20 @@ function KartaPrzegladuEkran() {
         <Wiersz etykieta="Wykonawca" wartosc={przeglad.wykonawca ?? "—"} />
         <Wiersz etykieta="Właściciel" wartosc={przeglad.urzadzenia?.wlasciciel_nazwa ?? "—"} />
         {przeglad.uwagi && <Wiersz etykieta="Uwagi" wartosc={przeglad.uwagi} />}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Lista kontrolna
+          </p>
+          {przeglad.lista_kontrolna.length === 0 ? (
+            <p className="text-base">—</p>
+          ) : (
+            <ol className="list-decimal pl-5 text-base">
+              {przeglad.lista_kontrolna.map((p, i) => (
+                <li key={i}>{p}</li>
+              ))}
+            </ol>
+          )}
+        </div>
       </div>
 
       <div className="mt-5 grid gap-2">
@@ -185,6 +201,7 @@ function KartaPrzegladuEkran() {
                 {w.wykonawca ? ` · ${w.wykonawca}` : ""}
               </p>
               {w.uwagi && <p className="text-sm text-muted-foreground">Uwagi: {w.uwagi}</p>}
+              <WynikiListyKontrolnej wyniki={odczytajWyniki(w.lista_kontrolna)} />
             </li>
           ))}
         </ul>
