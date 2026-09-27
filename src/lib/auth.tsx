@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biezacyUserId, getMojaKolejka, syncQueue, usunOperacjeUzytkownika } from "@/lib/offline";
+import { wylaczPush } from "@/lib/push";
 import { PROFIL_CACHE_KEY, klasyfikujSesje, stanPoStarcie } from "@/lib/uzytkownik-cache";
 import type { Rola } from "./uprawnienia";
 
@@ -245,6 +246,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mimoTo) return false;
         usunPoWylogowaniu = true;
       }
+    }
+    try {
+      await wylaczPush();
+    } catch {
+      // Brak sieci albo wsparcia push: wylogowanie i tak idzie dalej.
     }
     const { error } = await supabase.auth.signOut();
     if (error) {

@@ -13,11 +13,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EksportRouteImport } from './routes/eksport'
 import { Route as LogowanieRouteImport } from './routes/logowanie'
+import { Route as MagazynRouteImport } from './routes/magazyn'
 import { Route as PowiadomieniaRouteImport } from './routes/powiadomienia'
 import { Route as ZadaniaRouteImport } from './routes/zadania'
 import { Route as ZmianaHaslaRouteImport } from './routes/zmiana-hasla'
 import { Route as AdminUrzadzeniaRouteImport } from './routes/admin.urzadzenia'
 import { Route as AdminUzytkownicyRouteImport } from './routes/admin.uzytkownicy'
+import { Route as ApiPushRouteImport } from './routes/api/push'
 import { Route as AwarieIndexRouteImport } from './routes/awarie.index'
 import { Route as AwarieIdRouteImport } from './routes/awarie.$id'
 import { Route as PrzegladyIndexRouteImport } from './routes/przeglady.index'
@@ -44,6 +46,11 @@ const LogowanieRoute = LogowanieRouteImport.update({
   path: '/logowanie',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MagazynRoute = MagazynRouteImport.update({
+  id: '/magazyn',
+  path: '/magazyn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PowiadomieniaRoute = PowiadomieniaRouteImport.update({
   id: '/powiadomienia',
   path: '/powiadomienia',
@@ -67,6 +74,11 @@ const AdminUrzadzeniaRoute = AdminUrzadzeniaRouteImport.update({
 const AdminUzytkownicyRoute = AdminUzytkownicyRouteImport.update({
   id: '/admin/uzytkownicy',
   path: '/admin/uzytkownicy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPushRoute = ApiPushRouteImport.update({
+  id: '/api/push',
+  path: '/api/push',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AwarieIndexRoute = AwarieIndexRouteImport.update({
@@ -100,11 +112,13 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
   '/logowanie': typeof LogowanieRoute
+  '/magazyn': typeof MagazynRoute
   '/powiadomienia': typeof PowiadomieniaRoute
   '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
   '/admin/urzadzenia': typeof AdminUrzadzeniaRoute
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
+  '/api/push': typeof ApiPushRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/przeglady/$id': typeof PrzegladyIdRoute
   '/urzadzenia/$nr': typeof UrzadzeniaNrRoute
@@ -116,11 +130,13 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
   '/logowanie': typeof LogowanieRoute
+  '/magazyn': typeof MagazynRoute
   '/powiadomienia': typeof PowiadomieniaRoute
   '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
   '/admin/urzadzenia': typeof AdminUrzadzeniaRoute
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
+  '/api/push': typeof ApiPushRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/przeglady/$id': typeof PrzegladyIdRoute
   '/urzadzenia/$nr': typeof UrzadzeniaNrRoute
@@ -133,11 +149,13 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/eksport': typeof EksportRoute
   '/logowanie': typeof LogowanieRoute
+  '/magazyn': typeof MagazynRoute
   '/powiadomienia': typeof PowiadomieniaRoute
   '/zadania': typeof ZadaniaRoute
   '/zmiana-hasla': typeof ZmianaHaslaRoute
   '/admin/urzadzenia': typeof AdminUrzadzeniaRoute
   '/admin/uzytkownicy': typeof AdminUzytkownicyRoute
+  '/api/push': typeof ApiPushRoute
   '/awarie/$id': typeof AwarieIdRoute
   '/przeglady/$id': typeof PrzegladyIdRoute
   '/urzadzenia/$nr': typeof UrzadzeniaNrRoute
@@ -151,11 +169,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/eksport'
     | '/logowanie'
+    | '/magazyn'
     | '/powiadomienia'
     | '/zadania'
     | '/zmiana-hasla'
     | '/admin/urzadzenia'
     | '/admin/uzytkownicy'
+    | '/api/push'
     | '/awarie/$id'
     | '/przeglady/$id'
     | '/urzadzenia/$nr'
@@ -167,11 +187,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/eksport'
     | '/logowanie'
+    | '/magazyn'
     | '/powiadomienia'
     | '/zadania'
     | '/zmiana-hasla'
     | '/admin/urzadzenia'
     | '/admin/uzytkownicy'
+    | '/api/push'
     | '/awarie/$id'
     | '/przeglady/$id'
     | '/urzadzenia/$nr'
@@ -183,11 +205,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/eksport'
     | '/logowanie'
+    | '/magazyn'
     | '/powiadomienia'
     | '/zadania'
     | '/zmiana-hasla'
     | '/admin/urzadzenia'
     | '/admin/uzytkownicy'
+    | '/api/push'
     | '/awarie/$id'
     | '/przeglady/$id'
     | '/urzadzenia/$nr'
@@ -200,11 +224,13 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   EksportRoute: typeof EksportRoute
   LogowanieRoute: typeof LogowanieRoute
+  MagazynRoute: typeof MagazynRoute
   PowiadomieniaRoute: typeof PowiadomieniaRoute
   ZadaniaRoute: typeof ZadaniaRoute
   ZmianaHaslaRoute: typeof ZmianaHaslaRoute
   AdminUrzadzeniaRoute: typeof AdminUrzadzeniaRoute
   AdminUzytkownicyRoute: typeof AdminUzytkownicyRoute
+  ApiPushRoute: typeof ApiPushRoute
   AwarieIdRoute: typeof AwarieIdRoute
   PrzegladyIdRoute: typeof PrzegladyIdRoute
   UrzadzeniaNrRoute: typeof UrzadzeniaNrRoute
@@ -242,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogowanieRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/magazyn': {
+      id: '/magazyn'
+      path: '/magazyn'
+      fullPath: '/magazyn'
+      preLoaderRoute: typeof MagazynRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/powiadomienia': {
       id: '/powiadomienia'
       path: '/powiadomienia'
@@ -275,6 +308,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/uzytkownicy'
       fullPath: '/admin/uzytkownicy'
       preLoaderRoute: typeof AdminUzytkownicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/push': {
+      id: '/api/push'
+      path: '/api/push'
+      fullPath: '/api/push'
+      preLoaderRoute: typeof ApiPushRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/awarie/': {
@@ -320,11 +360,13 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   EksportRoute: EksportRoute,
   LogowanieRoute: LogowanieRoute,
+  MagazynRoute: MagazynRoute,
   PowiadomieniaRoute: PowiadomieniaRoute,
   ZadaniaRoute: ZadaniaRoute,
   ZmianaHaslaRoute: ZmianaHaslaRoute,
   AdminUrzadzeniaRoute: AdminUrzadzeniaRoute,
   AdminUzytkownicyRoute: AdminUzytkownicyRoute,
+  ApiPushRoute: ApiPushRoute,
   AwarieIdRoute: AwarieIdRoute,
   PrzegladyIdRoute: PrzegladyIdRoute,
   UrzadzeniaNrRoute: UrzadzeniaNrRoute,

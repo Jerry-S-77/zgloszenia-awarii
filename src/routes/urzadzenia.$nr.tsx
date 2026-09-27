@@ -16,6 +16,7 @@ import {
 import { przegladyQuery } from "@/lib/przeglady-zapytania";
 import { czesciUrzadzeniaQuery } from "@/lib/czesci";
 import { historiaCzesci } from "@/lib/czesci-logika";
+import { czesciMagazynuUrzadzeniaQuery, formatujIlosc, niskiStan } from "@/lib/magazyn";
 import { awarieQuery, wymagajSieci } from "@/lib/queries";
 import { ETYKIETY_STATUSOW } from "@/lib/statusy-awarii";
 import { czyRola } from "@/lib/uprawnienia";
@@ -71,6 +72,10 @@ function KartaUrzadzenia() {
   });
   const { data: czesci = [], isError: bladCzesci } = useQuery({
     ...czesciUrzadzeniaQuery(nr),
+    enabled: dostep,
+  });
+  const { data: czesciMagazynu = [], isError: bladMagazynu } = useQuery({
+    ...czesciMagazynuUrzadzeniaQuery(nr),
     enabled: dostep,
   });
   const [okres, setOkres] = useState<"90" | "365">("365");
@@ -134,7 +139,39 @@ function KartaUrzadzenia() {
       </section>
 
       <section className="mb-4 rounded-2xl border border-border bg-card p-4">
-        <h2 className="mb-1 font-display text-xl font-bold uppercase">Zużyte części</h2>
+        <h2 className="mb-1 font-display text-xl font-bold uppercase">Części zamienne</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Części z magazynu przypisane do urządzenia i ich stan.
+        </p>
+        {bladMagazynu && (
+          <p className="text-sm text-muted-foreground">Magazyn jest widoczny po połączeniu.</p>
+        )}
+        {!bladMagazynu && czesciMagazynu.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Nie przypisano części z magazynu (Magazyn → część → Urządzenia).
+          </p>
+        )}
+        <ul className="mb-5 divide-y divide-border">
+          {czesciMagazynu.map(({ krytyczna, magazyn_czesci: c }) => (
+            <li key={c.id} className="flex items-baseline justify-between gap-2 py-2 text-sm">
+              <span className="min-w-0">
+                <span className="font-semibold">{c.nazwa}</span>
+                {krytyczna && (
+                  <span className="ml-1 rounded-full bg-warning px-1.5 text-[11px] font-bold text-warning-foreground">
+                    krytyczna
+                  </span>
+                )}
+                <span className="block text-xs text-muted-foreground">{c.numer_katalogowy}</span>
+              </span>
+              <span
+                className={`shrink-0 font-semibold tabular-nums ${niskiStan(c) || c.stan === 0 ? "text-destructive" : ""}`}
+              >
+                {formatujIlosc(c.stan, c.jednostka)}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <h3 className="mb-1 font-display text-lg font-bold uppercase">Zużyte części</h3>
         <p className="mb-3 text-xs text-muted-foreground">
           Dostarczone części ze wszystkich awarii urządzenia, najczęściej wymieniane na górze.
         </p>

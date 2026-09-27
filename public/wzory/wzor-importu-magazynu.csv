@@ -1,0 +1,4 @@
+﻿numer_katalogowy;nazwa;jednostka;stan_minimalny;stan_poczatkowy;lokalizacja;urzadzenia;krytyczna
+HEPA-H14-610;Filtr HEPA H14 610x610x292;szt.;2;4;Magazyn A, regał 3;HVAC-01, HVAC-02;tak
+SPZ-1250;Pasek klinowy SPZ 1250;szt.;3;6;Magazyn A, regał 1;HVAC-01;nie
+PT100-150;Czujnik temperatury PT100 150 mm;szt.;1;2;Magazyn B;WFI-02;tak

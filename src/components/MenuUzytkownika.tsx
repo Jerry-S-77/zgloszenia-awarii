@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { BarChart3, Download, KeyRound, LogOut, User } from "lucide-react";
+import { BarChart3, Boxes, Download, KeyRound, LogOut, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,14 @@ export function MenuUzytkownika() {
           <p className="text-xs font-normal text-muted-foreground">{ETYKIETY_ROL[profil.rola]}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {czyRola(profil.rola, ["technik", "kierownik", "admin"]) && (
+          <DropdownMenuItem
+            className="py-3 text-base"
+            onSelect={() => void navigate({ to: "/magazyn" })}
+          >
+            <Boxes className="size-5" /> Magazyn części
+          </DropdownMenuItem>
+        )}
         {czyRola(profil.rola, ["kierownik", "admin"]) && (
           <>
             <DropdownMenuItem

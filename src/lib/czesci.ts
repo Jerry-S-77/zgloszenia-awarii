@@ -79,6 +79,8 @@ export async function dodajCzesc(dane: {
   nazwa: string;
   ilosc: number;
   terminDostawy: string | null;
+  /** Pozycja magazynu, pod którą zamawiana jest część (gdy brak jej na stanie). */
+  magazynCzescId?: string;
 }): Promise<void> {
   wymagajPolaczenia();
   const { error } = await supabase.from("awarie_czesci").insert({
@@ -86,6 +88,7 @@ export async function dodajCzesc(dane: {
     nazwa: dane.nazwa,
     ilosc: dane.ilosc,
     termin_dostawy: dane.terminDostawy,
+    ...(dane.magazynCzescId ? { magazyn_czesc_id: dane.magazynCzescId } : {}),
   });
   if (error) throw new Error("Nie udało się dodać części (awaria zamknięta albo brak uprawnień).");
 }
