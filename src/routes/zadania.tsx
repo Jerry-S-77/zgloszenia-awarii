@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { KartaPrzegladu } from "@/components/przeglady/KartaPrzegladu";
 import { awarieQuery } from "@/lib/queries";
+import { CzekajaceNaCzesci } from "@/components/CzekajaceNaCzesci";
 import { useAuth } from "@/lib/auth";
 import { dzisLokalnie, sortujPoPilnosci, statusPrzegladu } from "@/lib/przeglady";
 import { przegladyQuery } from "@/lib/przeglady-zapytania";
@@ -107,6 +108,11 @@ function Zadania() {
             </p>
           )}
         </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="mb-3 font-display text-xl font-bold uppercase">Czekają na części</h2>
+        <CzekajaceNaCzesci awarie={awarie} />
       </section>
 
       <section className="mt-6">

@@ -23,6 +23,7 @@ export function mozliwosciOffline(rola: Rola): MozliwosciOffline {
   const niemozna = ["Dodawać komentarzy"];
   if (obsluga) {
     niemozna.push("Dołączać do zespołu przy awarii ani go zmieniać");
+    niemozna.push("Dodawać części zamiennych ani zmieniać ich statusu");
     niemozna.push("Oglądać przeglądów i odnotowywać ich wykonania");
   }
   if (decyzje) {

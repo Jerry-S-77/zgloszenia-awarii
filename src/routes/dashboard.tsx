@@ -18,6 +18,7 @@ import { awarieQuery, progiQuery } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
 import { czyRola } from "@/lib/uprawnienia";
 import { KafelWskaznika, Pareto, PrzelacznikOpcji } from "@/components/analizy/Pareto";
+import { CzekajaceNaCzesci } from "@/components/CzekajaceNaCzesci";
 import {
   formatujCzas,
   okresOstatnichDni,
@@ -230,6 +231,11 @@ function Dashboard() {
           warto zacząć działania zapobiegawcze.
         </p>
         <Pareto pozycje={przyczyny} miara={miara} />
+      </section>
+
+      <section className="mb-6">
+        <h2 className="mb-3 font-display text-xl font-bold uppercase">Czekają na części</h2>
+        <CzekajaceNaCzesci awarie={awarie} />
       </section>
 
       {top10.length > 0 && (

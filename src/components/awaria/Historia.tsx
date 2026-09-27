@@ -17,6 +17,21 @@ function opisWpisu(typ: string, dane: unknown): string {
     // Wpisy sprzed etapu 3b (pojedyncze przypisanie technika).
     return d["technik_id"] ? "Przypisano technika" : "Usunięto przypisanie";
   }
+  if (typeof d["czesc"] === "string") {
+    const czesc = d["czesc"];
+    if (d["akcja"] === "czesc_dodana") return `Dodano część: ${czesc} × ${String(d["ilosc"] ?? 1)}`;
+    if (d["akcja"] === "czesc_usunieta") return `Usunięto część: ${czesc}`;
+    if (d["akcja"] === "czesc_status") {
+      const status = d["status"];
+      const opis =
+        status === "zamowiona"
+          ? "zamówiona"
+          : status === "dostarczona"
+            ? "dostarczona"
+            : "potrzebna";
+      return `Część ${czesc}: ${opis}`;
+    }
+  }
   if (d["akcja"] === "zdjecie_dodane" || d["akcja"] === "zdjecie_usuniete") {
     const nazwa = typeof d["nazwa"] === "string" ? `: ${d["nazwa"]}` : "";
     return `${d["akcja"] === "zdjecie_dodane" ? "Dodano zdjęcie" : "Usunięto zdjęcie"}${nazwa}`;
