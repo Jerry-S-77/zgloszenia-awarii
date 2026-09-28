@@ -50,7 +50,8 @@ export function parsujCsv(tekst: string): string[][] {
       } else {
         pole += z;
       }
-    } else if (z === '"') {
+    } else if (z === '"' && pole === "") {
+      // Cudzysłów otwiera pole tylko na jego początku (jak w Excelu); w środku, np. 10" (cale), to zwykły znak.
       wCudzyslowie = true;
     } else if (z === separator) {
       wiersz.push(pole);

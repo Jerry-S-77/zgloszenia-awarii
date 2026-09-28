@@ -9,6 +9,13 @@ describe("parsujCsv", () => {
       ["x;1", 'y "z"'],
     ]);
   });
+  it('cudzysłów w środku pola (np. cale: 10") jest zwykłym znakiem i nie scala wierszy', () => {
+    expect(parsujCsv('a;b\nWkład 10";szt.\nZawór 3/4";szt.\n')).toEqual([
+      ["a", "b"],
+      ['Wkład 10"', "szt."],
+      ['Zawór 3/4"', "szt."],
+    ]);
+  });
   it("rozpoznaje przecinek, gdy w nagłówku nie ma średników", () => {
     expect(parsujCsv("a,b\n1,2")).toEqual([
       ["a", "b"],
