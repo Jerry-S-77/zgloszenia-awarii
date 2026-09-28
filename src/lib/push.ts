@@ -89,6 +89,8 @@ export async function wlaczPush(tylkoKrytyczne: boolean): Promise<void> {
     p_tylko_krytyczne: tylkoKrytyczne,
   });
   if (error) throw new Error("Nie udało się zapisać subskrypcji powiadomień.");
+  // Świadome włączenie na tym urządzeniu unieważnia zaległe wyrejestrowanie tego samego adresu.
+  zapiszZalegle(null);
 }
 
 export async function ustawTrybPush(tylkoKrytyczne: boolean): Promise<void> {
@@ -101,11 +103,48 @@ export async function ustawTrybPush(tylkoKrytyczne: boolean): Promise<void> {
   if (error) throw new Error("Nie udało się zmienić ustawienia.");
 }
 
-/** Wyłącza push na tym urządzeniu: usuwa wpis w bazie i subskrypcję przeglądarki. Nie rzuca przy braku sieci. */
+const KLUCZ_ZALEGLEGO = "push-do-wyrejestrowania";
+
+function zapiszZalegle(endpoint: string | null) {
+  try {
+    if (endpoint) localStorage.setItem(KLUCZ_ZALEGLEGO, endpoint);
+    else localStorage.removeItem(KLUCZ_ZALEGLEGO);
+  } catch {
+    // Brak dostępu do pamięci przeglądarki: nic więcej nie zrobimy.
+  }
+}
+
+/** Usuwa wpis w bazie (po adresie, także cudzy) i subskrypcję przeglądarki; true, gdy obie rzeczy się udały. */
+async function wyrejestruj(endpoint: string): Promise<boolean> {
+  const { error } = await supabase.rpc("push_usun_subskrypcje", { p_endpoint: endpoint });
+  let lokalnie = true;
+  const subskrypcja = await biezacaSubskrypcja().catch(() => null);
+  if (subskrypcja?.endpoint === endpoint)
+    lokalnie = await subskrypcja.unsubscribe().catch(() => false);
+  return !error && lokalnie;
+}
+
+/**
+ * Wyłącza push na tym urządzeniu. Gdy się nie uda (np. wylogowanie bez sieci), zapamiętuje adres
+ * i `dokonczWyrejestrowaniePush` kończy to przy następnym połączeniu — żeby na wspólnym telefonie
+ * nie przychodziły powiadomienia poprzedniej osoby.
+ */
 export async function wylaczPush(): Promise<void> {
   if (typeof window === "undefined" || !obslugiwane()) return;
   const subskrypcja = await biezacaSubskrypcja();
   if (!subskrypcja) return;
-  await supabase.from("push_subskrypcje").delete().eq("endpoint", subskrypcja.endpoint);
-  await subskrypcja.unsubscribe();
+  zapiszZalegle(subskrypcja.endpoint);
+  if (await wyrejestruj(subskrypcja.endpoint)) zapiszZalegle(null);
+}
+
+/** Dokańcza wyrejestrowanie zapamiętane przy wylogowaniu bez sieci (wywoływane po powrocie połączenia). */
+export async function dokonczWyrejestrowaniePush(): Promise<void> {
+  if (typeof window === "undefined" || !navigator.onLine || !obslugiwane()) return;
+  let endpoint: string | null = null;
+  try {
+    endpoint = localStorage.getItem(KLUCZ_ZALEGLEGO);
+  } catch {
+    return;
+  }
+  if (endpoint && (await wyrejestruj(endpoint))) zapiszZalegle(null);
 }

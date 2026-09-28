@@ -785,6 +785,7 @@ export type Database = {
     Functions: {
       awaria_otwarta: { Args: { p_awaria_id: string }; Returns: boolean };
       dzis_pl: { Args: never; Returns: string };
+      liczba_pl: { Args: { p: number }; Returns: string };
       lista_kontrolna_poprawna: {
         Args: { p_lista: string[] };
         Returns: boolean;
@@ -853,6 +854,10 @@ export type Database = {
         Returns: undefined;
       };
       przeglady_sprawdz_progi: { Args: { p_nr: string }; Returns: undefined };
+      push_usun_subskrypcje: {
+        Args: { p_endpoint: string };
+        Returns: undefined;
+      };
       push_zapisz_subskrypcje: {
         Args: {
           p_auth: string;

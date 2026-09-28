@@ -214,6 +214,7 @@ describe("technik, kierownik, admin", () => {
         status: "zamknieta",
         przyczyna: "Test",
         kategoria_przyczyny: "inna",
+        czas_przestoju_h: 1,
         data_zamkniecia: new Date().toISOString(),
       })
       .eq("id", awariaPracownika2)
@@ -240,6 +241,7 @@ describe("technik, kierownik, admin", () => {
         status: "zamknieta",
         przyczyna: "Test",
         kategoria_przyczyny: "inna",
+        czas_przestoju_h: 1,
         data_zamkniecia: new Date().toISOString(),
         zglaszajacy_id: id.technik,
         zglaszajacy_nazwa: "Podmiana",

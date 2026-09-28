@@ -65,6 +65,8 @@ const FUNKCJE: Record<string, Record<string, unknown>> = {
   magazyn_korekta: { p_czesc: ZERO, p_nowy_stan: 1, p_uwagi: "audyt" },
   magazyn_pobierz_do_awarii: { p_czesc: ZERO, p_awaria: ZERO, p_ilosc: 1 },
   magazyn_import: { p_wiersze: [] },
+  push_usun_subskrypcje: { p_endpoint: "https://audyt.invalid/x" },
+  liczba_pl: { p: 1 },
   push_zapisz_subskrypcje: { p_endpoint: "https://audyt.invalid/x", p_p256dh: "x", p_auth: "x" },
   zdjecie_awaria_id: { p_nazwa: `${ZERO}/${ZERO}.jpg` },
   zdjecia_inne_pliki: { p_nazwa: `${ZERO}/${ZERO}.jpg` },
@@ -98,6 +100,18 @@ for (const tabela of TABELE) {
   wynik(
     odmowa || pusto,
     `tabela ${tabela}: ${odmowa ? "odmowa" : pusto ? "brak wierszy" : `${odp.status} ${tresc.slice(0, 80)}`}`,
+  );
+  // Zapis: pusty wiersz musi zostać odrzucony na poziomie uprawnień (42501), zanim baza sprawdzi dane.
+  const zapis = await fetch(`${url}/rest/v1/${tabela}`, {
+    method: "POST",
+    headers: { ...naglowki, prefer: "return=minimal" },
+    body: "{}",
+  });
+  const trescZapisu = await zapis.text();
+  const odmowaZapisu = !zapis.ok && trescZapisu.includes("42501");
+  wynik(
+    odmowaZapisu,
+    `tabela ${tabela} (zapis): ${odmowaZapisu ? "odmowa" : `${zapis.status} ${trescZapisu.slice(0, 80)}`}`,
   );
 }
 

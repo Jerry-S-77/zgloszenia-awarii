@@ -65,7 +65,10 @@ export function mapujStatusUrzadzenia(v: Komorka): StatusUrzadzeniaImport {
   const s = normalizujNazwisko(tekst(v) ?? "");
   if (s === "aktywne") return "aktywne";
   if (s === "proponowane") return "proponowane";
-  return "wycofane";
+  if (s === "wycofane") return "wycofane";
+  throw new Error(
+    `Nieznany status urządzenia: „${tekst(v) ?? ""}” (dozwolone: aktywne, proponowane, wycofane)`,
+  );
 }
 
 export function mapujUrzadzenie(w: Wiersz, konta: readonly Konto[]) {

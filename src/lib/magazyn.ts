@@ -167,6 +167,14 @@ export async function ustawUrzadzeniaCzesci(
   nowe: { nr_technologiczny: string; krytyczna: boolean }[],
 ): Promise<void> {
   wymagajPolaczenia();
+  // Najpierw dopisujemy, dopiero potem usuwamy: zerwane połączenie w połowie zostawia nadmiar, nie brak.
+  if (nowe.length) {
+    const { error } = await supabase.from("urzadzenia_czesci").upsert(
+      nowe.map((n) => ({ ...n, czesc_id: czescId })),
+      { onConflict: "nr_technologiczny,czesc_id" },
+    );
+    if (error) throw new Error("Nie udało się zapisać urządzeń części.");
+  }
   const doUsuniecia = obecne
     .filter((o) => !nowe.some((n) => n.nr_technologiczny === o.nr_technologiczny))
     .map((o) => o.nr_technologiczny);
@@ -176,13 +184,6 @@ export async function ustawUrzadzeniaCzesci(
       .delete()
       .eq("czesc_id", czescId)
       .in("nr_technologiczny", doUsuniecia);
-    if (error) throw new Error("Nie udało się zapisać urządzeń części.");
-  }
-  if (nowe.length) {
-    const { error } = await supabase.from("urzadzenia_czesci").upsert(
-      nowe.map((n) => ({ ...n, czesc_id: czescId })),
-      { onConflict: "nr_technologiczny,czesc_id" },
-    );
     if (error) throw new Error("Nie udało się zapisać urządzeń części.");
   }
 }

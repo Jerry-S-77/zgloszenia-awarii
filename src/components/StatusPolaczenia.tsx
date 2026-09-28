@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CloudOff, RefreshCw, CheckCircle2 } from "lucide-react";
 import { getMojaKolejka, syncQueue } from "@/lib/offline";
+import { dokonczWyrejestrowaniePush } from "@/lib/push";
 
 export function StatusPolaczenia() {
   const [online, setOnline] = useState(true);
@@ -17,6 +18,7 @@ export function StatusPolaczenia() {
     const przy = async () => {
       setOnline(navigator.onLine);
       if (navigator.onLine) {
+        void dokonczWyrejestrowaniePush().catch(() => undefined);
         const ile = await syncQueue();
         if (ile > 0) qc.invalidateQueries();
       }

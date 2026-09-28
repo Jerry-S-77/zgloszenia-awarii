@@ -73,6 +73,7 @@ export function UstawieniaPush() {
         <>
           <PrzelacznikOpcji<"krytyczne" | "wszystkie">
             etykieta="Które powiadomienia"
+            wylaczony={zapis}
             wartosc={stan.tylkoKrytyczne ? "krytyczne" : "wszystkie"}
             onZmiana={(w) =>
               void wykonaj(
