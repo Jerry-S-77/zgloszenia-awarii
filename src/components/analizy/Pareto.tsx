@@ -52,11 +52,13 @@ export function PrzelacznikOpcji<T extends string>({
   wartosc,
   onZmiana,
   etykieta,
+  wylaczony = false,
 }: {
   opcje: { wartosc: T; etykieta: string }[];
   wartosc: T;
   onZmiana: (w: T) => void;
   etykieta: string;
+  wylaczony?: boolean;
 }) {
   return (
     <div role="radiogroup" aria-label={etykieta} className="inline-flex rounded-xl bg-muted p-1">
@@ -66,7 +68,8 @@ export function PrzelacznikOpcji<T extends string>({
           type="button"
           role="radio"
           aria-checked={wartosc === o.wartosc}
-          onClick={() => onZmiana(o.wartosc)}
+          disabled={wylaczony}
+          onClick={() => o.wartosc !== wartosc && onZmiana(o.wartosc)}
           className={`min-h-11 min-w-11 rounded-lg px-3 text-sm font-semibold ${
             wartosc === o.wartosc ? "bg-card shadow-sm" : "text-muted-foreground"
           }`}

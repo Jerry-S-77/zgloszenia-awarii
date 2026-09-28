@@ -146,10 +146,15 @@ function Szczegoly() {
       toast.error("Wybierz kategorię, podaj przyczynę i czas przestoju.");
       return;
     }
+    const godziny = Number(czas.replace(",", "."));
+    if (!Number.isFinite(godziny) || godziny < 0) {
+      toast.error("Czas przestoju musi być liczbą 0 lub większą.");
+      return;
+    }
     const udalo = await wykonajPrzejscie(celStatusu, {
       przyczyna: przyczyna.trim(),
       kategoria_przyczyny: kategoria,
-      czas_przestoju_h: Number(czas),
+      czas_przestoju_h: godziny,
       data_zamkniecia: new Date().toISOString(),
     });
     if (udalo) {

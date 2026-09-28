@@ -73,14 +73,12 @@ function Dashboard() {
 
   const trend = useMemo(() => {
     const miesiace = new Map<string, number>();
+    const teraz = new Date();
     for (let i = 11; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(1);
-      d.setMonth(d.getMonth() - i);
-      miesiace.set(d.toISOString().slice(0, 7), 0);
+      miesiace.set(kluczMiesiaca(new Date(teraz.getFullYear(), teraz.getMonth() - i, 1)), 0);
     }
     for (const a of awarie) {
-      const k = a.data_awarii.slice(0, 7);
+      const k = kluczMiesiaca(new Date(a.data_awarii));
       if (miesiace.has(k)) miesiace.set(k, (miesiace.get(k) ?? 0) + 1);
     }
     return [...miesiace.entries()].map(([m, liczba]) => ({ m: m.slice(2), liczba }));
@@ -304,6 +302,11 @@ function Dashboard() {
       </section>
     </AppShell>
   );
+}
+
+/** „RRRR-MM” w czasie lokalnym (toISOString dawałby UTC i tuż po północy 1. dnia — poprzedni miesiąc). */
+function kluczMiesiaca(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function Kafel({

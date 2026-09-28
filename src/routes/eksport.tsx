@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { awarieQuery } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
 import { czyRola } from "@/lib/uprawnienia";
+import { bezFormuly } from "@/lib/csv";
 import { ETYKIETY_KATEGORII } from "@/lib/kategorie-przyczyn";
 
 export const Route = createFileRoute("/eksport")({
@@ -44,7 +45,7 @@ const NAGLOWKI = [
 ];
 
 function pole(v: string | number | null | undefined) {
-  const s = v === null || v === undefined ? "" : String(v);
+  const s = v === null || v === undefined ? "" : typeof v === "string" ? bezFormuly(v) : String(v);
   return `"${s.replace(/"/g, '""')}"`;
 }
 

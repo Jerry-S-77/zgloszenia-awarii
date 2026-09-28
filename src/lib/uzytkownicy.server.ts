@@ -85,7 +85,15 @@ export async function utworzKonto(admin: Admin, aktorId: string, wej: NowyUzytko
     must_change_password: true,
   });
   if (bladProfilu) {
-    await admin.auth.admin.deleteUser(data.user.id); // nie zostawiamy konta bez profilu
+    // Nie zostawiamy konta bez profilu; gdy sprzątanie też się nie uda, id trafia do logów do ręcznej naprawy.
+    const { error: bladUsuniecia } = await admin.auth.admin.deleteUser(data.user.id);
+    if (bladUsuniecia) {
+      console.error(
+        "utworzKonto: osierocone konto Auth bez profilu",
+        data.user.id,
+        bladUsuniecia.code,
+      );
+    }
     console.error("utworzKonto: insert profiles", bladProfilu.code);
     throw new BladBiznesowy("Nie udało się utworzyć profilu użytkownika.");
   }
