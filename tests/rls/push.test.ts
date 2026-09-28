@@ -97,6 +97,26 @@ describe("subskrypcje push", () => {
     expect(data ?? []).toEqual([]);
   });
 
+  it("obcy, który zna tylko adres cudzej subskrypcji, nie przejmie jej (inne klucze = odmowa)", async () => {
+    const endpoint = `${PREFIKS}/przejecie`;
+    await (
+      await jako("technik")
+    ).rpc("push_zapisz_subskrypcje", { p_endpoint: endpoint, ...KLUCZE });
+    const { error } = await (
+      await jako("kierownik")
+    ).rpc("push_zapisz_subskrypcje", {
+      p_endpoint: endpoint,
+      p_p256dh: "C".repeat(87),
+      p_auth: "D".repeat(22),
+    });
+    expect(error?.message).toContain("innego urządzenia");
+    const { data } = await admin
+      .from("push_subskrypcje")
+      .select("uzytkownik_id")
+      .eq("endpoint", endpoint);
+    expect(data).toEqual([{ uzytkownik_id: id.technik }]);
+  });
+
   it("konto z wymuszoną zmianą hasła nie zapisze subskrypcji", async () => {
     const { error } = await (
       await jako("zmianaHasla")

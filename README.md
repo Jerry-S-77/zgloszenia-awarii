@@ -132,6 +132,13 @@ Aplikacja działa na Vercel (projekt połączony z repozytorium GitHub, gałąź
 - `node scripts/sprawdz-dostep.ts` (baza testowa) albo `--prod` (produkcja) sprawdza kluczem publicznym, tylko odczytem, że każda tabela i funkcja RPC odmawia dostępu niezalogowanym, rejestracja i logowanie anonimowe są wyłączone, a Storage nie pokazuje kubełków. Jedyny wyjątek to `dzis_pl()`, która zwraca tylko dzisiejszą datę.
 - Test E2E `tests/e2e/audyt.spec.ts` sprawdza nagłówki, brak naruszeń CSP w konsoli i rozmiar elementów dotykowych (co najmniej 44×44 px) na głównych ekranach.
 
+### Niezależny przegląd kodu i znane ryzyka
+
+Cały kod przejrzał dodatkowo drugi model (Codex, 2026-09-28) w trzech rundach; trafne uwagi są poprawione i pokryte testami (m.in. wymóg nieujemnego czasu przestoju przy zamknięciu, zamrożenie danych zgłoszenia, blokady przy korekcie magazynu i przy zmianach w zamkniętej awarii, tokeny subskrypcji push, eksport CSV bez formuł). Świadomie zaakceptowane ryzyka:
+
+- **Wersjonowanie awarii nie jest wymuszane przez bazę.** Aplikacja zawsze zapisuje z oczekiwaną wersją (konflikt = komunikat, bez nadpisania), ale osoba z obsługi wywołująca API ręcznie mogłaby pominąć warunek wersji. Dane zgłoszenia są zamrożone, a przejścia statusu pilnuje maszyna stanów; pełne wymuszenie wymagałoby przeniesienia wszystkich zapisów awarii (także kolejki offline) do funkcji RPC.
+- **Limit 3 zdjęć** jest ścisły dla rekordów, ale równoległe wysyłki mogą zostawić w Storage nadmiarowy plik bez rekordu (niewidoczny w aplikacji); pusty rekord zdjęcia może usunąć jego autor.
+
 ## Odzyskiwanie dostępu administratora
 
 Skrypt z poprzedniej sekcji odmawia działania, gdy istnieje aktywny administrator, a aplikacja nie wysyła wiadomości e-mail, więc nie ma odzyskiwania hasła linkiem. Jeśli jedyny administrator zapomni hasła, odzyskanie dostępu jest awaryjne i ręczne. W panelu Supabase otwórz **SQL Editor** i wykonaj (za `adres@admina` wstaw e-mail administratora, a za hasło tymczasowe losowy ciąg co najmniej 12 znaków, którego nigdzie indziej nie używasz):
