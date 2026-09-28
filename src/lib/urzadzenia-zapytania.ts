@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { wymagajSieci } from "./queries";
 import type { Urzadzenie } from "./types";
 import type { DaneUrzadzenia, StatusUrzadzenia } from "./urzadzenia";
+import { komunikatImportu } from "./import-plik";
+import type { WierszUrzadzenia } from "./urzadzenia-import";
 
 /** Rejestr urządzeń (admin). Tylko online; uprawnienia i niezmienność numeru pilnuje baza. */
 export const wszystkieUrzadzeniaQuery = queryOptions({
@@ -66,4 +68,14 @@ export async function zmienStatusUrzadzenia(nr: string, status: StatusUrzadzenia
     .select("nr_technologiczny");
   if (error) throw new Error("Nie udało się zmienić statusu urządzenia.");
   if (!data || data.length === 0) throw new Error("Brak uprawnień do zmiany urządzenia.");
+}
+
+export async function importujUrzadzenia(
+  wiersze: WierszUrzadzenia[],
+): Promise<{ nowe: number; zmienione: number }> {
+  wymagajPolaczenia();
+  const { data, error } = await supabase.rpc("urzadzenia_import", { p_wiersze: wiersze });
+  if (error)
+    throw komunikatImportu(error, "Import urządzeń nie powiódł się — nic nie zostało zapisane.");
+  return data as { nowe: number; zmienione: number };
 }

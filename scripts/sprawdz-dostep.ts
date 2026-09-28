@@ -80,6 +80,12 @@ const FUNKCJE: Record<string, Record<string, unknown>> = {
   push_zapisz_subskrypcje: { p_endpoint: "https://audyt.invalid/x", p_p256dh: "x", p_auth: "x" },
   zdjecie_awaria_id: { p_nazwa: `${ZERO}/${ZERO}.jpg` },
   zdjecia_inne_pliki: { p_nazwa: `${ZERO}/${ZERO}.jpg` },
+  urzadzenia_import: { p_wiersze: [] },
+  przeglady_import: { p_wiersze: [] },
+  magazyn_inwentaryzacja: { p_wiersze: [] },
+  magazyn_dostawa: { p_wiersze: [] },
+  magazyn_id_czesci: { p_numer: "audyt", p_wiersz: 1 },
+  klucz_tekstu: { p: "audyt" },
 };
 // Zwraca tylko dzisiejszą datę (Europe/Warsaw), nie czyta żadnych danych.
 const DOZWOLONE_DLA_ANON = new Set(["dzis_pl"]);

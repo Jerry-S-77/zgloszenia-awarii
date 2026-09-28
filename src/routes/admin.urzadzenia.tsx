@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { FileUp, Plus } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ImportUrzadzenSheet } from "@/components/admin/ImportUrzadzenSheet";
 import { UrzadzenieSheet } from "@/components/admin/UrzadzenieSheet";
 import { ZakladkiAdmina } from "@/components/admin/ZakladkiAdmina";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ function Urzadzenia() {
     isError,
   } = useQuery({ ...wszystkieUrzadzeniaQuery, enabled: jestAdminem });
   const [nowe, setNowe] = useState(false);
+  const [importOtwarty, setImportOtwarty] = useState(false);
   const online = useOnline();
   const [wybranyNr, setWybranyNr] = useState<string | null>(null);
   // Zawsze świeży wiersz z zapytania, nie kopia z chwili kliknięcia.
@@ -39,13 +41,23 @@ function Urzadzenia() {
   return (
     <AppShell title="Urządzenia" dozwoloneRole={["admin"]}>
       <ZakladkiAdmina />
-      <Button
-        className="mb-4 h-14 w-full text-base font-bold"
-        disabled={!online}
-        onClick={() => setNowe(true)}
-      >
-        <Plus className="size-5" /> {online ? "Dodaj urządzenie" : "Dodawanie wymaga połączenia"}
-      </Button>
+      <div className="mb-4 grid grid-cols-2 gap-2">
+        <Button
+          className="h-14 text-base font-bold"
+          disabled={!online}
+          onClick={() => setNowe(true)}
+        >
+          <Plus className="size-5" /> {online ? "Dodaj urządzenie" : "Wymaga połączenia"}
+        </Button>
+        <Button
+          variant="outline"
+          className="h-14 text-base"
+          disabled={!online}
+          onClick={() => setImportOtwarty(true)}
+        >
+          <FileUp className="size-5" /> Import z pliku
+        </Button>
+      </div>
 
       {isLoading && <p className="text-muted-foreground">Wczytywanie...</p>}
       {isError && (
@@ -83,6 +95,11 @@ function Urzadzenia() {
       </div>
 
       <UrzadzenieSheet urzadzenie={null} otwarte={nowe} onZmiana={setNowe} />
+      <ImportUrzadzenSheet
+        otwarte={importOtwarty}
+        onZmiana={setImportOtwarty}
+        urzadzenia={urzadzenia}
+      />
       <UrzadzenieSheet
         urzadzenie={wybrany}
         otwarte={wybrany !== null}

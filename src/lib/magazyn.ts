@@ -1,7 +1,8 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import type { WierszImportu } from "./magazyn-import";
+import { komunikatImportu } from "./import-plik";
+import type { WierszDostawy, WierszImportu, WierszInwentaryzacji } from "./magazyn-import";
 
 /**
  * Magazyn części. Tylko online. Stan zmieniają wyłącznie funkcje bazy (przyjęcie, korekta, pobranie do awarii,
@@ -203,4 +204,22 @@ export function niskiStan(c: { stan: number; stan_minimalny: number }): boolean 
 
 export function formatujIlosc(n: number, jednostka: string): string {
   return `${n.toLocaleString("pl-PL", { maximumFractionDigits: 2 })} ${jednostka}`;
+}
+
+export async function importujInwentaryzacje(
+  wiersze: WierszInwentaryzacji[],
+): Promise<{ zmienione: number; bez_zmian: number }> {
+  wymagajPolaczenia();
+  const { data, error } = await supabase.rpc("magazyn_inwentaryzacja", { p_wiersze: wiersze });
+  if (error)
+    throw komunikatImportu(error, "Inwentaryzacja nie powiodła się — nic nie zostało zapisane.");
+  return data as { zmienione: number; bez_zmian: number };
+}
+
+export async function importujDostawe(wiersze: WierszDostawy[]): Promise<{ pozycje: number }> {
+  wymagajPolaczenia();
+  const { data, error } = await supabase.rpc("magazyn_dostawa", { p_wiersze: wiersze });
+  if (error)
+    throw komunikatImportu(error, "Przyjęcie dostawy nie powiodło się — nic nie zostało zapisane.");
+  return data as { pozycje: number };
 }

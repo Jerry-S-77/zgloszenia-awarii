@@ -1,154 +1,139 @@
-import { useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, FileUp } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { PrzelacznikOpcji } from "@/components/analizy/Pareto";
+import { ImportZPlikuSheet, type KonfiguracjaImportu } from "@/components/ImportZPlikuSheet";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { useOnline } from "@/hooks/use-online";
-import { importujMagazyn } from "@/lib/magazyn";
-import { mapujWiersze, parsujCsv, type WynikParsowania } from "@/lib/magazyn-import";
+  formatujIlosc,
+  importujDostawe,
+  importujInwentaryzacje,
+  importujMagazyn,
+  type CzescMagazynu,
+} from "@/lib/magazyn";
+import {
+  mapujDostawe,
+  mapujInwentaryzacje,
+  mapujWiersze,
+  type WierszDostawy,
+  type WierszImportu,
+  type WierszInwentaryzacji,
+} from "@/lib/magazyn-import";
 
 export const ADRES_WZORU = "/wzory/wzor-importu-magazynu.csv";
+export const ADRES_WZORU_INWENTARYZACJI = "/wzory/wzor-inwentaryzacji.csv";
+export const ADRES_WZORU_DOSTAWY = "/wzory/wzor-dostawy.csv";
 
-/** Wczytuje CSV albo XLSX (pierwszy arkusz) do tablicy wierszy. */
-async function wczytajPlik(plik: File): Promise<(string | number | boolean | null)[][]> {
-  if (/\.xlsx$/i.test(plik.name)) {
-    const { readSheet } = await import("read-excel-file/browser");
-    return (await readSheet(plik)) as (string | number | boolean | null)[][];
-  }
-  return parsujCsv(await plik.text());
-}
+type Rodzaj = "katalog" | "inwentaryzacja" | "dostawa";
 
+/** Import do magazynu z pliku: katalog części, inwentaryzacja (stan faktyczny) albo dostawa zbiorcza. */
 export function ImportMagazynuSheet({
   otwarte,
   onZmiana,
-  istniejaceNumery,
+  czesci,
 }: {
   otwarte: boolean;
   onZmiana: (o: boolean) => void;
-  istniejaceNumery: Set<string>;
+  czesci: CzescMagazynu[];
 }) {
   const qc = useQueryClient();
-  const online = useOnline();
-  const pole = useRef<HTMLInputElement>(null);
-  const [nazwaPliku, setNazwaPliku] = useState("");
-  const [wynik, setWynik] = useState<WynikParsowania | null>(null);
-  const [zapis, setZapis] = useState(false);
+  const [rodzaj, setRodzaj] = useState<Rodzaj>("katalog");
+  const poNumerze = useMemo(() => new Map(czesci.map((c) => [c.numer_katalogowy, c])), [czesci]);
+  const numery = useMemo(() => new Set(poNumerze.keys()), [poNumerze]);
+  const odswiez = () => qc.invalidateQueries({ queryKey: ["magazyn"] });
+  const ilosc = (numer: string, n: number) =>
+    formatujIlosc(n, poNumerze.get(numer)?.jednostka ?? "szt.");
 
-  async function wybrano(e: React.ChangeEvent<HTMLInputElement>) {
-    const plik = e.target.files?.[0];
-    e.target.value = "";
-    if (!plik) return;
-    setNazwaPliku(plik.name);
-    try {
-      setWynik(mapujWiersze(await wczytajPlik(plik)));
-    } catch {
-      setWynik({
-        wiersze: [],
-        bledy: ["Nie udało się odczytać pliku. Użyj CSV albo XLSX z wzoru."],
-      });
-    }
-  }
+  const katalog: KonfiguracjaImportu<WierszImportu> = {
+    tytul: "Import części z pliku",
+    opis: "CSV lub XLSX według wzoru. Istniejące numery katalogowe są aktualizowane (bez zmiany stanu), nowe dostają stan początkowy. Import zapisuje wszystko albo nic.",
+    adresWzoru: ADRES_WZORU,
+    mapuj: mapujWiersze,
+    podsumowanie: (w) => {
+      const nowe = w.filter((x) => !numery.has(x.numer_katalogowy)).length;
+      return `${w.length} części: ${nowe} nowych, ${w.length - nowe} do aktualizacji.`;
+    },
+    pozycja: (w) => ({
+      klucz: w.numer_katalogowy,
+      tekst: `${numery.has(w.numer_katalogowy) ? "↻" : "+"} ${w.numer_katalogowy} — ${w.nazwa}${
+        w.urzadzenia.length ? ` (${w.urzadzenia.join(", ")})` : ""
+      }`,
+    }),
+    etykietaPrzycisku: (n) => `Importuj ${n} części`,
+    importuj: async (w) => {
+      const { nowe, zmienione } = await importujMagazyn(w);
+      await odswiez();
+      return `Zaimportowano: ${nowe} nowych, ${zmienione} zaktualizowanych`;
+    },
+  };
 
-  async function importuj() {
-    if (!wynik || wynik.bledy.length || wynik.wiersze.length === 0) return;
-    setZapis(true);
-    try {
-      const { nowe, zmienione } = await importujMagazyn(wynik.wiersze);
-      await qc.invalidateQueries({ queryKey: ["magazyn"] });
-      toast.success(`Zaimportowano: ${nowe} nowych, ${zmienione} zaktualizowanych`);
-      setWynik(null);
-      onZmiana(false);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Import nie powiódł się.");
-    } finally {
-      setZapis(false);
-    }
-  }
+  const inwentaryzacja: KonfiguracjaImportu<WierszInwentaryzacji> = {
+    tytul: "Inwentaryzacja z pliku",
+    opis: "Stan faktyczny części według wzoru. Każda różnica zapisze się jako korekta z powodem „Inwentaryzacja”. Zapis wszystkiego albo nic.",
+    adresWzoru: ADRES_WZORU_INWENTARYZACJI,
+    mapuj: (w) => mapujInwentaryzacje(w, numery),
+    podsumowanie: (w) => {
+      const rozne = w.filter(
+        (x) => Number(poNumerze.get(x.numer_katalogowy)?.stan) !== x.stan_faktyczny,
+      ).length;
+      return `${w.length} części: ${rozne} z różnicą, ${w.length - rozne} bez zmian.`;
+    },
+    pozycja: (w) => {
+      const przed = Number(poNumerze.get(w.numer_katalogowy)?.stan ?? 0);
+      return {
+        klucz: w.numer_katalogowy,
+        tekst:
+          przed === w.stan_faktyczny
+            ? `= ${w.numer_katalogowy}: ${ilosc(w.numer_katalogowy, przed)}`
+            : `≠ ${w.numer_katalogowy}: ${ilosc(w.numer_katalogowy, przed)} → ${ilosc(
+                w.numer_katalogowy,
+                w.stan_faktyczny,
+              )}`,
+      };
+    },
+    etykietaPrzycisku: (n) => `Zapisz inwentaryzację (${n})`,
+    importuj: async (w) => {
+      const { zmienione, bez_zmian } = await importujInwentaryzacje(w);
+      await odswiez();
+      return `Inwentaryzacja: ${zmienione} korekt, ${bez_zmian} bez zmian`;
+    },
+  };
 
-  const nowe = wynik?.wiersze.filter((w) => !istniejaceNumery.has(w.numer_katalogowy)).length ?? 0;
-  const aktualizowane = (wynik?.wiersze.length ?? 0) - nowe;
+  const dostawa: KonfiguracjaImportu<WierszDostawy> = {
+    tytul: "Dostawa z pliku",
+    opis: "Pozycje dostawy według wzoru (np. z faktury lub WZ). Każda pozycja to przyjęcie z numerem dokumentu. Zapis wszystkiego albo nic.",
+    adresWzoru: ADRES_WZORU_DOSTAWY,
+    mapuj: (w) => mapujDostawe(w, numery),
+    podsumowanie: (w) => `${w.length} pozycji dostawy.`,
+    pozycja: (w, i) => ({
+      klucz: `${i}`,
+      tekst: `+ ${w.numer_katalogowy} — ${poNumerze.get(w.numer_katalogowy)?.nazwa ?? ""}: ${ilosc(
+        w.numer_katalogowy,
+        w.ilosc,
+      )}${w.dokument ? ` (${w.dokument})` : ""}`,
+    }),
+    etykietaPrzycisku: (n) => `Przyjmij dostawę (${n} poz.)`,
+    importuj: async (w) => {
+      const { pozycje } = await importujDostawe(w);
+      await odswiez();
+      return `Przyjęto dostawę: ${pozycje} pozycji`;
+    },
+  };
 
-  return (
-    <Sheet
-      open={otwarte}
-      onOpenChange={(o) => {
-        if (!o) setWynik(null);
-        onZmiana(o);
-      }}
-    >
-      <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Import części z pliku</SheetTitle>
-          <SheetDescription>
-            CSV lub XLSX według wzoru. Istniejące numery katalogowe są aktualizowane (bez zmiany
-            stanu), nowe dostają stan początkowy. Import zapisuje wszystko albo nic.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="space-y-3 px-4 pb-6">
-          <Button asChild variant="outline" className="h-12 w-full">
-            <a href={ADRES_WZORU} download>
-              <Download className="size-5" /> Pobierz wzór pliku
-            </a>
-          </Button>
-          <Button className="h-12 w-full" onClick={() => pole.current?.click()}>
-            <FileUp className="size-5" /> Wybierz plik
-          </Button>
-          <input
-            ref={pole}
-            type="file"
-            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            className="hidden"
-            data-testid="plik-importu"
-            onChange={(e) => void wybrano(e)}
-          />
-          {wynik && (
-            <div className="space-y-2 rounded-xl bg-muted p-3 text-sm">
-              <p className="font-semibold">{nazwaPliku}</p>
-              {wynik.bledy.length > 0 ? (
-                <>
-                  <p className="font-semibold text-destructive">
-                    Plik ma błędy — popraw je i wybierz plik ponownie:
-                  </p>
-                  <ul className="list-disc pl-5 text-destructive">
-                    {wynik.bledy.slice(0, 20).map((b) => (
-                      <li key={b}>{b}</li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <>
-                  <p>
-                    {wynik.wiersze.length} części: {nowe} nowych, {aktualizowane} do aktualizacji.
-                  </p>
-                  <ul className="max-h-48 overflow-y-auto">
-                    {wynik.wiersze.slice(0, 50).map((w) => (
-                      <li key={w.numer_katalogowy}>
-                        {istniejaceNumery.has(w.numer_katalogowy) ? "↻" : "+"} {w.numer_katalogowy}{" "}
-                        — {w.nazwa}
-                        {w.urzadzenia.length ? ` (${w.urzadzenia.join(", ")})` : ""}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className="h-12 w-full font-bold"
-                    disabled={zapis || !online || wynik.wiersze.length === 0}
-                    onClick={() => void importuj()}
-                  >
-                    {zapis ? "Importowanie..." : `Importuj ${wynik.wiersze.length} części`}
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+  const przelacznik = (
+    <PrzelacznikOpcji<Rodzaj>
+      etykieta="Rodzaj importu"
+      wartosc={rodzaj}
+      onZmiana={setRodzaj}
+      opcje={[
+        { wartosc: "katalog", etykieta: "Katalog" },
+        { wartosc: "inwentaryzacja", etykieta: "Inwentaryzacja" },
+        { wartosc: "dostawa", etykieta: "Dostawa" },
+      ]}
+    />
   );
+  const wspolne = { otwarte, onZmiana, nadWyborem: przelacznik };
+
+  if (rodzaj === "inwentaryzacja")
+    return <ImportZPlikuSheet {...wspolne} konfiguracja={inwentaryzacja} />;
+  if (rodzaj === "dostawa") return <ImportZPlikuSheet {...wspolne} konfiguracja={dostawa} />;
+  return <ImportZPlikuSheet {...wspolne} konfiguracja={katalog} />;
 }

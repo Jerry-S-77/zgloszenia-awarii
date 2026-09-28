@@ -75,7 +75,9 @@ Bez połączenia nad treścią każdego ekranu pojawia się baner „Brak połą
 
 Aplikacja ma manifest PWA — można ją dodać do ekranu głównego telefonu.
 
-13. **Magazyn części** (`/magazyn`, technik, kierownik, admin; w menu konta) — lista z wyszukiwarką i filtrami (niski stan, wycofane), szczegóły części z historią ruchów, przyjęcie dostawy, korekta, edycja, przypisanie do urządzeń, dodawanie części i import z pliku z podglądem (wzór do pobrania w aplikacji). Na karcie awarii „Z magazynu”: pobranie części na stanie albo zamówienie brakującej; na karcie urządzenia jego części i stany; w Analizach „Niski stan magazynu”.
+13. **Magazyn części** (`/magazyn`, technik, kierownik, admin; w menu konta) — lista z wyszukiwarką i filtrami (niski stan, wycofane), szczegóły części z historią ruchów, przyjęcie dostawy, korekta, edycja, przypisanie do urządzeń, dodawanie części i import z pliku z podglądem: katalog, inwentaryzacja (stan faktyczny → korekty z powodem „Inwentaryzacja”) albo dostawa zbiorcza (przyjęcia z numerem dokumentu). Na karcie awarii „Z magazynu”: pobranie części na stanie albo zamówienie brakującej; na karcie urządzenia jego części i stany; w Analizach „Niski stan magazynu”.
+
+14. **Importy z plików** — CSV lub XLSX według wzorów do pobrania w aplikacji (`public/wzory/`): urządzenia (`/admin/urzadzenia`, admin; właściciel po e-mailu konta, nowe domyślnie „proponowane”), harmonogram przeglądów z listami kontrolnymi (`/przeglady`, kierownik i admin; przegląd rozpoznawany po urządzeniu i typie czynności bez względu na wielkość liter i polskie znaki, brak daty najbliższego = ostatni + częstotliwość), a w magazynie katalog, inwentaryzacja i dostawa. Podgląd w telefonie pokazuje błędy z numerami wierszy; każdy import to jedna funkcja bazy (`urzadzenia_import`, `przeglady_import`, `magazyn_import`, `magazyn_inwentaryzacja`, `magazyn_dostawa`), która sprawdza wszystko jeszcze raz i zapisuje całość albo nic.
 
 ## Rozwój lokalny
 

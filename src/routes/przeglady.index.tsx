@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { FileUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ImportPrzegladowSheet } from "@/components/przeglady/ImportPrzegladowSheet";
+import { Button } from "@/components/ui/button";
+import { useOnline } from "@/hooks/use-online";
 import { KartaPrzegladu } from "@/components/przeglady/KartaPrzegladu";
 import { useAuth } from "@/lib/auth";
 import {
@@ -35,6 +39,9 @@ function Przeglady() {
     isError,
   } = useQuery({ ...przegladyQuery, enabled: dostep });
   const [filtr, setFiltr] = useState<FiltrPrzegladow>("wszystkie");
+  const [importOtwarty, setImportOtwarty] = useState(false);
+  const online = useOnline();
+  const zarzadza = auth.stan === "zalogowany" && czyRola(auth.profil.rola, ["kierownik", "admin"]);
   const dzis = dzisLokalnie();
 
   const posortowane = useMemo(() => sortujPoPilnosci(przeglady), [przeglady]);
@@ -53,6 +60,16 @@ function Przeglady() {
 
   return (
     <AppShell title="Przeglądy" dozwoloneRole={["technik", "kierownik", "admin"]}>
+      {zarzadza && (
+        <Button
+          variant="outline"
+          className="mb-3 h-12 w-full"
+          disabled={!online}
+          onClick={() => setImportOtwarty(true)}
+        >
+          <FileUp className="size-5" /> Import harmonogramu z pliku
+        </Button>
+      )}
       <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {chipy.map(({ f, etykieta }) => (
           <button
@@ -87,6 +104,14 @@ function Przeglady() {
           </p>
         )}
       </div>
+      {zarzadza && (
+        <ImportPrzegladowSheet
+          otwarte={importOtwarty}
+          onZmiana={setImportOtwarty}
+          przeglady={przeglady}
+          dzis={dzis}
+        />
+      )}
     </AppShell>
   );
 }
