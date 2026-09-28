@@ -1,0 +1,4 @@
+﻿nr_technologiczny;nazwa_urzadzenia;kategoria;lokalizacja;krytycznosc;wlasciciel_email;status;uwagi
+HVAC-07;Centrala wentylacyjna AHU nr 7;HVAC;Hala A;Wysoka;;aktywne;
+PMP-01;Pompa obiegowa wody lodowej;Media;Maszynownia;Srednia;;proponowane;Przegląd co kwartał
+WAG-02;Waga laboratoryjna;Laboratorium;Lab QC;Niska;;;

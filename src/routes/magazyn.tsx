@@ -170,7 +170,7 @@ function Magazyn() {
           <ImportMagazynuSheet
             otwarte={importOtwarty}
             onZmiana={setImportOtwarty}
-            istniejaceNumery={new Set(czesci.map((c) => c.numer_katalogowy))}
+            czesci={czesci}
           />
         </>
       )}

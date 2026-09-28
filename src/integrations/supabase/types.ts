@@ -792,12 +792,19 @@ export type Database = {
         Returns: boolean;
       };
       dzis_pl: { Args: never; Returns: string };
+      klucz_tekstu: { Args: { p: string }; Returns: string };
       liczba_pl: { Args: { p: number }; Returns: string };
       lista_kontrolna_poprawna: {
         Args: { p_lista: string[] };
         Returns: boolean;
       };
+      magazyn_dostawa: { Args: { p_wiersze: Json }; Returns: Json };
+      magazyn_id_czesci: {
+        Args: { p_numer: string; p_wiersz: number };
+        Returns: string;
+      };
       magazyn_import: { Args: { p_wiersze: Json }; Returns: Json };
+      magazyn_inwentaryzacja: { Args: { p_wiersze: Json }; Returns: Json };
       magazyn_korekta: {
         Args: { p_czesc: string; p_nowy_stan: number; p_uwagi: string };
         Returns: number;
@@ -860,6 +867,7 @@ export type Database = {
         Args: { p_propozycja_id: string; p_zatwierdz: boolean };
         Returns: undefined;
       };
+      przeglady_import: { Args: { p_wiersze: Json }; Returns: Json };
       przeglady_sprawdz_progi: { Args: { p_nr: string }; Returns: undefined };
       push_usun_subskrypcje: {
         Args: { p_endpoint: string; p_token: string };
@@ -886,6 +894,7 @@ export type Database = {
           wysokie_60: number;
         }[];
       };
+      urzadzenia_import: { Args: { p_wiersze: Json }; Returns: Json };
       urzadzenia_przekraczajace_progi: {
         Args: never;
         Returns: {

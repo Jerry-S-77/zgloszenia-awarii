@@ -1,0 +1,3 @@
+﻿nr_technologiczny;typ_czynnosci;czestotliwosc_dni;data_ostatniego;data_najblizszego;wykonawca;uwagi;lista_kontrolna
+HVAC-01;Przegląd okresowy;90;2026-06-15;;Serwis wewnętrzny;;Filtr wstępny|Filtr HEPA - spadek ciśnienia|Pasek klinowy|Łożyska wentylatora
+WFI-02;Kalibracja czujników;60;20.07.2026;;Firma zewnętrzna;;Czujnik przewodności|Czujnik temperatury

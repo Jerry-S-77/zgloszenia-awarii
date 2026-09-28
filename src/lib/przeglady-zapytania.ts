@@ -2,6 +2,8 @@ import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import type { ZapisanyWynik } from "./lista-kontrolna";
+import { komunikatImportu } from "./import-plik";
+import type { WierszPrzegladu } from "./przeglady-import";
 import { wymagajSieci } from "./queries";
 
 /**
@@ -125,4 +127,17 @@ export async function zdecydujPropozycje(id: string, zatwierdz: boolean): Promis
         : "Nie udało się zapisać decyzji.",
     );
   }
+}
+
+export async function importujPrzeglady(
+  wiersze: WierszPrzegladu[],
+): Promise<{ nowe: number; zmienione: number }> {
+  wymagajPolaczenia();
+  const { data, error } = await supabase.rpc("przeglady_import", { p_wiersze: wiersze });
+  if (error)
+    throw komunikatImportu(
+      error,
+      "Import harmonogramu nie powiódł się — nic nie zostało zapisane.",
+    );
+  return data as { nowe: number; zmienione: number };
 }
