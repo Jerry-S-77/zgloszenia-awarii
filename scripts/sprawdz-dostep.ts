@@ -45,6 +45,15 @@ const TABELE = [
 ];
 
 const ZERO = "00000000-0000-0000-0000-000000000000";
+
+// Filtr na kolumnie klucza (właściwego typu), który nie trafia w żaden wiersz: modyfikacja i usuwanie nie
+// mogą niczego zmienić nawet wtedy, gdyby uprawnienia były błędnie otwarte.
+const FILTR_PUSTY: Record<string, string> = {
+  numeracja_awarii: "rok=eq.-1",
+  urzadzenia: "nr_technologiczny=eq.AUDYT-NIE-ISTNIEJE",
+  urzadzenia_czesci: `czesc_id=eq.${ZERO}`,
+  awarie_zespol: `awaria_id=eq.${ZERO}`,
+};
 const FUNKCJE: Record<string, Record<string, unknown>> = {
   awaria_otwarta: { p_awaria_id: ZERO },
   mam_role: { dozwolone: ["admin"] },
@@ -65,7 +74,8 @@ const FUNKCJE: Record<string, Record<string, unknown>> = {
   magazyn_korekta: { p_czesc: ZERO, p_nowy_stan: 1, p_uwagi: "audyt" },
   magazyn_pobierz_do_awarii: { p_czesc: ZERO, p_awaria: ZERO, p_ilosc: 1 },
   magazyn_import: { p_wiersze: [] },
-  push_usun_subskrypcje: { p_endpoint: "https://audyt.invalid/x" },
+  push_usun_subskrypcje: { p_endpoint: "https://audyt.invalid/x", p_token: ZERO },
+  awaria_otwarta_z_blokada: { p_awaria_id: ZERO },
   liczba_pl: { p: 1 },
   push_zapisz_subskrypcje: { p_endpoint: "https://audyt.invalid/x", p_p256dh: "x", p_auth: "x" },
   zdjecie_awaria_id: { p_nazwa: `${ZERO}/${ZERO}.jpg` },
@@ -113,6 +123,23 @@ for (const tabela of TABELE) {
     odmowaZapisu,
     `tabela ${tabela} (zapis): ${odmowaZapisu ? "odmowa" : `${zapis.status} ${trescZapisu.slice(0, 80)}`}`,
   );
+  const filtr = FILTR_PUSTY[tabela] ?? `id=eq.${ZERO}`;
+  for (const [metoda, opis] of [
+    ["PATCH", "zmiana"],
+    ["DELETE", "usuwanie"],
+  ] as const) {
+    const odpZmiany = await fetch(`${url}/rest/v1/${tabela}?${filtr}`, {
+      method: metoda,
+      headers: { ...naglowki, prefer: "return=minimal" },
+      ...(metoda === "PATCH" ? { body: "{}" } : {}),
+    });
+    const trescZmiany = await odpZmiany.text();
+    const odmowaZmiany = !odpZmiany.ok && trescZmiany.includes("42501");
+    wynik(
+      odmowaZmiany,
+      `tabela ${tabela} (${opis}): ${odmowaZmiany ? "odmowa" : `${odpZmiany.status} ${trescZmiany.slice(0, 80)}`}`,
+    );
+  }
 }
 
 for (const [funkcja, argumenty] of Object.entries(FUNKCJE)) {
@@ -142,6 +169,17 @@ const listaZdjec = plikiZdjec.ok ? ((await plikiZdjec.json()) as unknown[]) : []
 wynik(
   listaZdjec.length === 0,
   `Storage: ${listaZdjec.length} plików zdjęć widocznych bez logowania`,
+);
+
+// Wysłanie pliku do kubełka zdjęć bez logowania musi zostać odrzucone.
+const wysylka = await fetch(`${url}/storage/v1/object/zdjecia-awarii/${ZERO}/${ZERO}.jpg`, {
+  method: "POST",
+  headers: { apikey: klucz, authorization: `Bearer ${klucz}`, "content-type": "image/jpeg" },
+  body: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+});
+wynik(
+  !wysylka.ok,
+  `Storage: wysłanie zdjęcia bez logowania ${wysylka.ok ? "PRZYJĘTE" : "odrzucone"}`,
 );
 
 console.log(

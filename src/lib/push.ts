@@ -82,15 +82,14 @@ export async function wlaczPush(tylkoKrytyczne: boolean): Promise<void> {
       applicationServerKey: kluczNaBajty(KLUCZ),
     }));
   const klucze = subskrypcja.toJSON().keys ?? {};
-  const { error } = await supabase.rpc("push_zapisz_subskrypcje", {
+  const { data: token, error } = await supabase.rpc("push_zapisz_subskrypcje", {
     p_endpoint: subskrypcja.endpoint,
     p_p256dh: klucze["p256dh"] ?? "",
     p_auth: klucze["auth"] ?? "",
     p_tylko_krytyczne: tylkoKrytyczne,
   });
-  if (error) throw new Error("Nie udało się zapisać subskrypcji powiadomień.");
-  // Świadome włączenie na tym urządzeniu unieważnia zaległe wyrejestrowanie tego samego adresu.
-  zapiszZalegle(null);
+  if (error || !token) throw new Error("Nie udało się zapisać subskrypcji powiadomień.");
+  zapisz(KLUCZ_BIEZACEJ, { endpoint: subskrypcja.endpoint, token });
 }
 
 export async function ustawTrybPush(tylkoKrytyczne: boolean): Promise<void> {
@@ -103,48 +102,65 @@ export async function ustawTrybPush(tylkoKrytyczne: boolean): Promise<void> {
   if (error) throw new Error("Nie udało się zmienić ustawienia.");
 }
 
-const KLUCZ_ZALEGLEGO = "push-do-wyrejestrowania";
+/**
+ * Subskrypcja zapisana z tej przeglądarki: adres i losowy token nadany przez bazę. Usunąć rekord w bazie
+ * można tylko z tym tokenem, więc nikt inny (ani zaległe wyrejestrowanie poprzedniej osoby) nie skasuje
+ * subskrypcji zapisanej później — ta dostaje nowy token.
+ */
+type Zapisana = { endpoint: string; token: string };
+const KLUCZ_BIEZACEJ = "push-subskrypcja";
+const KLUCZ_ZALEGLEJ = "push-do-wyrejestrowania";
 
-function zapiszZalegle(endpoint: string | null) {
+function odczytaj(klucz: string): Zapisana | null {
   try {
-    if (endpoint) localStorage.setItem(KLUCZ_ZALEGLEGO, endpoint);
-    else localStorage.removeItem(KLUCZ_ZALEGLEGO);
+    const w = JSON.parse(localStorage.getItem(klucz) ?? "null") as Partial<Zapisana> | null;
+    return w?.endpoint && w.token ? { endpoint: w.endpoint, token: w.token } : null;
+  } catch {
+    return null;
+  }
+}
+
+function zapisz(klucz: string, wartosc: Zapisana | null) {
+  try {
+    if (wartosc) localStorage.setItem(klucz, JSON.stringify(wartosc));
+    else localStorage.removeItem(klucz);
   } catch {
     // Brak dostępu do pamięci przeglądarki: nic więcej nie zrobimy.
   }
 }
 
-/** Usuwa wpis w bazie (po adresie, także cudzy) i subskrypcję przeglądarki; true, gdy obie rzeczy się udały. */
-async function wyrejestruj(endpoint: string): Promise<boolean> {
-  const { error } = await supabase.rpc("push_usun_subskrypcje", { p_endpoint: endpoint });
-  let lokalnie = true;
-  const subskrypcja = await biezacaSubskrypcja().catch(() => null);
-  if (subskrypcja?.endpoint === endpoint)
-    lokalnie = await subskrypcja.unsubscribe().catch(() => false);
-  return !error && lokalnie;
+async function usunWBazie(z: Zapisana): Promise<boolean> {
+  const { error } = await supabase.rpc("push_usun_subskrypcje", {
+    p_endpoint: z.endpoint,
+    p_token: z.token,
+  });
+  return !error;
 }
 
 /**
- * Wyłącza push na tym urządzeniu. Gdy się nie uda (np. wylogowanie bez sieci), zapamiętuje adres
- * i `dokonczWyrejestrowaniePush` kończy to przy następnym połączeniu — żeby na wspólnym telefonie
- * nie przychodziły powiadomienia poprzedniej osoby.
+ * Wyłącza push na tym urządzeniu: usuwa rekord w bazie (z tokenem) i subskrypcję przeglądarki. Gdy usunięcie
+ * w bazie się nie uda (np. wylogowanie bez sieci), zapamiętuje je i `dokonczWyrejestrowaniePush` kończy to przy
+ * następnym połączeniu — żeby na wspólnym telefonie nie przychodziły powiadomienia poprzedniej osoby.
  */
 export async function wylaczPush(): Promise<void> {
   if (typeof window === "undefined" || !obslugiwane()) return;
   const subskrypcja = await biezacaSubskrypcja();
-  if (!subskrypcja) return;
-  zapiszZalegle(subskrypcja.endpoint);
-  if (await wyrejestruj(subskrypcja.endpoint)) zapiszZalegle(null);
+  const zapisana = odczytaj(KLUCZ_BIEZACEJ);
+  zapisz(KLUCZ_BIEZACEJ, null);
+  if (zapisana && !(await usunWBazie(zapisana))) zapisz(KLUCZ_ZALEGLEJ, zapisana);
+  if (!zapisana && subskrypcja) {
+    // Subskrypcja sprzed tokenów: własny rekord usuwamy zwykłym zapytaniem (RLS: tylko własne wiersze).
+    await supabase.from("push_subskrypcje").delete().eq("endpoint", subskrypcja.endpoint);
+  }
+  await subskrypcja?.unsubscribe().catch(() => false);
 }
 
-/** Dokańcza wyrejestrowanie zapamiętane przy wylogowaniu bez sieci (wywoływane po powrocie połączenia). */
+/**
+ * Dokańcza wyrejestrowanie zapamiętane przy wylogowaniu bez sieci. Tylko w bazie i tylko rekordu z zapamiętanym
+ * tokenem — subskrypcji przeglądarki nie ruszamy, bo mogła ją już przejąć kolejna osoba (z nowym tokenem).
+ */
 export async function dokonczWyrejestrowaniePush(): Promise<void> {
-  if (typeof window === "undefined" || !navigator.onLine || !obslugiwane()) return;
-  let endpoint: string | null = null;
-  try {
-    endpoint = localStorage.getItem(KLUCZ_ZALEGLEGO);
-  } catch {
-    return;
-  }
-  if (endpoint && (await wyrejestruj(endpoint))) zapiszZalegle(null);
+  if (typeof window === "undefined" || !navigator.onLine) return;
+  const zalegla = odczytaj(KLUCZ_ZALEGLEJ);
+  if (zalegla && (await usunWBazie(zalegla))) zapisz(KLUCZ_ZALEGLEJ, null);
 }

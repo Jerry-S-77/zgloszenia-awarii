@@ -116,7 +116,8 @@ describe("części przy awarii", () => {
       .eq("id", awaria);
     const kierownik = await jako("kierownik");
     const { error: bladDodania } = await dodajCzesc("kierownik", awaria, "Łożysko");
-    expect(bladDodania?.code).toBe("42501");
+    // Odrzuca już trigger pilnujący otwartej awarii (sprawdzenie pod blokadą), zanim dojdzie do polityki RLS.
+    expect(bladDodania?.message).toContain("Awaria jest zamknięta");
     const { data: zmienione } = await kierownik
       .from("awarie_czesci")
       .update({ status: "dostarczona" })

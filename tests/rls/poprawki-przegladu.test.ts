@@ -155,21 +155,60 @@ it("nowa awaria zawsze zaczyna od wersji 1", async () => {
   expect(data?.wersja).toBe(1);
 });
 
-it("subskrypcję push tej przeglądarki usuwa każde zalogowane konto (wylogowanie bez sieci)", async () => {
+it("subskrypcję push usuwa tylko ten, kto zna jej token; nowy zapis tej samej przeglądarki ma nowy token", async () => {
   const endpoint = `${PREFIKS_PUSH}/1`;
-  await (
-    await jako("technik")
-  ).rpc("push_zapisz_subskrypcje", {
+  const zapisz = async (k: KluczKonta) =>
+    (
+      await (
+        await jako(k)
+      ).rpc("push_zapisz_subskrypcje", {
+        p_endpoint: endpoint,
+        p_p256dh: "B".repeat(87),
+        p_auth: "A".repeat(22),
+      })
+    ).data as string;
+  const tokenTechnika = await zapisz("technik");
+  const kierownik = await jako("kierownik");
+
+  // Sam adres nie wystarczy: zły token nic nie usuwa.
+  await kierownik.rpc("push_usun_subskrypcje", {
     p_endpoint: endpoint,
-    p_p256dh: "B".repeat(87),
-    p_auth: "A".repeat(22),
+    p_token: crypto.randomUUID(),
   });
-  const { error } = await (
-    await jako("kierownik")
-  ).rpc("push_usun_subskrypcje", {
-    p_endpoint: endpoint,
-  });
-  expect(error).toBeNull();
-  const { data } = await admin.from("push_subskrypcje").select("id").eq("endpoint", endpoint);
-  expect(data).toEqual([]);
+  const { data: nadal } = await admin
+    .from("push_subskrypcje")
+    .select("id")
+    .eq("endpoint", endpoint);
+  expect(nadal).toHaveLength(1);
+
+  // Ta sama przeglądarka przechodzi na kierownika (nowy token); zaległe wyrejestrowanie technika jej nie usuwa.
+  const tokenKierownika = await zapisz("kierownik");
+  expect(tokenKierownika).not.toBe(tokenTechnika);
+  await kierownik.rpc("push_usun_subskrypcje", { p_endpoint: endpoint, p_token: tokenTechnika });
+  const { data: poZaleglym } = await admin
+    .from("push_subskrypcje")
+    .select("uzytkownik_id")
+    .eq("endpoint", endpoint);
+  expect(poZaleglym).toEqual([{ uzytkownik_id: id.kierownik }]);
+
+  // Właściwy token usuwa.
+  await kierownik.rpc("push_usun_subskrypcje", { p_endpoint: endpoint, p_token: tokenKierownika });
+  const { data: poUsunieciu } = await admin
+    .from("push_subskrypcje")
+    .select("id")
+    .eq("endpoint", endpoint);
+  expect(poUsunieciu).toEqual([]);
+});
+
+it("do zamkniętej awarii nie dodasz części ani osoby do zespołu (sprawdzenie pod blokadą)", async () => {
+  const awaria = await wstaw(true);
+  const technik = await jako("technik");
+  const { error: bladCzesci } = await technik
+    .from("awarie_czesci")
+    .insert({ awaria_id: awaria, nazwa: "Łożysko", ilosc: 1 });
+  expect(bladCzesci).not.toBeNull();
+  const { error: bladZespolu } = await technik
+    .from("awarie_zespol")
+    .insert({ awaria_id: awaria, uzytkownik_id: id.technik });
+  expect(bladZespolu).not.toBeNull();
 });
