@@ -667,6 +667,7 @@ export type Database = {
           endpoint: string;
           id: string;
           p256dh: string;
+          token: string;
           tylko_krytyczne: boolean;
           uzytkownik_id: string;
         };
@@ -676,6 +677,7 @@ export type Database = {
           endpoint: string;
           id?: string;
           p256dh: string;
+          token?: string;
           tylko_krytyczne?: boolean;
           uzytkownik_id: string;
         };
@@ -685,6 +687,7 @@ export type Database = {
           endpoint?: string;
           id?: string;
           p256dh?: string;
+          token?: string;
           tylko_krytyczne?: boolean;
           uzytkownik_id?: string;
         };
@@ -784,6 +787,10 @@ export type Database = {
     };
     Functions: {
       awaria_otwarta: { Args: { p_awaria_id: string }; Returns: boolean };
+      awaria_otwarta_z_blokada: {
+        Args: { p_awaria_id: string };
+        Returns: boolean;
+      };
       dzis_pl: { Args: never; Returns: string };
       liczba_pl: { Args: { p: number }; Returns: string };
       lista_kontrolna_poprawna: {
@@ -855,7 +862,7 @@ export type Database = {
       };
       przeglady_sprawdz_progi: { Args: { p_nr: string }; Returns: undefined };
       push_usun_subskrypcje: {
-        Args: { p_endpoint: string };
+        Args: { p_endpoint: string; p_token: string };
         Returns: undefined;
       };
       push_zapisz_subskrypcje: {
@@ -865,7 +872,7 @@ export type Database = {
           p_p256dh: string;
           p_tylko_krytyczne?: boolean;
         };
-        Returns: undefined;
+        Returns: string;
       };
       statystyki_progow_urzadzen: {
         Args: never;
