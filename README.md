@@ -90,6 +90,8 @@ npm i
 npm run dev
 ```
 
+**Windows: błąd „Cannot find native binding … An Application Control policy has blocked this file”.** Zasady kontroli aplikacji Windows potrafią zablokować natywny plik biblioteki `oxc-parser` (używa jej TanStack Start); wtedy `npm run dev` i `npm run build` nie startują. Naprawia to automatycznie skrypt `scripts/napraw-parser.ts`, uruchamiany po każdym `npm install` / `npm ci`: doinstalowuje lokalnie wariant WebAssembly tej biblioteki (bez zmian w `package.json` i `package-lock.json`). Ręcznie: `npm run napraw-parser`. Na Linuksie i na Vercelu skrypt nic nie robi.
+
 Wymagane zmienne środowiskowe aplikacji (`.env`, nieśledzony przez git; wzór: `.env.example`):
 
 - `VITE_SUPABASE_URL` / `SUPABASE_URL`
