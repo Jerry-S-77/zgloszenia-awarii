@@ -17,7 +17,9 @@
     "test": "vitest run",
     "test:rls": "vitest run --config vitest.rls.config.ts",
     "test:e2e": "playwright test",
-    "dev:test": "node scripts/dev-test.ts"
+    "dev:test": "node scripts/dev-test.ts",
+    "napraw-parser": "node scripts/napraw-parser.ts",
+    "postinstall": "node scripts/napraw-parser.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"
