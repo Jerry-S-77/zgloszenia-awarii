@@ -1,0 +1,43 @@
+# Darmowy plan Supabase wstrzymuje projekt po ok. tygodniu bez ruchu. Dwa razy w tygodniu jedno zapytanie
+# tylko do odczytu na bazie produkcyjnej i testowej: funkcja dzis_pl() (jedyna dozwolona bez logowania,
+# zwraca dzisiejszą datę). Niepowodzenie kończy zadanie błędem, więc GitHub wyśle powiadomienie.
+# Uwaga: GitHub wyłącza zadania cykliczne po 60 dniach bez commitów w repozytorium — wtedy trzeba je
+# włączyć ponownie w zakładce Actions.
+name: Podtrzymanie baz Supabase
+
+on:
+  schedule:
+    - cron: "17 5 * * 1,4"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  zapytanie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - baza: produkcja
+            url: https://khrpzigmflhwznaqfbdf.supabase.co
+            sekret: SUPABASE_PROD_PUBLISHABLE_KEY
+          - baza: test
+            url: https://fmmvizxrbruqrvachomw.supabase.co
+            sekret: SUPABASE_TEST_PUBLISHABLE_KEY
+    steps:
+      - name: Zapytanie do bazy (${{ matrix.baza }})
+        env:
+          URL: ${{ matrix.url }}
+          KLUCZ: ${{ secrets[matrix.sekret] }}
+        run: |
+          if [ -z "$KLUCZ" ]; then
+            echo "Brak sekretu ${{ matrix.sekret }} w ustawieniach repozytorium."
+            exit 1
+          fi
+          kod=$(curl -sS -o odpowiedz.txt -w '%{http_code}' --max-time 60 --retry 3 --retry-delay 20 \
+            -X POST "$URL/rest/v1/rpc/dzis_pl" \
+            -H "apikey: $KLUCZ" -H "content-type: application/json" -d '{}')
+          echo "Odpowiedź $kod: $(cat odpowiedz.txt)"
+          test "$kod" = "200"
