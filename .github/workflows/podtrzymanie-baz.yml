@@ -3,6 +3,8 @@
 # zwraca dzisiejszą datę). Niepowodzenie kończy zadanie błędem, więc GitHub wyśle powiadomienie.
 # Uwaga: GitHub wyłącza zadania cykliczne po 60 dniach bez commitów w repozytorium — wtedy trzeba je
 # włączyć ponownie w zakładce Actions.
+# Wymagane sekrety repozytorium: SUPABASE_PROD_PUBLISHABLE_KEY i SUPABASE_TEST_PUBLISHABLE_KEY (klucze
+# publishable z .env i .env.test); bez nich zadanie kończy się błędem.
 name: Podtrzymanie baz Supabase
 
 on:
